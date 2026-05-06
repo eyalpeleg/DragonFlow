@@ -1,0 +1,147 @@
+import React, { useEffect, useState } from 'react';
+import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { COLORS } from '../styles/theme';
+import { useTaskStore } from '../store/taskStore';
+import { Task } from '../types';
+
+interface Props {
+    task: Task | null;
+    onClose: () => void;
+}
+
+function formatDuration(ms: number): string {
+    const totalMins = Math.floor(ms / 60000);
+    const days = Math.floor(totalMins / 1440);
+    const hours = Math.floor((totalMins % 1440) / 60);
+    const mins = totalMins % 60;
+    const parts: string[] = [];
+    if (days > 0)  parts.push(`${days}d`);
+    if (hours > 0) parts.push(`${hours}h`);
+    if (mins > 0 || parts.length === 0) parts.push(`${mins}m`);
+    return parts.join(' ');
+}
+
+export default function DoneStatsModal({ task, onClose }: Props) {
+    const updateCompletionComment = useTaskStore((s) => s.updateCompletionComment);
+    const [comment, setComment] = useState('');
+
+    useEffect(() => {
+        if (task) setComment(task.completionComment ?? '');
+    }, [task?.id]);
+
+    if (!task || task.status !== 'Done') return null;
+
+    const durationMs = task.completedTime
+        ? task.completedTime - task.createdAt
+        : 0;
+
+    const activeDurationMs = task.completedTime && task.startTime
+        ? task.completedTime - task.startTime
+        : null;
+
+    // On-time check: compare completedTime date to dueDate
+    let timeliness: { label: string; color: string; bg: string } | null = null;
+    if (task.dueDate && task.completedTime) {
+        const dueMs = new Date(task.dueDate + 'T23:59:59').getTime();
+        const diff = Math.round((task.completedTime - dueMs) / 86400000);
+        if (diff <= 0) {
+            timeliness = { label: '✓ On Time', color: '#15803D', bg: '#F0FDF4' };
+        } else {
+            timeliness = { label: `⚠ ${diff}d late`, color: '#B91C1C', bg: '#FEF2F2' };
+        }
+    }
+
+    function handleClose() {
+        if (task) updateCompletionComment(task.id, comment);
+        onClose();
+    }
+
+    const completedDateStr = task.completedTime
+        ? new Date(task.completedTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric', hour: '2-digit', minute: '2-digit' })
+        : '—';
+
+    return (
+        <Modal visible animationType="slide" transparent onRequestClose={handleClose}>
+            <View style={styles.overlay}>
+                <View style={styles.sheet}>
+                    {/* Handle */}
+                    <View style={styles.handle} />
+
+                    <Text style={styles.title} numberOfLines={2}>{task.title}</Text>
+                    <Text style={styles.completedOn}>Completed {completedDateStr}</Text>
+
+                    {/* Stats row */}
+                    <View style={styles.statsRow}>
+                        <View style={styles.statBox}>
+                            <Text style={styles.statValue}>{formatDuration(durationMs)}</Text>
+                            <Text style={styles.statLabel}>Total duration</Text>
+                        </View>
+                        {activeDurationMs !== null && (
+                            <View style={styles.statBox}>
+                                <Text style={styles.statValue}>{formatDuration(activeDurationMs)}</Text>
+                                <Text style={styles.statLabel}>Active time</Text>
+                            </View>
+                        )}
+                        {timeliness && (
+                            <View style={[styles.timelinessBox, { backgroundColor: timeliness.bg }]}>
+                                <Text style={[styles.timelinessText, { color: timeliness.color }]}>
+                                    {timeliness.label}
+                                </Text>
+                            </View>
+                        )}
+                    </View>
+
+                    {/* Comment */}
+                    <Text style={styles.label}>Reflection</Text>
+                    <TextInput
+                        style={styles.commentInput}
+                        value={comment}
+                        onChangeText={setComment}
+                        placeholder="Add a note about this task…"
+                        placeholderTextColor="#bbb"
+                        multiline
+                        numberOfLines={3}
+                        textAlignVertical="top"
+                    />
+
+                    <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+                        <Text style={styles.closeBtnText}>Close</Text>
+                    </TouchableOpacity>
+                </View>
+            </View>
+        </Modal>
+    );
+}
+
+const styles = StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'flex-end' },
+    sheet: {
+        backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        padding: 20, paddingBottom: 36,
+    },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ddd', alignSelf: 'center', marginBottom: 16 },
+    title: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 4 },
+    completedOn: { fontSize: 12, color: '#999', marginBottom: 16 },
+    statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 20 },
+    statBox: {
+        flex: 1, minWidth: 90, backgroundColor: '#F8F9FA', borderRadius: 12,
+        padding: 12, alignItems: 'center',
+    },
+    statValue: { fontSize: 20, fontWeight: '700', color: '#222' },
+    statLabel: { fontSize: 11, color: '#999', marginTop: 2 },
+    timelinessBox: {
+        paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
+        alignItems: 'center', justifyContent: 'center',
+    },
+    timelinessText: { fontSize: 13, fontWeight: '700' },
+    label: { fontSize: 13, fontWeight: '600', color: '#666', marginBottom: 8 },
+    commentInput: {
+        borderWidth: 1, borderColor: '#eee', borderRadius: 10,
+        padding: 10, fontSize: 14, minHeight: 72, color: '#333',
+    },
+    closeBtn: {
+        marginTop: 16, backgroundColor: COLORS.primary, borderRadius: 12,
+        paddingVertical: 14, alignItems: 'center',
+    },
+    closeBtnText: { color: 'white', fontWeight: '700', fontSize: 15 },
+});

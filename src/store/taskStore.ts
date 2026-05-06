@@ -3,8 +3,9 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { Category, Task, TaskStatus } from '../types';
+import { Category, RecurrenceConfig, SubTask, Task, TaskStatus } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders, updateCriticalTasksNotification, updateTodayTasksNotification } from '../utils/notifications';
+import { buildNextOccurrence } from '../utils/recurrence';
 import FloatingBubble from '../modules/FloatingBubble';
 
 const BUILTIN_CATEGORIES: Category[] = [
@@ -28,13 +29,19 @@ function syncNotifications(tasks: Task[]) {
     }
 }
 
-interface AddTaskInput {
+function makeId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+export interface AddTaskInput {
     title: string;
     description: string;
     priority: PriorityLevel;
     category: string;
     dueDate: string;
     dueTime: string;
+    subTasks?: SubTask[];
+    recurrence?: RecurrenceConfig;
 }
 
 interface TaskStore {
@@ -52,7 +59,13 @@ interface TaskStore {
     setCategory: (category: string | null) => void;
     setHydrated: (value: boolean) => void;
     addCategory: (name: string, color: string) => void;
-    deleteCategory: (name: string) => boolean; // returns false if in use
+    deleteCategory: (name: string) => boolean;
+    // Sub-task actions
+    toggleSubTask: (taskId: string, subTaskId: string) => void;
+    addSubTask: (taskId: string, title: string) => void;
+    removeSubTask: (taskId: string, subTaskId: string) => void;
+    // Done stats
+    updateCompletionComment: (taskId: string, comment: string) => void;
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -78,10 +91,17 @@ export const useTaskStore = create<TaskStore>()(
 
             addTask: (input) => set((s) => {
                 const task: Task = {
-                    id: Date.now().toString(36) + Math.random().toString(36).slice(2, 6),
-                    ...input,
-                    status: 'Ready' as TaskStatus,
+                    id: makeId(),
+                    title: input.title,
+                    description: input.description,
+                    priority: input.priority,
+                    category: input.category,
+                    dueDate: input.dueDate,
+                    dueTime: input.dueTime,
+                    status: 'Ready',
                     createdAt: Date.now(),
+                    subTasks: input.subTasks ?? [],
+                    recurrence: input.recurrence,
                 };
                 const tasks = [task, ...s.tasks];
                 syncNotifications(tasks);
@@ -125,15 +145,24 @@ export const useTaskStore = create<TaskStore>()(
             }),
 
             setStatus: (id, status) => set((s) => {
-                const tasks = s.tasks.map((t) => {
+                let tasks = s.tasks.map((t) => {
                     if (t.id !== id) return t;
                     return {
                         ...t,
                         status,
-                        startTime: status === 'In Progress' ? Date.now() : t.startTime,
+                        startTime: status === 'In Progress' ? (t.startTime ?? Date.now()) : t.startTime,
                         completedTime: status === 'Done' ? Date.now() : status === 'In Progress' ? undefined : t.completedTime,
                     };
                 });
+
+                // Spawn next occurrence when a recurring task is marked Done
+                const completed = tasks.find((t) => t.id === id);
+                if (status === 'Done' && completed?.recurrence) {
+                    const next = buildNextOccurrence(completed);
+                    tasks = [...tasks, next];
+                    scheduleTaskReminders(next).catch(() => {});
+                }
+
                 syncNotifications(tasks);
                 if (status === 'Done') {
                     cancelTaskReminders(id).catch(() => {});
@@ -162,13 +191,43 @@ export const useTaskStore = create<TaskStore>()(
                 set({ categories: s.categories.filter((c) => c.name !== name) });
                 return true;
             },
+
+            toggleSubTask: (taskId, subTaskId) => set((s) => ({
+                tasks: s.tasks.map((t) => {
+                    if (t.id !== taskId) return t;
+                    return {
+                        ...t,
+                        subTasks: (t.subTasks ?? []).map((st) =>
+                            st.id === subTaskId ? { ...st, completed: !st.completed } : st
+                        ),
+                    };
+                }),
+            })),
+
+            addSubTask: (taskId, title) => set((s) => ({
+                tasks: s.tasks.map((t) => {
+                    if (t.id !== taskId) return t;
+                    const newSub: SubTask = { id: makeId(), title, completed: false };
+                    return { ...t, subTasks: [...(t.subTasks ?? []), newSub] };
+                }),
+            })),
+
+            removeSubTask: (taskId, subTaskId) => set((s) => ({
+                tasks: s.tasks.map((t) => {
+                    if (t.id !== taskId) return t;
+                    return { ...t, subTasks: (t.subTasks ?? []).filter((st) => st.id !== subTaskId) };
+                }),
+            })),
+
+            updateCompletionComment: (taskId, comment) => set((s) => ({
+                tasks: s.tasks.map((t) => t.id === taskId ? { ...t, completionComment: comment } : t),
+            })),
         }),
         {
             name: 'dragonflow-tasks',
             storage: createJSONStorage(() => AsyncStorage),
             merge: (persisted: unknown, current: TaskStore) => {
                 const p = persisted as Partial<TaskStore>;
-                // Ensure built-in categories are always present
                 const stored = p.categories ?? [];
                 const builtInNames = new Set(BUILTIN_CATEGORIES.map((c) => c.name));
                 const custom = stored.filter((c) => !builtInNames.has(c.name));
@@ -190,15 +249,14 @@ export const useTaskStore = create<TaskStore>()(
     )
 );
 
-// Hook: stable sorted+filtered task list via useMemo (avoids infinite loop from new array refs)
-export function useSortedFilteredTasks(): Task[] {
+export function useSortedFilteredTasks(activeStatus: TaskStatus | null = null): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
     const activeCategory = useTaskStore((s) => s.activeCategory);
     return useMemo(() => {
         const active = tasks.filter((t) => !t.archivedAt);
-        const filtered = activeCategory
-            ? active.filter((t) => t.category === activeCategory)
-            : active;
+        const filtered = active
+            .filter((t) => !activeCategory || t.category === activeCategory)
+            .filter((t) => !activeStatus || t.status === activeStatus);
         return [...filtered].sort((a, b) => {
             const statusDiff = statusOrder[a.status] - statusOrder[b.status];
             if (statusDiff !== 0) return statusDiff;
@@ -209,7 +267,7 @@ export function useSortedFilteredTasks(): Task[] {
             if (priorityDiff !== 0) return priorityDiff;
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, activeCategory]);
+    }, [tasks, activeCategory, activeStatus]);
 }
 
 export function useArchivedTasks(): Task[] {

@@ -1,12 +1,18 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { getCategoryColor, useTaskStore } from '../store/taskStore';
-import { Task } from '../types';
+import { RecurrenceConfig, RecurrenceFrequency, SubTask, Task } from '../types';
 import DatePickerField from './DatePickerField';
 import TimePickerField from './TimePickerField';
 import AddCategoryModal from './AddCategoryModal';
+
+function makeId(): string {
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+const FREQUENCIES: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly'];
 
 interface Props {
     isVisible: boolean;
@@ -24,6 +30,13 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     const [dueDate, setDueDate] = useState(new Date());
     const [dueTime, setDueTime] = useState('08:00');
     const [addCatVisible, setAddCatVisible] = useState(false);
+    // Recurring
+    const [isRecurring, setIsRecurring] = useState(false);
+    const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
+    const [interval, setInterval] = useState('1');
+    // Sub-tasks
+    const [subTasks, setSubTasks] = useState<SubTask[]>([]);
+    const [subTaskInput, setSubTaskInput] = useState('');
 
     useEffect(() => {
         if (task) {
@@ -34,15 +47,38 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
             const parsed = task.dueDate ? new Date(task.dueDate + 'T00:00:00') : new Date();
             setDueDate(isNaN(parsed.getTime()) ? new Date() : parsed);
             setDueTime(task.dueTime ?? '08:00');
+            setIsRecurring(!!task.recurrence);
+            setFrequency(task.recurrence?.frequency ?? 'weekly');
+            setInterval(String(task.recurrence?.interval ?? 1));
+            setSubTasks(task.subTasks ?? []);
+            setSubTaskInput('');
         }
     }, [task]);
+
+    function addSubTask() {
+        const t = subTaskInput.trim();
+        if (!t) return;
+        setSubTasks((prev) => [...prev, { id: makeId(), title: t, completed: false }]);
+        setSubTaskInput('');
+    }
+
+    function removeSubTask(id: string) {
+        setSubTasks((prev) => prev.filter((s) => s.id !== id));
+    }
 
     const handleSave = () => {
         if (!task || !title.trim()) return;
         const yyyy = dueDate.getFullYear();
         const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
         const dd = String(dueDate.getDate()).padStart(2, '0');
-        onSave(task.id, { title: title.trim(), description, priority, category, dueDate: `${yyyy}-${mm}-${dd}`, dueTime });
+        const recurrence: RecurrenceConfig | undefined = isRecurring
+            ? { frequency, interval: Math.max(1, parseInt(interval, 10) || 1) }
+            : undefined;
+        onSave(task.id, {
+            title: title.trim(), description, priority, category,
+            dueDate: `${yyyy}-${mm}-${dd}`, dueTime,
+            subTasks, recurrence,
+        });
     };
 
     const priorities: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
@@ -51,7 +87,12 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
         <>
             <Modal visible={isVisible} animationType="slide" transparent>
                 <View style={styles.overlay}>
-                    <View style={styles.content}>
+                    <ScrollView
+                        style={styles.content}
+                        contentContainerStyle={styles.contentInner}
+                        keyboardShouldPersistTaps="handled"
+                        showsVerticalScrollIndicator={false}
+                    >
                         <Text style={styles.modalTitle}>Edit Task</Text>
 
                         <TextInput
@@ -71,22 +112,15 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
                         <Text style={styles.label}>Due Date &amp; Time</Text>
                         <View style={styles.dateTimeRow}>
-                            <View style={styles.dateTimeDate}>
-                                <DatePickerField value={dueDate} onChange={setDueDate} />
-                            </View>
-                            <View style={styles.dateTimeTime}>
-                                <TimePickerField value={dueTime} onChange={setDueTime} />
-                            </View>
+                            <View style={styles.dateTimeDate}><DatePickerField value={dueDate} onChange={setDueDate} /></View>
+                            <View style={styles.dateTimeTime}><TimePickerField value={dueTime} onChange={setDueTime} /></View>
                         </View>
 
                         <Text style={styles.label}>Priority</Text>
                         <View style={styles.row}>
                             {priorities.map((p) => (
-                                <TouchableOpacity
-                                    key={p}
-                                    onPress={() => setPriority(p)}
-                                    style={[styles.chip, priority === p && { backgroundColor: COLORS.priority[p] }]}
-                                >
+                                <TouchableOpacity key={p} onPress={() => setPriority(p)}
+                                    style={[styles.chip, priority === p && { backgroundColor: COLORS.priority[p] }]}>
                                     <Text style={[styles.chipText, priority === p && { color: 'white' }]}>{p}</Text>
                                 </TouchableOpacity>
                             ))}
@@ -97,11 +131,8 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                             {categories.map((c) => {
                                 const color = getCategoryColor(categories, c.name);
                                 return (
-                                    <TouchableOpacity
-                                        key={c.name}
-                                        onPress={() => setCategory(c.name)}
-                                        style={[styles.chip, category === c.name && { backgroundColor: color }]}
-                                    >
+                                    <TouchableOpacity key={c.name} onPress={() => setCategory(c.name)}
+                                        style={[styles.chip, category === c.name && { backgroundColor: color }]}>
                                         <Text style={[styles.chipText, category === c.name && { color: 'white' }]}>{c.name}</Text>
                                     </TouchableOpacity>
                                 );
@@ -111,7 +142,73 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                             </TouchableOpacity>
                         </ScrollView>
 
-                        <View style={styles.buttonRow}>
+                        {/* Recurring */}
+                        <View style={styles.switchRow}>
+                            <View>
+                                <Text style={styles.label}>Recurring task</Text>
+                                {isRecurring && <Text style={styles.switchSub}>Spawns next occurrence on completion</Text>}
+                            </View>
+                            <Switch
+                                value={isRecurring}
+                                onValueChange={setIsRecurring}
+                                trackColor={{ true: COLORS.primary }}
+                            />
+                        </View>
+                        {isRecurring && (
+                            <View style={styles.recurrenceBlock}>
+                                <Text style={styles.sublabel}>Frequency</Text>
+                                <View style={styles.row}>
+                                    {FREQUENCIES.map((f) => (
+                                        <TouchableOpacity key={f} onPress={() => setFrequency(f)}
+                                            style={[styles.chip, frequency === f && { backgroundColor: COLORS.primary }]}>
+                                            <Text style={[styles.chipText, frequency === f && { color: 'white' }]}>
+                                                {f.charAt(0).toUpperCase() + f.slice(1)}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </View>
+                                <Text style={styles.sublabel}>Every N {frequency === 'daily' ? 'days' : frequency === 'weekly' ? 'weeks' : 'months'}</Text>
+                                <TextInput
+                                    style={[styles.input, { width: 60 }]}
+                                    value={interval}
+                                    onChangeText={setInterval}
+                                    keyboardType="number-pad"
+                                />
+                            </View>
+                        )}
+
+                        {/* Sub-tasks */}
+                        <Text style={styles.label}>Sub-tasks</Text>
+                        <View style={styles.subTaskInputRow}>
+                            <TextInput
+                                style={[styles.input, { flex: 1, marginBottom: 0 }]}
+                                value={subTaskInput}
+                                onChangeText={setSubTaskInput}
+                                placeholder="Add a sub-task"
+                                onSubmitEditing={addSubTask}
+                                returnKeyType="done"
+                            />
+                            <TouchableOpacity style={styles.addSubBtn} onPress={addSubTask}>
+                                <Ionicons name="add" size={18} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                        {subTasks.map((s) => (
+                            <View key={s.id} style={styles.subTaskRow}>
+                                <Ionicons
+                                    name={s.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                                    size={14}
+                                    color={s.completed ? COLORS.status['Done'] : '#ccc'}
+                                />
+                                <Text style={[styles.subTaskTitle, s.completed && styles.subTaskDone]} numberOfLines={1}>
+                                    {s.title}
+                                </Text>
+                                <TouchableOpacity onPress={() => removeSubTask(s.id)}>
+                                    <Ionicons name="close" size={14} color="#ccc" />
+                                </TouchableOpacity>
+                            </View>
+                        ))}
+
+                        <View style={[styles.buttonRow, { marginTop: 20 }]}>
                             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
                                 <Text style={styles.cancelText}>Cancel</Text>
                             </TouchableOpacity>
@@ -119,7 +216,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                 <Text style={styles.saveText}>Save Changes</Text>
                             </TouchableOpacity>
                         </View>
-                    </View>
+                    </ScrollView>
                 </View>
             </Modal>
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
@@ -129,13 +226,15 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
 const styles = StyleSheet.create({
     overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-end' },
-    content: { backgroundColor: 'white', padding: 20, borderTopLeftRadius: 20, borderTopRightRadius: 20 },
+    content: { backgroundColor: 'white', borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
+    contentInner: { padding: 20 },
     modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
     input: { borderBottomWidth: 1, borderBottomColor: '#eee', paddingVertical: 10, marginBottom: 15, fontSize: 16 },
     textArea: { height: 60 },
     label: { fontSize: 14, fontWeight: 'bold', color: '#666', marginTop: 10, marginBottom: 8 },
-    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 15 },
-    categoryRow: { flexDirection: 'row', marginBottom: 20 },
+    sublabel: { fontSize: 12, fontWeight: '600', color: '#888', marginBottom: 6 },
+    row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
+    categoryRow: { flexDirection: 'row', marginBottom: 8 },
     dateTimeRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
     dateTimeDate: { flex: 2 },
     dateTimeTime: { flex: 1 },
@@ -146,6 +245,14 @@ const styles = StyleSheet.create({
         backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: COLORS.primary,
         alignItems: 'center', justifyContent: 'center', alignSelf: 'center',
     },
+    switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
+    switchSub: { fontSize: 11, color: '#aaa', marginTop: 2 },
+    recurrenceBlock: { backgroundColor: '#f9f9f9', borderRadius: 10, padding: 12, marginBottom: 8 },
+    subTaskInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 },
+    addSubBtn: { backgroundColor: COLORS.primary, borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    subTaskRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
+    subTaskTitle: { flex: 1, fontSize: 13, color: '#555' },
+    subTaskDone: { textDecorationLine: 'line-through', color: '#bbb' },
     buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15 },
     cancelBtn: { padding: 12 },
     cancelText: { color: '#999', fontWeight: 'bold' },

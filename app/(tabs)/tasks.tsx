@@ -4,21 +4,25 @@ import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View }
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
+import DoneStatsModal from '@/src/components/DoneStatsModal';
 import EditTaskModal from '@/src/components/EditTaskModal';
 import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx } from '@/src/components/PomodoroTimer';
+import StatusFilter from '@/src/components/StatusFilter';
 import TaskCard from '@/src/components/TaskCard';
 import TaskFilters from '@/src/components/TaskFilters';
 import { COLORS } from '@/src/styles/theme';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/taskStore';
 import { cancelPomodoroNotification, schedulePomodoroEnd } from '@/src/utils/notifications';
-import { Task } from '@/src/types';
+import { Task, TaskStatus } from '@/src/types';
 
 export default function TasksScreen() {
     const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
-    const tasks = useSortedFilteredTasks();
+    const [activeStatus, setActiveStatus] = useState<TaskStatus | null>(null);
+    const tasks = useSortedFilteredTasks(activeStatus);
     const archivedTasks = useArchivedTasks();
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
+    const [statsTask, setStatsTask] = useState<Task | null>(null);
     const [pomodoroVisible, setPomodoroVisible] = useState(false);
     const [showArchive, setShowArchive] = useState(false);
 
@@ -63,7 +67,6 @@ export default function TasksScreen() {
         setSecondsLeft(POMODORO_MODES[modeIdx].minutes * 60);
     }, [stopTimer, modeIdx]);
 
-    // Show ⏱ badge in header when timer is running but modal is closed
     const timerActive = running && !pomodoroVisible;
     const timerMins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
     const timerSecs = String(secondsLeft % 60).padStart(2, '0');
@@ -117,16 +120,13 @@ export default function TasksScreen() {
                         </View>
                     }
                     renderItem={({ item }) => (
-                        <ArchivedTaskCard
-                            task={item}
-                            onRestore={restoreTask}
-                            onDelete={deleteTask}
-                        />
+                        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} />
                     )}
                 />
             ) : (
                 <>
                     <TaskFilters />
+                    <StatusFilter active={activeStatus} onChange={setActiveStatus} />
                     <FlatList
                         data={tasks}
                         keyExtractor={(item) => item.id}
@@ -134,8 +134,10 @@ export default function TasksScreen() {
                         ListEmptyComponent={
                             <View style={styles.emptyState}>
                                 <Text style={styles.emptyEmoji}>🐉</Text>
-                                <Text style={styles.emptyText}>No tasks yet</Text>
-                                <Text style={styles.emptySubtext}>Tap + to add your first task</Text>
+                                <Text style={styles.emptyText}>No tasks</Text>
+                                <Text style={styles.emptySubtext}>
+                                    {activeStatus ? `No "${activeStatus}" tasks` : 'Tap + to add your first task'}
+                                </Text>
                             </View>
                         }
                         renderItem={({ item }) => (
@@ -144,6 +146,7 @@ export default function TasksScreen() {
                                 onStatusChange={setStatus}
                                 onEdit={(t) => setEditTask(t)}
                                 onArchive={archiveTask}
+                                onOpenStats={(t) => setStatsTask(t)}
                             />
                         )}
                     />
@@ -179,6 +182,11 @@ export default function TasksScreen() {
                     updateTask(id, updates);
                     setEditTask(null);
                 }}
+            />
+
+            <DoneStatsModal
+                task={statsTask}
+                onClose={() => setStatsTask(null)}
             />
         </SafeAreaView>
     );
