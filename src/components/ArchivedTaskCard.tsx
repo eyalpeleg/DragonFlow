@@ -41,7 +41,8 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete }: Props) {
                         <Text style={styles.restoreText}>Restore</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                        <Ionicons name="trash-outline" size={13} color="white" />
+                        <Ionicons name="trash" size={15} color="white" />
+                        <Text style={styles.deleteText}>Delete</Text>
                     </TouchableOpacity>
                 </View>
             </View>
@@ -76,9 +77,10 @@ const styles = StyleSheet.create({
     },
     restoreText: { color: 'white', fontSize: 11, fontWeight: '700' },
     deleteBtn: {
-        backgroundColor: '#E53935', paddingHorizontal: 8, paddingVertical: 4, borderRadius: 12,
-        alignItems: 'center', justifyContent: 'center',
+        flexDirection: 'row', alignItems: 'center', gap: 4,
+        backgroundColor: '#E53935', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
     },
+    deleteText: { color: 'white', fontSize: 11, fontWeight: '700' },
     meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     priority: { fontSize: 11, fontWeight: '700' },
     catChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
