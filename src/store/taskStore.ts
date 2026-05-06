@@ -26,6 +26,8 @@ function syncNotifications(tasks: Task[]) {
     const critical = active.filter((t) => t.priority === 'Critical' && t.status !== 'Done');
     if (critical.length === 0) {
         FloatingBubble.hide();
+    } else {
+        FloatingBubble.show(critical.length, `${critical.length} Critical ${critical.length === 1 ? 'Task' : 'Tasks'}`);
     }
 }
 
