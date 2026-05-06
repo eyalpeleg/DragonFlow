@@ -166,6 +166,17 @@ class FloatingBubbleService : Service() {
         stopSelf()
     }
 
+    private fun openApp() {
+        val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
+        if (launchIntent != null) {
+            launchIntent.flags =
+                Intent.FLAG_ACTIVITY_NEW_TASK or
+                Intent.FLAG_ACTIVITY_SINGLE_TOP or
+                Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
+            startActivity(launchIntent)
+        }
+    }
+
     override fun onDestroy() {
         bubbleView?.let {
             try { windowManager.removeView(it) } catch (_: Exception) {}
@@ -205,8 +216,26 @@ class FloatingBubbleService : Service() {
 
     private inner class BubbleTouchListener : View.OnTouchListener {
         private var moved = false
+        private var doubleTapped = false
+
+        private val gestureDetector = GestureDetector(
+            this@FloatingBubbleService,
+            object : GestureDetector.SimpleOnGestureListener() {
+                override fun onDoubleTap(e: MotionEvent): Boolean {
+                    doubleTapped = true
+                    removeDismissView()
+                    snapToEdge()
+                    openApp()
+                    return true
+                }
+            }
+        )
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
+            // Run gesture detector alongside drag handling so we can
+            // recognize double-taps without breaking drag/dismiss.
+            gestureDetector.onTouchEvent(event)
+
             when (event.action) {
                 MotionEvent.ACTION_DOWN -> {
                     initialTouchX = event.rawX
@@ -215,10 +244,12 @@ class FloatingBubbleService : Service() {
                     initialY = bubbleParams?.y ?: 0
                     isDragging = true
                     moved = false
+                    doubleTapped = false
                     createDismissView()
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
+                    if (doubleTapped) return true
                     val params = bubbleParams ?: return true
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
@@ -233,6 +264,11 @@ class FloatingBubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     isDragging = false
+                    if (doubleTapped) {
+                        // Double-tap already handled (app launched, dismiss view removed).
+                        doubleTapped = false
+                        return true
+                    }
                     val params = bubbleParams ?: return true
 
                     if (isNearDismissTarget(params.x, params.y)) {
