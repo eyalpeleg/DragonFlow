@@ -272,6 +272,7 @@ export const useTaskStore = create<TaskStore>()(
                 dueDateFilters: Array.from(state.dueDateFilters),
             }),
             merge: (persisted: unknown, current: TaskStore) => {
+                if (!persisted) return current;
                 const p = persisted as any;
                 const stored = p.categories ?? [];
                 const builtInNames = new Set(BUILTIN_CATEGORIES.map((c) => c.name));

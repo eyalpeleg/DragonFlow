@@ -14,7 +14,7 @@ interface Props {
 }
 
 const FILTER_CONFIG: Record<FilterType, { icon: string; label: string; color: string }> = {
-    status: { icon: 'radio-button-filled', label: 'Status', color: COLORS.primary },
+    status: { icon: 'radio-button-on', label: 'Status', color: COLORS.primary },
     category: { icon: 'folder', label: 'Category', color: COLORS.primary },
     priority: { icon: 'alert-circle', label: 'Priority', color: '#FF9800' },
     dueDate: { icon: 'calendar', label: 'Due', color: '#666' },
