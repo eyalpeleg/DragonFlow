@@ -260,7 +260,10 @@ export const useTaskStore = create<TaskStore>()(
             name: 'dragonflow-tasks',
             storage: createJSONStorage(() => AsyncStorage),
             partialize: (state: TaskStore) => ({
-                ...state,
+                tasks: state.tasks,
+                categories: state.categories,
+                defaultTaskTime: state.defaultTaskTime,
+                showBubbleInBackground: state.showBubbleInBackground,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
