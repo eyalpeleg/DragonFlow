@@ -50,6 +50,8 @@ interface TaskStore {
     hasHydrated: boolean;
     activeCategory: string | null;
     dismissedFloatingBubble: boolean;
+    showBubbleInBackground: boolean;
+    defaultTaskTime: string;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -69,6 +71,8 @@ interface TaskStore {
     updateCompletionComment: (taskId: string, comment: string) => void;
     // Floating bubble
     setFloatingBubbleDismissed: (dismissed: boolean) => void;
+    setShowBubbleInBackground: (show: boolean) => void;
+    setDefaultTaskTime: (time: string) => void;
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -92,6 +96,8 @@ export const useTaskStore = create<TaskStore>()(
             hasHydrated: false,
             activeCategory: null,
             dismissedFloatingBubble: false,
+            showBubbleInBackground: true,
+            defaultTaskTime: '08:00',
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -228,6 +234,10 @@ export const useTaskStore = create<TaskStore>()(
             })),
 
             setFloatingBubbleDismissed: (dismissed) => set({ dismissedFloatingBubble: dismissed }),
+
+            setShowBubbleInBackground: (show) => set({ showBubbleInBackground: show }),
+
+            setDefaultTaskTime: (time) => set({ defaultTaskTime: time }),
         }),
         {
             name: 'dragonflow-tasks',

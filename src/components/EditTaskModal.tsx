@@ -23,12 +23,13 @@ interface Props {
 
 export default function EditTaskModal({ isVisible, task, onClose, onSave }: Props) {
     const categories = useTaskStore((s) => s.categories);
+    const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
     const [category, setCategory] = useState('Personal');
     const [dueDate, setDueDate] = useState(new Date());
-    const [dueTime, setDueTime] = useState('08:00');
+    const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     // Recurring
     const [isRecurring, setIsRecurring] = useState(false);
