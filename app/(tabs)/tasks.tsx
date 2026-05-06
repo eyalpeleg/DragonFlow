@@ -148,7 +148,7 @@ export default function TasksScreen() {
                             {timerActive ? (
                                 <Text style={styles.pomodoroBtnTimer}>{timerMins}:{timerSecs}</Text>
                             ) : (
-                                <Text style={styles.pomodoroBtnText}>⏱</Text>
+                                <Ionicons name="hourglass" size={20} color={COLORS.primary} />
                             )}
                         </TouchableOpacity>
                     )}
