@@ -21,12 +21,12 @@ export default function RootLayout() {
         });
 
         const sub = AppState.addEventListener('change', (nextState) => {
-            const { tasks } = useTaskStore.getState();
+            const { tasks, dismissedFloatingBubble } = useTaskStore.getState();
             const critical = tasks.filter(t => t.priority === 'Critical' && t.status !== 'Done');
             if (nextState === 'active') {
                 FloatingBubble.hide();
             } else if (nextState === 'background') {
-                if (critical.length > 0) {
+                if (critical.length > 0 && !dismissedFloatingBubble) {
                     FloatingBubble.show(critical.length, critical[0].title);
                 }
             }
