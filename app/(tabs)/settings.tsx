@@ -1,13 +1,36 @@
 import React, { useState } from 'react';
-import { ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/src/styles/theme';
-import { useTaskStore } from '@/src/store/taskStore';
+import { getCategoryColor, useTaskStore } from '@/src/store/taskStore';
+import AddCategoryModal from '@/src/components/AddCategoryModal';
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
+    const [addCatVisible, setAddCatVisible] = useState(false);
+
+    function handleDeleteCategory(name: string, builtIn: boolean) {
+        if (builtIn) {
+            Alert.alert('Cannot delete', 'Built-in categories cannot be deleted.');
+            return;
+        }
+        Alert.alert(
+            'Delete Category',
+            `Remove "${name}"? This only works if no active tasks use it.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Delete',
+                    style: 'destructive',
+                    onPress: () => {
+                        deleteCategory(name);
+                    },
+                },
+            ]
+        );
+    }
 
     const handleTimeChange = (text: string) => {
         setTempTime(text);
