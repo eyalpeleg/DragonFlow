@@ -12,7 +12,7 @@ interface Props {
 }
 
 const FILTER_TYPES: Array<{ type: FilterType; label: string; icon: string; description: string }> = [
-    { type: 'status', label: 'Status', icon: 'radio-button-filled', description: 'Ready, In Progress, Done' },
+    { type: 'status', label: 'Status', icon: 'radio-button-on', description: 'Ready, In Progress, Done' },
     { type: 'category', label: 'Category', icon: 'folder', description: 'Friends, Personal, etc.' },
     { type: 'priority', label: 'Priority', icon: 'alert-circle', description: 'Critical, High, Medium, Low' },
     { type: 'dueDate', label: 'Due Date', icon: 'calendar', description: 'Overdue, Today, Upcoming' },
