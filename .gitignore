@@ -38,7 +38,6 @@ yarn-error.*
 
 app-example
 
-# generated native folders
+# generated native folder (iOS only — android/ is committed for bare workflow)
 /ios
-/android
 .claude/
