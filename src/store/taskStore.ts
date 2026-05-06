@@ -286,27 +286,26 @@ export const useTaskStore = create<TaskStore>()(
                 } as TaskStore;
             },
             onRehydrateStorage: () => (state) => {
-                state?.setHydrated(true);
-                // Always reset dismissed bubble on app restart
                 if (state) {
                     state.dismissedFloatingBubble = false;
-                    // Ensure filter sets are properly initialized
-                    if (!state.statusFilters || !state.statusFilters.size) {
+                    // Ensure filter sets exist as Sets
+                    if (!(state.statusFilters instanceof Set)) {
                         state.statusFilters = new Set();
                     }
-                    if (!state.categoryFilters || !state.categoryFilters.size) {
+                    if (!(state.categoryFilters instanceof Set)) {
                         state.categoryFilters = new Set();
                     }
-                    if (!state.priorityFilters || !state.priorityFilters.size) {
+                    if (!(state.priorityFilters instanceof Set)) {
                         state.priorityFilters = new Set();
                     }
-                    if (!state.dueDateFilters || !state.dueDateFilters.size) {
+                    if (!(state.dueDateFilters instanceof Set)) {
                         state.dueDateFilters = new Set();
                     }
                     state.tasks
                         .filter((t) => t.status !== 'Done' && !t.archivedAt)
                         .forEach((t) => scheduleTaskReminders(t).catch(() => {}));
                 }
+                state?.setHydrated(true);
             },
         }
     )
