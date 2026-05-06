@@ -48,10 +48,14 @@ interface TaskStore {
     tasks: Task[];
     categories: Category[];
     hasHydrated: boolean;
-    activeCategory: string | null;
     dismissedFloatingBubble: boolean;
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
+    // New filter state
+    statusFilters: Set<TaskStatus>;
+    categoryFilters: Set<string>;
+    priorityFilters: Set<PriorityLevel>;
+    dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -59,7 +63,6 @@ interface TaskStore {
     archiveTask: (id: string) => void;
     restoreTask: (id: string) => void;
     setStatus: (id: string, status: TaskStatus) => void;
-    setCategory: (category: string | null) => void;
     setHydrated: (value: boolean) => void;
     addCategory: (name: string, color: string) => void;
     deleteCategory: (name: string) => boolean;
@@ -73,6 +76,11 @@ interface TaskStore {
     setFloatingBubbleDismissed: (dismissed: boolean) => void;
     setShowBubbleInBackground: (show: boolean) => void;
     setDefaultTaskTime: (time: string) => void;
+    // Filter actions
+    setStatusFilters: (filters: Set<TaskStatus>) => void;
+    setCategoryFilters: (filters: Set<string>) => void;
+    setPriorityFilters: (filters: Set<PriorityLevel>) => void;
+    setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -94,10 +102,13 @@ export const useTaskStore = create<TaskStore>()(
             tasks: [],
             categories: BUILTIN_CATEGORIES,
             hasHydrated: false,
-            activeCategory: null,
             dismissedFloatingBubble: false,
             showBubbleInBackground: true,
             defaultTaskTime: '08:00',
+            statusFilters: new Set(),
+            categoryFilters: new Set(),
+            priorityFilters: new Set(),
+            dueDateFilters: new Set(),
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -183,8 +194,6 @@ export const useTaskStore = create<TaskStore>()(
                 return { tasks };
             }),
 
-            setCategory: (category) => set({ activeCategory: category }),
-
             setHydrated: (value) => set({ hasHydrated: value }),
 
             addCategory: (name, color) => set((s) => {
@@ -238,20 +247,32 @@ export const useTaskStore = create<TaskStore>()(
             setShowBubbleInBackground: (show) => set({ showBubbleInBackground: show }),
 
             setDefaultTaskTime: (time) => set({ defaultTaskTime: time }),
+
+            setStatusFilters: (filters) => set({ statusFilters: filters }),
+
+            setCategoryFilters: (filters) => set({ categoryFilters: filters }),
+
+            setPriorityFilters: (filters) => set({ priorityFilters: filters }),
+
+            setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
         }),
         {
             name: 'dragonflow-tasks',
             storage: createJSONStorage(() => AsyncStorage),
             merge: (persisted: unknown, current: TaskStore) => {
-                const p = persisted as Partial<TaskStore>;
+                const p = persisted as any;
                 const stored = p.categories ?? [];
                 const builtInNames = new Set(BUILTIN_CATEGORIES.map((c) => c.name));
-                const custom = stored.filter((c) => !builtInNames.has(c.name));
+                const custom = stored.filter((c: Category) => !builtInNames.has(c.name));
+                // Filter out old keys like activeCategory that no longer exist
+                const persistedFiltered = Object.fromEntries(
+                    Object.entries(p).filter(([key]) => !['activeCategory'].includes(key))
+                );
                 return {
                     ...current,
-                    ...p,
+                    ...persistedFiltered,
                     categories: [...BUILTIN_CATEGORIES, ...custom],
-                };
+                } as TaskStore;
             },
             onRehydrateStorage: () => (state) => {
                 state?.setHydrated(true);
@@ -267,14 +288,43 @@ export const useTaskStore = create<TaskStore>()(
     )
 );
 
-export function useSortedFilteredTasks(activeStatus: TaskStatus | null = null): Task[] {
+export function useSortedFilteredTasks(): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
-    const activeCategory = useTaskStore((s) => s.activeCategory);
+    const statusFilters = useTaskStore((s) => s.statusFilters);
+    const categoryFilters = useTaskStore((s) => s.categoryFilters);
+    const priorityFilters = useTaskStore((s) => s.priorityFilters);
+    const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
+
     return useMemo(() => {
         const active = tasks.filter((t) => !t.archivedAt);
-        const filtered = active
-            .filter((t) => !activeCategory || t.category === activeCategory)
-            .filter((t) => !activeStatus || t.status === activeStatus);
+
+        const filtered = active.filter((t) => {
+            // Status filter: AND across all statuses (any match passes)
+            if (statusFilters.size > 0 && !statusFilters.has(t.status)) return false;
+
+            // Category filter: AND across all categories (any match passes)
+            if (categoryFilters.size > 0 && !categoryFilters.has(t.category)) return false;
+
+            // Priority filter: AND across all priorities (any match passes)
+            if (priorityFilters.size > 0 && !priorityFilters.has(t.priority)) return false;
+
+            // Due date filter: AND across date ranges
+            if (dueDateFilters.size > 0) {
+                if (!t.dueDate) return false;
+                const today = new Date().toISOString().slice(0, 10);
+                const dueDate = t.dueDate;
+                const matchesDueDateFilter = Array.from(dueDateFilters).some((filter) => {
+                    if (filter === 'overdue') return t.status !== 'Done' && dueDate < today;
+                    if (filter === 'today') return t.status !== 'Done' && dueDate === today;
+                    if (filter === 'upcoming') return t.status !== 'Done' && dueDate > today;
+                    return false;
+                });
+                if (!matchesDueDateFilter) return false;
+            }
+
+            return true;
+        });
+
         return [...filtered].sort((a, b) => {
             const statusDiff = statusOrder[a.status] - statusOrder[b.status];
             if (statusDiff !== 0) return statusDiff;
@@ -285,7 +335,7 @@ export function useSortedFilteredTasks(activeStatus: TaskStatus | null = null): 
             if (priorityDiff !== 0) return priorityDiff;
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, activeCategory, activeStatus]);
+    }, [tasks, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
 }
 
 export function useArchivedTasks(): Task[] {
