@@ -40,4 +40,5 @@ app-example
 
 # generated native folder (iOS only — android/ is committed for bare workflow)
 /ios
-.claude/
+.claude/*
+!.claude/skills/

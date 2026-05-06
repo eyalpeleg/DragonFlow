@@ -293,7 +293,7 @@ const styles = StyleSheet.create({
     archiveBadgeText: { color: 'white', fontSize: 9, fontWeight: '700' },
     pomodoroBtn: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     pomodoroBtnText: { fontSize: 20 },
-    pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
+    pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: 'white' },
     listContent: { paddingBottom: 100 },
     emptyContainer: { flex: 1 },
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100 },
