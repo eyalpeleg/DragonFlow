@@ -259,12 +259,8 @@ class FloatingBubbleService : Service() {
 
         private val iconBitmap: Bitmap?
         private val iconRect = RectF()
-        private val badgePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+        private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.RED
-            style = Paint.Style.FILL
-        }
-        private val badgeTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -298,15 +294,10 @@ class FloatingBubbleService : Service() {
             }
 
             if (count > 0) {
-                val badgeRadius = w * 0.22f
-                val badgeCenterX = w * 0.78f
-                val badgeCenterY = h * 0.22f
-                canvas.drawCircle(badgeCenterX, badgeCenterY, badgeRadius, badgePaint)
-
-                badgeTextPaint.textSize = badgeRadius * 1.2f
                 val text = if (count > 9) "9+" else count.toString()
-                val textY = badgeCenterY - (badgeTextPaint.descent() + badgeTextPaint.ascent()) / 2
-                canvas.drawText(text, badgeCenterX, textY, badgeTextPaint)
+                countTextPaint.textSize = w * 0.35f
+                val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
+                canvas.drawText(text, w / 2f, textY, countTextPaint)
             }
         }
     }
