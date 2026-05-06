@@ -5,8 +5,14 @@ import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useTaskStore } from '@/src/store/taskStore';
+import FloatingBubbleWrapper from '@/src/components/FloatingBubbleWrapper';
 
 export default function RootLayout() {
+    const tasks = useTaskStore((s) => s.tasks);
+    const dismissedFloatingBubble = useTaskStore((s) => s.dismissedFloatingBubble);
+    const critical = tasks.filter(t => t.priority === 'Critical' && t.status !== 'Done');
+    const criticalCount = critical.length;
+
     useEffect(() => {
         setupNotificationChannels();
         requestNotificationPermission();
@@ -31,6 +37,7 @@ export default function RootLayout() {
     return (
         <SafeAreaProvider>
             <Slot />
+            {!dismissedFloatingBubble && <FloatingBubbleWrapper criticalCount={criticalCount} />}
         </SafeAreaProvider>
     );
 }

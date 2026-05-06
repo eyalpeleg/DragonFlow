@@ -49,6 +49,7 @@ interface TaskStore {
     categories: Category[];
     hasHydrated: boolean;
     activeCategory: string | null;
+    dismissedFloatingBubble: boolean;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -66,6 +67,8 @@ interface TaskStore {
     removeSubTask: (taskId: string, subTaskId: string) => void;
     // Done stats
     updateCompletionComment: (taskId: string, comment: string) => void;
+    // Floating bubble
+    setFloatingBubbleDismissed: (dismissed: boolean) => void;
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -88,6 +91,7 @@ export const useTaskStore = create<TaskStore>()(
             categories: BUILTIN_CATEGORIES,
             hasHydrated: false,
             activeCategory: null,
+            dismissedFloatingBubble: false,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -222,6 +226,8 @@ export const useTaskStore = create<TaskStore>()(
             updateCompletionComment: (taskId, comment) => set((s) => ({
                 tasks: s.tasks.map((t) => t.id === taskId ? { ...t, completionComment: comment } : t),
             })),
+
+            setFloatingBubbleDismissed: (dismissed) => set({ dismissedFloatingBubble: dismissed }),
         }),
         {
             name: 'dragonflow-tasks',
@@ -239,7 +245,9 @@ export const useTaskStore = create<TaskStore>()(
             },
             onRehydrateStorage: () => (state) => {
                 state?.setHydrated(true);
+                // Always reset dismissed bubble on app restart
                 if (state) {
+                    state.dismissedFloatingBubble = false;
                     state.tasks
                         .filter((t) => t.status !== 'Done' && !t.archivedAt)
                         .forEach((t) => scheduleTaskReminders(t).catch(() => {}));
