@@ -42,10 +42,10 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
         return new Set<string>();
     }, [filterType, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
 
-    const [selected, setSelected] = useState<Set<string>>(new Set());
+    const [selected, setSelected] = useState<Set<string>>(() => new Set(currentFilters));
 
     useEffect(() => {
-        setSelected(new Set(currentFilters));
+        setSelected(new Set(Array.from(currentFilters)));
     }, [currentFilters]);
 
     const getOptions = (): string[] => {

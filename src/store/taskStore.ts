@@ -259,6 +259,13 @@ export const useTaskStore = create<TaskStore>()(
         {
             name: 'dragonflow-tasks',
             storage: createJSONStorage(() => AsyncStorage),
+            partialize: (state: TaskStore) => ({
+                ...state,
+                statusFilters: Array.from(state.statusFilters),
+                categoryFilters: Array.from(state.categoryFilters),
+                priorityFilters: Array.from(state.priorityFilters),
+                dueDateFilters: Array.from(state.dueDateFilters),
+            }),
             merge: (persisted: unknown, current: TaskStore) => {
                 const p = persisted as any;
                 const stored = p.categories ?? [];
@@ -271,6 +278,10 @@ export const useTaskStore = create<TaskStore>()(
                 return {
                     ...current,
                     ...persistedFiltered,
+                    statusFilters: new Set(p.statusFilters ?? []),
+                    categoryFilters: new Set(p.categoryFilters ?? []),
+                    priorityFilters: new Set(p.priorityFilters ?? []),
+                    dueDateFilters: new Set(p.dueDateFilters ?? []),
                     categories: [...BUILTIN_CATEGORIES, ...custom],
                 } as TaskStore;
             },
@@ -279,6 +290,19 @@ export const useTaskStore = create<TaskStore>()(
                 // Always reset dismissed bubble on app restart
                 if (state) {
                     state.dismissedFloatingBubble = false;
+                    // Ensure filter sets are properly initialized
+                    if (!state.statusFilters || !state.statusFilters.size) {
+                        state.statusFilters = new Set();
+                    }
+                    if (!state.categoryFilters || !state.categoryFilters.size) {
+                        state.categoryFilters = new Set();
+                    }
+                    if (!state.priorityFilters || !state.priorityFilters.size) {
+                        state.priorityFilters = new Set();
+                    }
+                    if (!state.dueDateFilters || !state.dueDateFilters.size) {
+                        state.dueDateFilters = new Set();
+                    }
                     state.tasks
                         .filter((t) => t.status !== 'Done' && !t.archivedAt)
                         .forEach((t) => scheduleTaskReminders(t).catch(() => {}));
