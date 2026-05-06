@@ -291,7 +291,7 @@ const styles = StyleSheet.create({
         alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
     },
     archiveBadgeText: { color: 'white', fontSize: 9, fontWeight: '700' },
-    pomodoroBtn: { minWidth: 38, height: 38, borderRadius: 19, backgroundColor: 'white', alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
+    pomodoroBtn: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     pomodoroBtnText: { fontSize: 20 },
     pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: COLORS.primary },
     listContent: { paddingBottom: 100 },
