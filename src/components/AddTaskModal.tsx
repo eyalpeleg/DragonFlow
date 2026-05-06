@@ -22,12 +22,13 @@ interface Props {
 
 export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const categories = useTaskStore((s) => s.categories);
+    const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
     const [category, setCategory] = useState('Personal');
     const [dueDate, setDueDate] = useState(new Date());
-    const [dueTime, setDueTime] = useState('08:00');
+    const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     // Recurring
     const [isRecurring, setIsRecurring] = useState(false);
@@ -67,7 +68,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function reset() {
         setTitle(''); setDescription(''); setPriority('Medium'); setCategory('Personal');
-        setDueDate(new Date()); setDueTime('08:00');
+        setDueDate(new Date()); setDueTime(defaultTaskTime);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
     }
