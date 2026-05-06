@@ -119,7 +119,7 @@ export default function TasksScreen() {
                             }}
                         >
                             <Ionicons
-                                name={hasActiveFilters && filterBarVisible ? "filter" : "filter-outline"}
+                                name={hasActiveFilters && filterBarVisible ? "funnel" : "funnel-outline"}
                                 size={20}
                                 color="white"
                             />

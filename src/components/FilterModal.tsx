@@ -1,4 +1,4 @@
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
@@ -42,7 +42,11 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
         return new Set<string>();
     }, [filterType, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
 
-    const [selected, setSelected] = useState<Set<string>>(new Set(currentFilters));
+    const [selected, setSelected] = useState<Set<string>>(new Set());
+
+    useEffect(() => {
+        setSelected(new Set(currentFilters));
+    }, [currentFilters]);
 
     const getOptions = (): string[] => {
         if (filterType === 'status') return STATUS_OPTIONS;
