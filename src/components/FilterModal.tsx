@@ -2,7 +2,7 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
-import { useTaskStore, getCategoryColor } from '../store/taskStore';
+import { useTaskStore, getCategoryColor, getCategoryName } from '../store/taskStore';
 import { TaskStatus } from '../types';
 import { PriorityLevel } from '../styles/theme';
 
@@ -50,7 +50,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
 
     const getOptions = (): string[] => {
         if (filterType === 'status') return STATUS_OPTIONS;
-        if (filterType === 'category') return categories.map((c) => c.name);
+        if (filterType === 'category') return categories.map((c) => c.id);
         if (filterType === 'priority') return PRIORITY_OPTIONS;
         if (filterType === 'dueDate') return DUE_DATE_OPTIONS;
         return [];
@@ -58,6 +58,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
 
     const getLabel = (value: string): string => {
         if (filterType === 'dueDate') return DUE_DATE_LABELS[value as keyof typeof DUE_DATE_LABELS] || value;
+        if (filterType === 'category') return getCategoryName(categories, value);
         return value;
     };
 

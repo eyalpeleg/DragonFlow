@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
-import { getCategoryColor, useTaskStore } from '../store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '../store/taskStore';
 import { Task, TaskStatus } from '../types';
 import { recurrenceLabel } from '../utils/recurrence';
 import TaskChecklist from './TaskChecklist';
@@ -29,8 +29,9 @@ function useElapsed(startTime?: number, active?: boolean) {
 
 export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, description, priority, category, dueDate, status, startTime, recurrence, subTasks = [] } = task;
-    const categoryColor = getCategoryColor(categories, category);
+    const { id, title, description, priority, categoryId, dueDate, status, startTime, recurrence, subTasks = [] } = task;
+    const categoryColor = getCategoryColor(categories, categoryId);
+    const categoryName = getCategoryName(categories, categoryId);
     const isActive = status === 'In Progress';
     const isRecurring = !!recurrence;
     const elapsed = useElapsed(startTime, isActive);
@@ -103,7 +104,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                     <View style={styles.footerLeft}>
                         <Text style={[styles.priority, { color: COLORS.priority[priority] }]}>{priority}</Text>
                         <View style={[styles.catChip, { backgroundColor: categoryColor }]}>
-                            <Text style={styles.catChipText}>{category}</Text>
+                            <Text style={styles.catChipText}>{categoryName}</Text>
                         </View>
                         {displayDate && (
                             <Text style={[styles.dueDate, isOverdue && styles.dueDateOverdue, isDueToday && styles.dueDateToday]}>
@@ -140,7 +141,6 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                     )}
                 </View>
 
-                {/* Sub-task checklist */}
                 {subTasks.length > 0 && (
                     <TaskChecklist
                         taskId={id}

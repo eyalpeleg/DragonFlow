@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
-import { getCategoryColor, useTaskStore } from '../store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '../store/taskStore';
 import { Task } from '../types';
 
 interface Props {
@@ -13,8 +13,9 @@ interface Props {
 
 export default function ArchivedTaskCard({ task, onRestore, onDelete }: Props) {
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, priority, category, dueDate, archivedAt } = task;
-    const categoryColor = getCategoryColor(categories, category);
+    const { id, title, priority, categoryId, dueDate, archivedAt } = task;
+    const categoryColor = getCategoryColor(categories, categoryId);
+    const categoryName = getCategoryName(categories, categoryId);
 
     const archivedDate = archivedAt
         ? new Date(archivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -49,7 +50,7 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete }: Props) {
             <View style={styles.meta}>
                 <Text style={[styles.priority, { color: COLORS.priority[priority] }]}>{priority}</Text>
                 <View style={[styles.catChip, { backgroundColor: categoryColor }]}>
-                    <Text style={styles.catChipText}>{category}</Text>
+                    <Text style={styles.catChipText}>{categoryName}</Text>
                 </View>
                 {dueDate && (
                     <Text style={styles.metaText}>

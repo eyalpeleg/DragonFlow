@@ -1,13 +1,12 @@
 import { PriorityLevel } from './styles/theme';
 
 export type TaskStatus = 'Ready' | 'In Progress' | 'Done';
-export type CategoryType = string;
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
 export interface Category {
+    id: string;
     name: string;
     color: string;
-    builtIn: boolean;
 }
 
 export interface SubTask {
@@ -26,7 +25,7 @@ export interface Task {
     title: string;
     description: string;
     priority: PriorityLevel;
-    category: CategoryType;
+    categoryId: string;
     dueDate: string; // YYYY-MM-DD
     dueTime: string; // HH:MM, default "08:00"
     status: TaskStatus;

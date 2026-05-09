@@ -8,12 +8,6 @@ export const COLORS = {
         Medium: '#FFC107',
         Low: '#4CAF50',
     },
-    categories: {
-        Friends: '#4A90E2',
-        Personal: 'rgba(155, 39, 176, 0.75)',
-        Fitness: 'rgba(239, 119, 13, 0.95)',
-        Study: 'rgba(34, 218, 166, 0.69)',
-    },
     status: {
         'Ready': '#78909C',
         'In Progress': '#2196F3',
@@ -28,5 +22,4 @@ export const PRESET_PALETTE = [
 ];
 
 export type PriorityLevel = keyof typeof COLORS.priority;
-export type CategoryType = string;
 export type StatusType = keyof typeof COLORS.status;
