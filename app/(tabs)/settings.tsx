@@ -3,30 +3,31 @@ import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacit
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '@/src/styles/theme';
-import { getCategoryColor, useTaskStore } from '@/src/store/taskStore';
+import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
+import EditCategoryModal from '@/src/components/EditCategoryModal';
+import { Category } from '@/src/types';
 
 export default function SettingsScreen() {
     const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
+    const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    function handleDeleteCategory(name: string, builtIn: boolean) {
-        if (builtIn) {
-            Alert.alert('Cannot delete', 'Built-in categories cannot be deleted.');
+    function handleDeleteCategory(cat: Category) {
+        if (cat.id === DEFAULT_CATEGORY_ID) {
+            Alert.alert('Cannot delete', 'The Default category cannot be deleted.');
             return;
         }
         Alert.alert(
             'Delete Category',
-            `Remove "${name}"? This only works if no active tasks use it.`,
+            `Delete "${cat.name}"? Tasks using this category will be reassigned to Default.`,
             [
                 { text: 'Cancel', style: 'cancel' },
                 {
                     text: 'Delete',
                     style: 'destructive',
-                    onPress: () => {
-                        deleteCategory(name);
-                    },
+                    onPress: () => deleteCategory(cat.id),
                 },
             ]
         );
@@ -89,8 +90,41 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
+                {/* Categories */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Categories</Text>
+                    <View style={styles.settingBlock}>
+                        {categories.map((cat) => {
+                            const isDefault = cat.id === DEFAULT_CATEGORY_ID;
+                            return (
+                                <View key={cat.id} style={styles.catRow}>
+                                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
+                                    <Text style={styles.catName}>{cat.name}</Text>
+                                    {isDefault && (
+                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={{ marginRight: 8 }} />
+                                    )}
+                                    {!isDefault && (
+                                        <View style={styles.catActions}>
+                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="pencil" size={16} color={COLORS.primary} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="trash" size={16} color="#E53935" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })}
+                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
+                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+                            <Text style={styles.addCatText}>Add Category</Text>
+                        </TouchableOpacity>
+                    </View>
+                </View>
+
                 {/* Info Section */}
-                <View style={[styles.section, { marginTop: 40 }]}>
+                <View style={[styles.section, { marginTop: 16 }]}>
                     <Text style={styles.sectionTitle}>About</Text>
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
@@ -98,6 +132,9 @@ export default function SettingsScreen() {
                     </View>
                 </View>
             </ScrollView>
+
+            <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
+            <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
         </SafeAreaView>
     );
 }
@@ -154,6 +191,25 @@ const styles = StyleSheet.create({
         textAlign: 'center',
     },
     timeFormat: { fontSize: 12, color: '#999' },
+    catRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+        borderBottomWidth: 1,
+        borderBottomColor: '#f0f0f0',
+    },
+    catDot: { width: 14, height: 14, borderRadius: 7, marginRight: 12 },
+    catName: { flex: 1, fontSize: 15, color: '#333', fontWeight: '500' },
+    catActions: { flexDirection: 'row', gap: 12 },
+    catActionBtn: { padding: 4 },
+    addCatBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        paddingVertical: 12,
+        marginTop: 4,
+    },
+    addCatText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
     infoBox: {
         backgroundColor: 'white',
         borderRadius: 12,

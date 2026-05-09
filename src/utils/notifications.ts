@@ -1,6 +1,7 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Task } from '../types';
+import { getCategoryName, useTaskStore } from '../store/taskStore';
 
 const CRITICAL_CHANNEL = 'critical-tasks';
 const POMODORO_CHANNEL = 'pomodoro';
@@ -87,7 +88,7 @@ export async function updateTodayTasksNotification(tasks: Task[]): Promise<void>
             ? `📅 Due Today: ${todayTasks[0].title}`
             : `📅 ${todayTasks.length} Tasks Due Today`;
         const body = todayTasks.length === 1
-            ? `${todayTasks[0].priority} · ${todayTasks[0].category}`
+            ? `${todayTasks[0].priority} · ${getCategoryName(useTaskStore.getState().categories, todayTasks[0].categoryId)}`
             : todayTasks.map((t) => `• ${t.title}`).join('\n');
 
         await Notifications.scheduleNotificationAsync({
@@ -209,7 +210,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                 identifier: r.id,
                 content: {
                     title: `${r.label}: ${task.title}`,
-                    body: `Due at ${time} · ${task.priority} · ${task.category}`,
+                    body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
                     sound: 'default',
                     data: { type: 'reminder', taskId: task.id },
                     ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),

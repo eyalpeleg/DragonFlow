@@ -13,7 +13,7 @@ export const getWeeklyCategoryStats = (tasks: Task[]) => {
     return tasks
         .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekAgo)
         .reduce((acc, task) => {
-            acc[task.category] = (acc[task.category] || 0) + 1;
+            acc[task.categoryId] = (acc[task.categoryId] || 0) + 1;
             return acc;
         }, {} as Record<string, number>);
 };
@@ -32,7 +32,7 @@ export const getWeeklyTimeSpent = (tasks: Task[]): Record<string, number> => {
         .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekAgo && t.startTime)
         .reduce((acc, t) => {
             const ms = (t.completedTime ?? 0) - (t.startTime ?? 0);
-            acc[t.category] = (acc[t.category] || 0) + ms;
+            acc[t.categoryId] = (acc[t.categoryId] || 0) + ms;
             return acc;
         }, {} as Record<string, number>);
 };

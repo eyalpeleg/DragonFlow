@@ -8,15 +8,22 @@ import { cancelTaskReminders, scheduleTaskReminders, updateCriticalTasksNotifica
 import { buildNextOccurrence } from '../utils/recurrence';
 import FloatingBubble from '../modules/FloatingBubble';
 
+export const DEFAULT_CATEGORY_ID = 'default';
+
 const BUILTIN_CATEGORIES: Category[] = [
-    { name: 'Friends',  color: '#4A90E2',                    builtIn: true },
-    { name: 'Personal', color: 'rgba(155, 39, 176, 0.75)',   builtIn: true },
-    { name: 'Fitness',  color: 'rgba(239, 119, 13, 0.95)',   builtIn: true },
-    { name: 'Study',    color: 'rgba(34, 218, 166, 0.69)',   builtIn: true },
+    { id: 'default',  name: 'Default',  color: '#607D8B' },
+    { id: 'friends',  name: 'Friends',  color: '#4A90E2' },
+    { id: 'personal', name: 'Personal', color: 'rgba(155, 39, 176, 0.75)' },
+    { id: 'fitness',  name: 'Fitness',  color: 'rgba(239, 119, 13, 0.95)' },
+    { id: 'study',    name: 'Study',    color: 'rgba(34, 218, 166, 0.69)' },
 ];
 
-export function getCategoryColor(categories: Category[], name: string): string {
-    return categories.find((c) => c.name === name)?.color ?? COLORS.primary;
+export function getCategoryColor(categories: Category[], id: string): string {
+    return categories.find((c) => c.id === id)?.color ?? COLORS.primary;
+}
+
+export function getCategoryName(categories: Category[], id: string): string {
+    return categories.find((c) => c.id === id)?.name ?? 'Unknown';
 }
 
 function syncNotifications(tasks: Task[]) {
@@ -39,7 +46,7 @@ export interface AddTaskInput {
     title: string;
     description: string;
     priority: PriorityLevel;
-    category: string;
+    categoryId: string;
     dueDate: string;
     dueTime: string;
     subTasks?: SubTask[];
@@ -53,7 +60,6 @@ interface TaskStore {
     dismissedFloatingBubble: boolean;
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
-    // New filter state
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -67,18 +73,15 @@ interface TaskStore {
     setStatus: (id: string, status: TaskStatus) => void;
     setHydrated: (value: boolean) => void;
     addCategory: (name: string, color: string) => void;
-    deleteCategory: (name: string) => boolean;
-    // Sub-task actions
+    deleteCategory: (id: string) => void;
+    updateCategory: (id: string, updates: { name?: string; color?: string }) => boolean;
     toggleSubTask: (taskId: string, subTaskId: string) => void;
     addSubTask: (taskId: string, title: string) => void;
     removeSubTask: (taskId: string, subTaskId: string) => void;
-    // Done stats
     updateCompletionComment: (taskId: string, comment: string) => void;
-    // Floating bubble
     setFloatingBubbleDismissed: (dismissed: boolean) => void;
     setShowBubbleInBackground: (show: boolean) => void;
     setDefaultTaskTime: (time: string) => void;
-    // Filter actions
     setStatusFilters: (filters: Set<TaskStatus>) => void;
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
@@ -118,7 +121,7 @@ export const useTaskStore = create<TaskStore>()(
                     title: input.title,
                     description: input.description,
                     priority: input.priority,
-                    category: input.category,
+                    categoryId: input.categoryId,
                     dueDate: input.dueDate,
                     dueTime: input.dueTime,
                     status: 'Ready',
@@ -178,7 +181,6 @@ export const useTaskStore = create<TaskStore>()(
                     };
                 });
 
-                // Spawn next occurrence when a recurring task is marked Done
                 const completed = tasks.find((t) => t.id === id);
                 if (status === 'Done' && completed?.recurrence) {
                     const next = buildNextOccurrence(completed);
@@ -199,17 +201,44 @@ export const useTaskStore = create<TaskStore>()(
             setHydrated: (value) => set({ hasHydrated: value }),
 
             addCategory: (name, color) => set((s) => {
-                if (s.categories.find((c) => c.name === name)) return {};
-                return { categories: [...s.categories, { name, color, builtIn: false }] };
+                if (s.categories.some((c) => c.name.toLowerCase() === name.trim().toLowerCase())) return {};
+                return { categories: [...s.categories, { id: makeId(), name: name.trim(), color }] };
             }),
 
-            deleteCategory: (name) => {
+            deleteCategory: (id) => {
+                if (id === DEFAULT_CATEGORY_ID) return;
                 const s = get();
-                const cat = s.categories.find((c) => c.name === name);
-                if (!cat || cat.builtIn) return false;
-                const inUse = s.tasks.some((t) => !t.archivedAt && t.category === name);
-                if (inUse) return false;
-                set({ categories: s.categories.filter((c) => c.name !== name) });
+                const tasks = s.tasks.map((t) =>
+                    t.categoryId === id ? { ...t, categoryId: DEFAULT_CATEGORY_ID } : t
+                );
+                const categories = s.categories.filter((c) => c.id !== id);
+                const categoryFilters = new Set(s.categoryFilters);
+                categoryFilters.delete(id);
+                set({ tasks, categories, categoryFilters });
+            },
+
+            updateCategory: (id, updates) => {
+                const s = get();
+                const cat = s.categories.find((c) => c.id === id);
+                if (!cat) return false;
+                if (updates.name !== undefined) {
+                    const trimmed = updates.name.trim();
+                    if (trimmed.length === 0) return false;
+                    const conflict = s.categories.some(
+                        (c) => c.id !== id && c.name.toLowerCase() === trimmed.toLowerCase()
+                    );
+                    if (conflict) return false;
+                }
+                set({
+                    categories: s.categories.map((c) => {
+                        if (c.id !== id) return c;
+                        return {
+                            ...c,
+                            ...(updates.name !== undefined && { name: updates.name.trim() }),
+                            ...(updates.color !== undefined && { color: updates.color }),
+                        };
+                    }),
+                });
                 return true;
             },
 
@@ -266,6 +295,7 @@ export const useTaskStore = create<TaskStore>()(
                 categories: state.categories,
                 defaultTaskTime: state.defaultTaskTime,
                 showBubbleInBackground: state.showBubbleInBackground,
+                _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
@@ -274,27 +304,59 @@ export const useTaskStore = create<TaskStore>()(
             merge: (persisted: unknown, current: TaskStore) => {
                 if (!persisted) return current;
                 const p = persisted as any;
-                const stored = p.categories ?? [];
-                const builtInNames = new Set(BUILTIN_CATEGORIES.map((c) => c.name));
-                const custom = stored.filter((c: Category) => !builtInNames.has(c.name));
-                // Filter out old keys like activeCategory that no longer exist
+                const schemaVersion = p._schemaVersion ?? 0;
+
+                let categories: Category[] = p.categories ?? [];
+                let tasks: Task[] = p.tasks ?? [];
+
+                if (schemaVersion < 1) {
+                    // Migrate: add IDs to categories, convert task.category → task.categoryId
+                    const builtInNameToId: Record<string, string> = {
+                        'Default': 'default', 'Friends': 'friends', 'Personal': 'personal',
+                        'Fitness': 'fitness', 'Study': 'study',
+                    };
+                    const nameToId: Record<string, string> = {};
+                    categories = categories.map((c: any) => {
+                        const id = builtInNameToId[c.name] ?? makeId();
+                        nameToId[c.name] = id;
+                        return { id, name: c.name, color: c.color };
+                    });
+                    if (!categories.find((c) => c.id === 'default')) {
+                        categories.unshift({ id: 'default', name: 'Default', color: '#607D8B' });
+                    }
+                    tasks = tasks.map((t: any) => {
+                        if (t.categoryId) return t;
+                        const categoryId = nameToId[t.category] ?? DEFAULT_CATEGORY_ID;
+                        const { category: _, ...rest } = t;
+                        return { ...rest, categoryId };
+                    });
+                }
+
+                // Ensure all built-in categories exist
+                const existingIds = new Set(categories.map((c) => c.id));
+                for (const bc of BUILTIN_CATEGORIES) {
+                    if (!existingIds.has(bc.id)) categories.push({ ...bc });
+                }
+
                 const persistedFiltered = Object.fromEntries(
-                    Object.entries(p).filter(([key]) => !['activeCategory'].includes(key))
+                    Object.entries(p).filter(([key]) => !['activeCategory', '_schemaVersion'].includes(key))
                 );
+
                 return {
                     ...current,
                     ...persistedFiltered,
+                    _schemaVersion: 1,
+                    tasks,
+                    categories,
                     statusFilters: new Set(p.statusFilters ?? []),
-                    categoryFilters: new Set(p.categoryFilters ?? []),
+                    categoryFilters: new Set<string>(),
                     priorityFilters: new Set(p.priorityFilters ?? []),
                     dueDateFilters: new Set(p.dueDateFilters ?? []),
-                    categories: [...BUILTIN_CATEGORIES, ...custom],
                 } as TaskStore;
             },
             onRehydrateStorage: () => (state) => {
                 if (state) {
                     state.dismissedFloatingBubble = false;
-                    // Ensure filter sets exist as Sets
                     if (!(state.statusFilters instanceof Set)) {
                         state.statusFilters = new Set();
                     }
@@ -328,16 +390,9 @@ export function useSortedFilteredTasks(): Task[] {
         const active = tasks.filter((t) => !t.archivedAt);
 
         const filtered = active.filter((t) => {
-            // Status filter: AND across all statuses (any match passes)
             if (statusFilters.size > 0 && !statusFilters.has(t.status)) return false;
-
-            // Category filter: AND across all categories (any match passes)
-            if (categoryFilters.size > 0 && !categoryFilters.has(t.category)) return false;
-
-            // Priority filter: AND across all priorities (any match passes)
+            if (categoryFilters.size > 0 && !categoryFilters.has(t.categoryId)) return false;
             if (priorityFilters.size > 0 && !priorityFilters.has(t.priority)) return false;
-
-            // Due date filter: AND across date ranges
             if (dueDateFilters.size > 0) {
                 if (!t.dueDate) return false;
                 const today = new Date().toISOString().slice(0, 10);
@@ -350,7 +405,6 @@ export function useSortedFilteredTasks(): Task[] {
                 });
                 if (!matchesDueDateFilter) return false;
             }
-
             return true;
         });
 

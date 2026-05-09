@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
-import { getCategoryColor, useTaskStore } from '@/src/store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
 import { getDailySummary, getTasksCompletedToday } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
 
@@ -49,8 +49,8 @@ export default function DailyScreen() {
     const categoryBreakdown = categories
         .map((cat) => ({
             category: cat.name,
-            color: getCategoryColor(categories, cat.name),
-            count: completedToday.filter((t: Task) => t.category === cat.name).length,
+            color: cat.color,
+            count: completedToday.filter((t: Task) => t.categoryId === cat.id).length,
         }))
         .filter((c) => c.count > 0);
 
@@ -81,13 +81,14 @@ export default function DailyScreen() {
                     keyExtractor={(item) => item.id}
                     style={styles.list}
                     renderItem={({ item }) => {
-                        const color = getCategoryColor(categories, item.category);
+                        const color = getCategoryColor(categories, item.categoryId);
+                        const name = getCategoryName(categories, item.categoryId);
                         return (
                             <View style={styles.taskRow}>
                                 <View style={[styles.taskDot, { backgroundColor: color }]} />
                                 <Text style={styles.taskTitle} numberOfLines={1}>{item.title}</Text>
                                 <View style={[styles.catChip, { backgroundColor: color }]}>
-                                    <Text style={styles.catChipText}>{item.category}</Text>
+                                    <Text style={styles.catChipText}>{name}</Text>
                                 </View>
                             </View>
                         );

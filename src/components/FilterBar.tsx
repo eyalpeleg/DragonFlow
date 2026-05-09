@@ -2,7 +2,7 @@ import React from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
-import { useTaskStore, getCategoryColor } from '../store/taskStore';
+import { useTaskStore, getCategoryName } from '../store/taskStore';
 import { TaskStatus } from '../types';
 import { PriorityLevel } from '../styles/theme';
 
@@ -77,7 +77,7 @@ export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
                 {renderPill(
                     'category',
                     categoryFilters,
-                    (val) => val
+                    (val) => getCategoryName(categories, val)
                 )}
                 {renderPill(
                     'priority',

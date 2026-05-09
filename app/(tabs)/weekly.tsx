@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
-import { getCategoryColor, useTaskStore } from '@/src/store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
 import { formatDuration, getDailySummary, getWeeklyTimeSpent, getWeeklyCategoryStats } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
 
@@ -65,16 +65,15 @@ export default function WeeklyScreen() {
                 <Text style={styles.sectionTitle}>By Category</Text>
                 <View style={styles.catSection}>
                     {categories.map((cat) => {
-                        const count = (catStats as Record<string, number>)[cat.name] ?? 0;
-                        const ms = (timeSpent as Record<string, number>)[cat.name] ?? 0;
+                        const count = (catStats as Record<string, number>)[cat.id] ?? 0;
+                        const ms = (timeSpent as Record<string, number>)[cat.id] ?? 0;
                         const pct = totalDone > 0 ? Math.round((count / totalDone) * 100) : 0;
-                        const color = getCategoryColor(categories, cat.name);
                         return (
-                            <View key={cat.name} style={styles.catRow}>
-                                <View style={[styles.catDot, { backgroundColor: color }]} />
+                            <View key={cat.id} style={styles.catRow}>
+                                <View style={[styles.catDot, { backgroundColor: cat.color }]} />
                                 <Text style={styles.catName}>{cat.name}</Text>
                                 <View style={styles.barContainer}>
-                                    <View style={[styles.barFill, { width: `${pct}%` as any, backgroundColor: color }]} />
+                                    <View style={[styles.barFill, { width: `${pct}%` as any, backgroundColor: cat.color }]} />
                                 </View>
                                 <Text style={styles.catCount}>{count}</Text>
                                 {ms > 0 && <Text style={styles.catTime}>{formatDuration(ms)}</Text>}
@@ -91,13 +90,14 @@ export default function WeeklyScreen() {
                 ) : (
                     doneTasks.map((task: Task) => {
                         const ms = task.startTime && task.completedTime ? task.completedTime - task.startTime : 0;
-                        const color = getCategoryColor(categories, task.category);
+                        const color = getCategoryColor(categories, task.categoryId);
+                        const name = getCategoryName(categories, task.categoryId);
                         return (
                             <View key={task.id} style={styles.logRow}>
                                 <View style={[styles.catDot, { backgroundColor: color }]} />
                                 <Text style={styles.logTitle} numberOfLines={1}>{task.title}</Text>
                                 <View style={[styles.catChip, { backgroundColor: color }]}>
-                                    <Text style={styles.catChipText}>{task.category}</Text>
+                                    <Text style={styles.catChipText}>{name}</Text>
                                 </View>
                                 {ms > 0 && <Text style={styles.logTime}>{formatDuration(ms)}</Text>}
                             </View>

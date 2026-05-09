@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { getCategoryColor, useTaskStore, AddTaskInput } from '../store/taskStore';
+import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/taskStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
 import DatePickerField from './DatePickerField';
 import TimePickerField from './TimePickerField';
@@ -26,15 +26,13 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [title, setTitle] = useState('');
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
-    const [category, setCategory] = useState('Personal');
+    const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
     const [dueDate, setDueDate] = useState(new Date());
     const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
-    // Recurring
     const [isRecurring, setIsRecurring] = useState(false);
     const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
     const [interval, setInterval] = useState('1');
-    // Sub-tasks
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
 
@@ -58,7 +56,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
             ? { frequency, interval: Math.max(1, parseInt(interval, 10) || 1) }
             : undefined;
         onAdd({
-            title: title.trim(), description, priority, category,
+            title: title.trim(), description, priority, categoryId,
             dueDate: `${yyyy}-${mm}-${dd}`, dueTime,
             subTasks, recurrence,
         });
@@ -67,7 +65,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     };
 
     function reset() {
-        setTitle(''); setDescription(''); setPriority('Medium'); setCategory('Personal');
+        setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
         setDueDate(new Date()); setDueTime(defaultTaskTime);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
@@ -121,21 +119,17 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
                         <Text style={styles.label}>Category</Text>
                         <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
-                            {categories.map((c) => {
-                                const color = getCategoryColor(categories, c.name);
-                                return (
-                                    <TouchableOpacity key={c.name} onPress={() => setCategory(c.name)}
-                                        style={[styles.chip, category === c.name && { backgroundColor: color }]}>
-                                        <Text style={[styles.chipText, category === c.name && { color: 'white' }]}>{c.name}</Text>
-                                    </TouchableOpacity>
-                                );
-                            })}
+                            {categories.map((c) => (
+                                <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
+                                    style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
+                                    <Text style={[styles.chipText, categoryId === c.id && { color: 'white' }]}>{c.name}</Text>
+                                </TouchableOpacity>
+                            ))}
                             <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
                                 <Ionicons name="add" size={14} color={COLORS.primary} />
                             </TouchableOpacity>
                         </ScrollView>
 
-                        {/* Recurring */}
                         <View style={styles.switchRow}>
                             <View>
                                 <Text style={styles.label}>Recurring task</Text>
@@ -170,7 +164,6 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             </View>
                         )}
 
-                        {/* Sub-tasks */}
                         <Text style={styles.label}>Sub-tasks</Text>
                         <View style={styles.subTaskInputRow}>
                             <TextInput
