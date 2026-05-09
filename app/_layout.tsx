@@ -14,7 +14,7 @@ export default function RootLayout() {
         requestNotificationPermission();
         FloatingBubble.canDrawOverlays().then((ok) => {
             if (!ok) FloatingBubble.requestOverlayPermission();
-        });
+        }).catch(() => {});
 
         // Listen for native bubble dismiss gesture
         const unsubscribe = FloatingBubble.onDismissed(() => {
