@@ -7,22 +7,26 @@ let eventListener: any = null;
 const FloatingBubble = {
     show(count: number, message: string) {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
-            NativeFloatingBubble.show(count, message);
+            try { NativeFloatingBubble.show(count, message); } catch {}
         }
     },
     hide() {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
-            NativeFloatingBubble.hide();
+            try { NativeFloatingBubble.hide(); } catch {}
         }
     },
     requestOverlayPermission() {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
-            NativeFloatingBubble.requestOverlayPermission();
+            try { NativeFloatingBubble.requestOverlayPermission(); } catch {}
         }
     },
     async canDrawOverlays(): Promise<boolean> {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return false;
-        return NativeFloatingBubble.canDrawOverlays();
+        try {
+            return await NativeFloatingBubble.canDrawOverlays();
+        } catch {
+            return false;
+        }
     },
     onDismissed(callback: () => void) {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
@@ -30,7 +34,7 @@ const FloatingBubble = {
             const emitter = new NativeEventEmitter(NativeFloatingBubble);
             eventListener = emitter.addListener('floatingBubbleDismissed', callback);
             return () => eventListener?.remove();
-        } catch (_) {
+        } catch {
             return () => {};
         }
     },
