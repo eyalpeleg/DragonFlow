@@ -93,8 +93,8 @@ const priorityOrder: Record<PriorityLevel, number> = {
 };
 
 const statusOrder: Record<TaskStatus, number> = {
-    'Ready': 0,
-    'In Progress': 1,
+    'In Progress': 0,
+    'Ready': 1,
     'Done': 2,
 };
 
