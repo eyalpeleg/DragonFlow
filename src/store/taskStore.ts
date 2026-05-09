@@ -86,6 +86,8 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    exportData: () => object;
+    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean } }) => { tasksImported: number };
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -286,6 +288,43 @@ export const useTaskStore = create<TaskStore>()(
             setPriorityFilters: (filters) => set({ priorityFilters: filters }),
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
+
+            exportData: () => {
+                const s = get();
+                return {
+                    version: 1,
+                    exportedAt: new Date().toISOString(),
+                    tasks: s.tasks,
+                    categories: s.categories,
+                    settings: {
+                        defaultTaskTime: s.defaultTaskTime,
+                        showBubbleInBackground: s.showBubbleInBackground,
+                    },
+                };
+            },
+
+            importData: (data) => {
+                const s = get();
+                const builtinIds = new Set(BUILTIN_CATEGORIES.map((c) => c.id));
+                const existingNames = new Set(s.categories.map((c) => c.name.toLowerCase()));
+
+                const newUserCategories = (data.categories ?? []).filter(
+                    (c) => !builtinIds.has(c.id) && !existingNames.has(c.name.toLowerCase())
+                );
+                const categories = [...s.categories, ...newUserCategories];
+
+                const tasks = data.tasks ?? [];
+                syncNotifications(tasks);
+
+                set({
+                    tasks,
+                    categories,
+                    ...(data.settings?.defaultTaskTime && { defaultTaskTime: data.settings.defaultTaskTime }),
+                    ...(data.settings?.showBubbleInBackground !== undefined && { showBubbleInBackground: data.settings.showBubbleInBackground }),
+                });
+
+                return { tasksImported: tasks.length };
+            },
         }),
         {
             name: 'dragonflow-tasks',

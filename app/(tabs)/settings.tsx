@@ -7,12 +7,45 @@ import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import { Category } from '@/src/types';
+import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
 
 export default function SettingsScreen() {
     const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+    async function handleExport() {
+        try {
+            await exportToFile();
+        } catch (e: any) {
+            Alert.alert('Export Failed', e.message ?? 'Something went wrong.');
+        }
+    }
+
+    function handleImport() {
+        Alert.alert(
+            'Import Data',
+            'This will replace all current tasks with the imported data. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Replace',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const result = await importFromFile();
+                            if (result) {
+                                Alert.alert('Import Complete', `${result.tasksImported} task(s) imported.`);
+                            }
+                        } catch (e: any) {
+                            Alert.alert('Import Failed', e.message ?? 'Something went wrong.');
+                        }
+                    },
+                },
+            ]
+        );
+    }
 
     function handleDeleteCategory(cat: Category) {
         if (cat.id === DEFAULT_CATEGORY_ID) {
@@ -87,6 +120,30 @@ export default function SettingsScreen() {
                             />
                             <Text style={styles.timeFormat}>24-hour format</Text>
                         </View>
+                    </View>
+                </View>
+
+                {/* Data */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Data</Text>
+                    <View style={styles.settingBlock}>
+                        <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
+                            <Ionicons name="download-outline" size={20} color={COLORS.primary} />
+                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                <Text style={styles.settingTitle}>Export Data</Text>
+                                <Text style={styles.settingDesc}>Save tasks & categories to a JSON backup file</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                        </TouchableOpacity>
+                        <View style={styles.dataDivider} />
+                        <TouchableOpacity style={styles.dataRow} onPress={handleImport}>
+                            <Ionicons name="push-outline" size={20} color={COLORS.primary} />
+                            <View style={{ marginLeft: 12, flex: 1 }}>
+                                <Text style={styles.settingTitle}>Import Data</Text>
+                                <Text style={styles.settingDesc}>Restore from a backup file (replaces current data)</Text>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                        </TouchableOpacity>
                     </View>
                 </View>
 
@@ -210,6 +267,15 @@ const styles = StyleSheet.create({
         marginTop: 4,
     },
     addCatText: { fontSize: 14, fontWeight: '600', color: COLORS.primary },
+    dataRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+    },
+    dataDivider: {
+        height: 1,
+        backgroundColor: '#f0f0f0',
+    },
     infoBox: {
         backgroundColor: 'white',
         borderRadius: 12,
