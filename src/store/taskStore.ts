@@ -6,6 +6,7 @@ import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders, updateCriticalTasksNotification, updateTodayTasksNotification } from '../utils/notifications';
 import { buildNextOccurrence } from '../utils/recurrence';
+import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
 
 export const DEFAULT_CATEGORY_ID = 'default';
@@ -51,7 +52,7 @@ function syncNotifications(tasks: Task[]) {
 
     const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
 
-    if (score === 0) {
+    if (score === 0 || AppState.currentState === 'active') {
         FloatingBubble.hide();
     } else {
         FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
