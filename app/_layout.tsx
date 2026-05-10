@@ -4,7 +4,7 @@ import { Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
-import { useTaskStore } from '@/src/store/taskStore';
+import { useTaskStore, computeBubbleScore } from '@/src/store/taskStore';
 import { backupService } from '@/src/services/cloudBackup';
 
 export default function RootLayout() {
@@ -28,12 +28,18 @@ export default function RootLayout() {
 
         const sub = AppState.addEventListener('change', (nextState) => {
             const { tasks, dismissedFloatingBubble, showBubbleInBackground: showBubble } = useTaskStore.getState();
-            const critical = tasks.filter(t => t.priority === 'Critical' && t.status !== 'Done');
             if (nextState === 'active') {
                 FloatingBubble.hide();
             } else if (nextState === 'background') {
-                if (critical.length > 0 && !dismissedFloatingBubble && showBubble) {
-                    FloatingBubble.show(critical.length, critical[0].title);
+                const pad = (n: number) => String(n).padStart(2, '0');
+                const now = new Date();
+                const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                const tom = new Date(now);
+                tom.setDate(tom.getDate() + 1);
+                const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+                const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+                if (score > 0 && !dismissedFloatingBubble && showBubble) {
+                    FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
                 }
                 backupService.onAppBackground();
             }
