@@ -4,7 +4,7 @@ import * as DocumentPicker from 'expo-document-picker';
 import { useTaskStore } from '../store/taskStore';
 import { Category, Task } from '../types';
 
-interface ExportPayload {
+export interface ExportPayload {
     version: number;
     exportedAt: string;
     tasks: Task[];
@@ -15,7 +15,7 @@ interface ExportPayload {
     };
 }
 
-function validateExportData(data: unknown): data is ExportPayload {
+export function validateExportData(data: unknown): data is ExportPayload {
     if (typeof data !== 'object' || data === null) return false;
     const d = data as Record<string, unknown>;
     return (

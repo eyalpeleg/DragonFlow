@@ -1,19 +1,104 @@
 import React, { useState } from 'react';
-import { Alert, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
+import Constants from 'expo-constants';
 import { COLORS } from '@/src/styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import { Category } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
+import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
 
 export default function SettingsScreen() {
     const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+
+    // Cloud backup state
+    const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
+    const [restorePickerVisible, setRestorePickerVisible] = useState(false);
+    const [availableBackups, setAvailableBackups] = useState<BackupMetadata[]>([]);
+    const [selectedBackupId, setSelectedBackupId] = useState<string | null>(null);
+    const [loadingBackups, setLoadingBackups] = useState(false);
+
+    async function handleGoogleSignIn() {
+        try {
+            const tokens = await googleAuth.signIn();
+            setSignedIn(tokens.userEmail ?? 'Unknown', tokens.userName);
+        } catch (e: any) {
+            if (!e.message?.includes('cancelled')) {
+                Alert.alert('Sign-in Failed', e.message ?? 'Something went wrong.');
+            }
+        }
+    }
+
+    async function handleGoogleSignOut() {
+        await googleAuth.signOut();
+        setSignedOut();
+    }
+
+    async function handleCloudBackup() {
+        try {
+            await backupService.performBackup();
+            Alert.alert('Backup Complete', 'Your data has been backed up to Google Drive.');
+        } catch (e: any) {
+            Alert.alert('Backup Failed', e.message ?? 'Something went wrong.');
+        }
+    }
+
+    async function handleOpenRestorePicker() {
+        setLoadingBackups(true);
+        setRestorePickerVisible(true);
+        try {
+            const backups = await backupService.listAvailableBackups();
+            setAvailableBackups(backups);
+            if (backups.length > 0) setSelectedBackupId(backups[0].fileId);
+        } catch (e: any) {
+            Alert.alert('Error', e.message ?? 'Could not load backups.');
+            setRestorePickerVisible(false);
+        } finally {
+            setLoadingBackups(false);
+        }
+    }
+
+    async function handleRestore() {
+        if (!selectedBackupId) return;
+        setRestorePickerVisible(false);
+        Alert.alert(
+            'Restore Backup',
+            'This will replace all current tasks with the selected backup. Continue?',
+            [
+                { text: 'Cancel', style: 'cancel' },
+                {
+                    text: 'Restore',
+                    style: 'destructive',
+                    onPress: async () => {
+                        try {
+                            const result = await backupService.performRestore(selectedBackupId);
+                            Alert.alert('Restore Complete', `${result.tasksImported} task(s) restored.`);
+                        } catch (e: any) {
+                            Alert.alert('Restore Failed', e.message ?? 'Something went wrong.');
+                        }
+                    },
+                },
+            ],
+        );
+    }
+
+    function formatRelativeTime(isoString: string | null): string {
+        if (!isoString) return 'Never';
+        const diff = Date.now() - new Date(isoString).getTime();
+        const minutes = Math.floor(diff / 60_000);
+        if (minutes < 1) return 'Just now';
+        if (minutes < 60) return `${minutes} min ago`;
+        const hours = Math.floor(minutes / 60);
+        if (hours < 24) return `${hours}h ago`;
+        const days = Math.floor(hours / 24);
+        return `${days}d ago`;
+    }
 
     async function handleExport() {
         try {
@@ -147,6 +232,78 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
+                {/* Cloud Backup */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Cloud Backup</Text>
+                    <View style={styles.settingBlock}>
+                        {!isSignedIn ? (
+                            <>
+                                <View style={{ alignItems: 'center', paddingVertical: 8 }}>
+                                    <Ionicons name="cloud-outline" size={32} color={COLORS.primary} />
+                                    <Text style={[styles.settingTitle, { marginTop: 8, textAlign: 'center' }]}>Google Drive Backup</Text>
+                                    <Text style={[styles.settingDesc, { textAlign: 'center', marginBottom: 12 }]}>Automatically back up your tasks to Google Drive</Text>
+                                    <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
+                                        <Ionicons name="logo-google" size={18} color="white" />
+                                        <Text style={styles.signInText}>Sign in with Google</Text>
+                                    </TouchableOpacity>
+                                </View>
+                            </>
+                        ) : (
+                            <>
+                                <View style={styles.cloudUserRow}>
+                                    <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
+                                    <Text style={[styles.settingDesc, { flex: 1, marginLeft: 8 }]} numberOfLines={1}>{userEmail}</Text>
+                                    <TouchableOpacity onPress={handleGoogleSignOut}>
+                                        <Text style={{ fontSize: 13, color: '#E53935', fontWeight: '600' }}>Sign Out</Text>
+                                    </TouchableOpacity>
+                                </View>
+                                <View style={styles.dataDivider} />
+                                <View style={[styles.dataRow, { justifyContent: 'space-between' }]}>
+                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                        <Ionicons name="sync-outline" size={20} color={COLORS.primary} />
+                                        <Text style={[styles.settingTitle, { marginLeft: 12, marginBottom: 0 }]}>Auto-backup</Text>
+                                    </View>
+                                    <Switch
+                                        value={autoBackupEnabled}
+                                        onValueChange={setAutoBackup}
+                                        trackColor={{ false: '#ccc', true: COLORS.primary }}
+                                        thumbColor="white"
+                                    />
+                                </View>
+                                <View style={styles.dataDivider} />
+                                <View style={[styles.dataRow, { justifyContent: 'space-between' }]}>
+                                    <Text style={styles.settingDesc}>Last backup</Text>
+                                    <Text style={[styles.settingDesc, { fontWeight: '600', color: '#555' }]}>{formatRelativeTime(lastBackupTime)}</Text>
+                                </View>
+                                <View style={styles.dataDivider} />
+                                <TouchableOpacity style={styles.dataRow} onPress={handleCloudBackup} disabled={backupStatus === 'backing-up'}>
+                                    {backupStatus === 'backing-up' ? (
+                                        <ActivityIndicator size="small" color={COLORS.primary} />
+                                    ) : (
+                                        <Ionicons name="cloud-upload-outline" size={20} color={COLORS.primary} />
+                                    )}
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                        <Text style={styles.settingTitle}>Back Up Now</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                                </TouchableOpacity>
+                                <View style={styles.dataDivider} />
+                                <TouchableOpacity style={styles.dataRow} onPress={handleOpenRestorePicker} disabled={backupStatus === 'restoring'}>
+                                    {backupStatus === 'restoring' ? (
+                                        <ActivityIndicator size="small" color={COLORS.primary} />
+                                    ) : (
+                                        <Ionicons name="cloud-download-outline" size={20} color={COLORS.primary} />
+                                    )}
+                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                        <Text style={styles.settingTitle}>Restore from Backup</Text>
+                                    </View>
+                                    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                                </TouchableOpacity>
+                            </>
+                        )}
+                    </View>
+                </View>
+
                 {/* Categories */}
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Categories</Text>
@@ -186,12 +343,65 @@ export default function SettingsScreen() {
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
+                        <Text style={styles.infoSubtext}>
+                            Build: {new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString()}
+                        </Text>
                     </View>
                 </View>
             </ScrollView>
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
+
+            {/* Restore Picker Modal */}
+            <Modal visible={restorePickerVisible} animationType="slide" transparent>
+                <View style={styles.restoreOverlay}>
+                    <View style={styles.restoreContent}>
+                        <Text style={styles.restoreTitle}>Restore from Backup</Text>
+                        {loadingBackups ? (
+                            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 30 }} />
+                        ) : availableBackups.length === 0 ? (
+                            <Text style={[styles.settingDesc, { textAlign: 'center', marginVertical: 30 }]}>No backups found on Google Drive.</Text>
+                        ) : (
+                            <ScrollView style={{ maxHeight: 300, marginVertical: 12 }}>
+                                {availableBackups.map((backup) => {
+                                    const isSelected = selectedBackupId === backup.fileId;
+                                    const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
+                                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                                    });
+                                    const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+                                    return (
+                                        <TouchableOpacity
+                                            key={backup.fileId}
+                                            style={[styles.restoreRow, isSelected && styles.restoreRowSelected]}
+                                            onPress={() => setSelectedBackupId(backup.fileId)}
+                                        >
+                                            <Ionicons
+                                                name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                                                size={20}
+                                                color={isSelected ? COLORS.primary : '#ccc'}
+                                            />
+                                            <Text style={[styles.restoreRowText, isSelected && { color: COLORS.primary }]}>
+                                                {date}{taskLabel}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    );
+                                })}
+                            </ScrollView>
+                        )}
+                        <View style={styles.restoreBtnRow}>
+                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setRestorePickerVisible(false)}>
+                                <Text style={styles.cancelBtnText}>Cancel</Text>
+                            </TouchableOpacity>
+                            {availableBackups.length > 0 && (
+                                <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore}>
+                                    <Text style={styles.restoreBtnText}>Restore</Text>
+                                </TouchableOpacity>
+                            )}
+                        </View>
+                    </View>
+                </View>
+            </Modal>
         </SafeAreaView>
     );
 }
@@ -289,4 +499,68 @@ const styles = StyleSheet.create({
     },
     infoText: { fontSize: 16, fontWeight: '600', color: '#222' },
     infoSubtext: { fontSize: 12, color: '#999', marginTop: 4 },
+    signInBtn: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 8,
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 10,
+    },
+    signInText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+    cloudUserRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 10,
+    },
+    restoreOverlay: {
+        flex: 1,
+        backgroundColor: 'rgba(0,0,0,0.5)',
+        justifyContent: 'flex-end',
+    },
+    restoreContent: {
+        backgroundColor: 'white',
+        borderTopLeftRadius: 20,
+        borderTopRightRadius: 20,
+        padding: 20,
+        paddingBottom: 40,
+    },
+    restoreTitle: {
+        fontSize: 18,
+        fontWeight: 'bold',
+        color: '#222',
+        textAlign: 'center',
+    },
+    restoreRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        borderRadius: 10,
+    },
+    restoreRowSelected: {
+        backgroundColor: 'rgba(79,55,139,0.06)',
+    },
+    restoreRowText: {
+        fontSize: 15,
+        color: '#444',
+        fontWeight: '500',
+    },
+    restoreBtnRow: {
+        flexDirection: 'row',
+        justifyContent: 'flex-end',
+        gap: 15,
+        marginTop: 8,
+    },
+    cancelBtn: { padding: 12 },
+    cancelBtnText: { color: '#999', fontWeight: 'bold', fontSize: 15 },
+    restoreBtn: {
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 20,
+        paddingVertical: 12,
+        borderRadius: 10,
+    },
+    restoreBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
 });
