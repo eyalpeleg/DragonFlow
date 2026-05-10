@@ -94,7 +94,12 @@ class FloatingBubbleService : Service() {
         }
 
         bubbleView?.setOnTouchListener(BubbleTouchListener())
-        windowManager.addView(bubbleView, bubbleParams)
+        try {
+            windowManager.addView(bubbleView, bubbleParams)
+        } catch (e: Exception) {
+            bubbleView = null
+            stopSelf()
+        }
     }
 
     private fun createDismissView() {
