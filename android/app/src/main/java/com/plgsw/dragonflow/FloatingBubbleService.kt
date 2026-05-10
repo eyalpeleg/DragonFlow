@@ -297,7 +297,7 @@ class FloatingBubbleService : Service() {
         View(context) {
 
         companion object {
-            val COLOR_NORMAL: Int = Color.parseColor("#00CCFF")
+            val COLOR_NORMAL: Int = Color.parseColor("#346eeb")
         }
 
         private val iconBitmap: Bitmap?
