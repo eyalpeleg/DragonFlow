@@ -305,7 +305,7 @@ class FloatingBubbleService : Service() {
             strokeWidth = 6f
         }
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (count <= 3) Color.parseColor("#00CCFF") else Color.RED
+            color = if (count <= 3) Color.parseColor("#346eeb") else Color.RED
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -325,7 +325,7 @@ class FloatingBubbleService : Service() {
 
         fun updateCount(newCount: Int) {
             count = newCount
-            countTextPaint.color = if (count <= 3) Color.parseColor("#00CCFF") else Color.RED
+            countTextPaint.color = if (count <= 3) Color.parseColor("#346eeb") else Color.RED
             invalidate()
         }
 
