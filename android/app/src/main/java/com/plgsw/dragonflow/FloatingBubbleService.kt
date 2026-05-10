@@ -298,7 +298,7 @@ class FloatingBubbleService : Service() {
         private val iconBitmap: Bitmap?
         private val iconRect = RectF()
         private val countStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.BLACK
+            color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
             style = Paint.Style.STROKE
