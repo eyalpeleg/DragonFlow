@@ -11,13 +11,27 @@ import { Category } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
 import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
 
+const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
+const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
+
+function formatRelativeTime(isoString: string | null): string {
+    if (!isoString) return 'Never';
+    const diff = Date.now() - new Date(isoString).getTime();
+    const minutes = Math.floor(diff / 60_000);
+    if (minutes < 1) return 'Just now';
+    if (minutes < 60) return `${minutes} min ago`;
+    const hours = Math.floor(minutes / 60);
+    if (hours < 24) return `${hours}h ago`;
+    const days = Math.floor(hours / 24);
+    return `${days}d ago`;
+}
+
 export default function SettingsScreen() {
     const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
 
-    // Cloud backup state
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
     const [availableBackups, setAvailableBackups] = useState<BackupMetadata[]>([]);
@@ -86,18 +100,6 @@ export default function SettingsScreen() {
                 },
             ],
         );
-    }
-
-    function formatRelativeTime(isoString: string | null): string {
-        if (!isoString) return 'Never';
-        const diff = Date.now() - new Date(isoString).getTime();
-        const minutes = Math.floor(diff / 60_000);
-        if (minutes < 1) return 'Just now';
-        if (minutes < 60) return `${minutes} min ago`;
-        const hours = Math.floor(minutes / 60);
-        if (hours < 24) return `${hours}h ago`;
-        const days = Math.floor(hours / 24);
-        return `${days}d ago`;
     }
 
     async function handleExport() {
@@ -174,7 +176,7 @@ export default function SettingsScreen() {
                     <View style={styles.settingRow}>
                         <View style={styles.settingLabel}>
                             <Ionicons name="alert-circle" size={20} color={COLORS.primary} />
-                            <View style={{ marginLeft: 12 }}>
+                            <View style={styles.ml12}>
                                 <Text style={styles.settingTitle}>Show in Background</Text>
                                 <Text style={styles.settingDesc}>Display critical task badge when app is closed</Text>
                             </View>
@@ -182,7 +184,7 @@ export default function SettingsScreen() {
                         <Switch
                             value={showBubbleInBackground}
                             onValueChange={setShowBubbleInBackground}
-                            trackColor={{ false: '#ccc', true: COLORS.primary }}
+                            trackColor={SWITCH_TRACK_COLOR}
                             thumbColor="white"
                         />
                     </View>
@@ -214,7 +216,7 @@ export default function SettingsScreen() {
                     <View style={styles.settingBlock}>
                         <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
                             <Ionicons name="download-outline" size={20} color={COLORS.primary} />
-                            <View style={{ marginLeft: 12, flex: 1 }}>
+                            <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Export Data</Text>
                                 <Text style={styles.settingDesc}>Save tasks & categories to a JSON backup file</Text>
                             </View>
@@ -223,7 +225,7 @@ export default function SettingsScreen() {
                         <View style={styles.dataDivider} />
                         <TouchableOpacity style={styles.dataRow} onPress={handleImport}>
                             <Ionicons name="push-outline" size={20} color={COLORS.primary} />
-                            <View style={{ marginLeft: 12, flex: 1 }}>
+                            <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Import Data</Text>
                                 <Text style={styles.settingDesc}>Restore from a backup file (replaces current data)</Text>
                             </View>
@@ -237,43 +239,41 @@ export default function SettingsScreen() {
                     <Text style={styles.sectionTitle}>Cloud Backup</Text>
                     <View style={styles.settingBlock}>
                         {!isSignedIn ? (
-                            <>
-                                <View style={{ alignItems: 'center', paddingVertical: 8 }}>
-                                    <Ionicons name="cloud-outline" size={32} color={COLORS.primary} />
-                                    <Text style={[styles.settingTitle, { marginTop: 8, textAlign: 'center' }]}>Google Drive Backup</Text>
-                                    <Text style={[styles.settingDesc, { textAlign: 'center', marginBottom: 12 }]}>Automatically back up your tasks to Google Drive</Text>
-                                    <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
-                                        <Ionicons name="logo-google" size={18} color="white" />
-                                        <Text style={styles.signInText}>Sign in with Google</Text>
-                                    </TouchableOpacity>
-                                </View>
-                            </>
+                            <View style={styles.cloudSignInWrapper}>
+                                <Ionicons name="cloud-outline" size={32} color={COLORS.primary} />
+                                <Text style={styles.settingTitleCentered}>Google Drive Backup</Text>
+                                <Text style={styles.settingDescCentered}>Automatically back up your tasks to Google Drive</Text>
+                                <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
+                                    <Ionicons name="logo-google" size={18} color="white" />
+                                    <Text style={styles.signInText}>Sign in with Google</Text>
+                                </TouchableOpacity>
+                            </View>
                         ) : (
                             <>
                                 <View style={styles.cloudUserRow}>
                                     <Ionicons name="person-circle-outline" size={24} color={COLORS.primary} />
-                                    <Text style={[styles.settingDesc, { flex: 1, marginLeft: 8 }]} numberOfLines={1}>{userEmail}</Text>
+                                    <Text style={styles.cloudUserEmail} numberOfLines={1}>{userEmail}</Text>
                                     <TouchableOpacity onPress={handleGoogleSignOut}>
-                                        <Text style={{ fontSize: 13, color: '#E53935', fontWeight: '600' }}>Sign Out</Text>
+                                        <Text style={styles.signOutText}>Sign Out</Text>
                                     </TouchableOpacity>
                                 </View>
                                 <View style={styles.dataDivider} />
-                                <View style={[styles.dataRow, { justifyContent: 'space-between' }]}>
-                                    <View style={{ flexDirection: 'row', alignItems: 'center' }}>
+                                <View style={styles.dataRowSpaceBetween}>
+                                    <View style={styles.syncRow}>
                                         <Ionicons name="sync-outline" size={20} color={COLORS.primary} />
-                                        <Text style={[styles.settingTitle, { marginLeft: 12, marginBottom: 0 }]}>Auto-backup</Text>
+                                        <Text style={styles.autoBackupTitle}>Auto-backup</Text>
                                     </View>
                                     <Switch
                                         value={autoBackupEnabled}
                                         onValueChange={setAutoBackup}
-                                        trackColor={{ false: '#ccc', true: COLORS.primary }}
+                                        trackColor={SWITCH_TRACK_COLOR}
                                         thumbColor="white"
                                     />
                                 </View>
                                 <View style={styles.dataDivider} />
-                                <View style={[styles.dataRow, { justifyContent: 'space-between' }]}>
+                                <View style={styles.dataRowSpaceBetween}>
                                     <Text style={styles.settingDesc}>Last backup</Text>
-                                    <Text style={[styles.settingDesc, { fontWeight: '600', color: '#555' }]}>{formatRelativeTime(lastBackupTime)}</Text>
+                                    <Text style={styles.lastBackupValue}>{formatRelativeTime(lastBackupTime)}</Text>
                                 </View>
                                 <View style={styles.dataDivider} />
                                 <TouchableOpacity style={styles.dataRow} onPress={handleCloudBackup} disabled={backupStatus === 'backing-up'}>
@@ -282,7 +282,7 @@ export default function SettingsScreen() {
                                     ) : (
                                         <Ionicons name="cloud-upload-outline" size={20} color={COLORS.primary} />
                                     )}
-                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                    <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Back Up Now</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -294,7 +294,7 @@ export default function SettingsScreen() {
                                     ) : (
                                         <Ionicons name="cloud-download-outline" size={20} color={COLORS.primary} />
                                     )}
-                                    <View style={{ marginLeft: 12, flex: 1 }}>
+                                    <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Restore from Backup</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={18} color="#ccc" />
@@ -315,7 +315,7 @@ export default function SettingsScreen() {
                                     <View style={[styles.catDot, { backgroundColor: cat.color }]} />
                                     <Text style={styles.catName}>{cat.name}</Text>
                                     {isDefault && (
-                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={{ marginRight: 8 }} />
+                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
                                     )}
                                     {!isDefault && (
                                         <View style={styles.catActions}>
@@ -337,15 +337,13 @@ export default function SettingsScreen() {
                     </View>
                 </View>
 
-                {/* Info Section */}
-                <View style={[styles.section, { marginTop: 16 }]}>
+                {/* About */}
+                <View style={styles.aboutSection}>
                     <Text style={styles.sectionTitle}>About</Text>
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
-                        <Text style={styles.infoSubtext}>
-                            Build: {new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString()}
-                        </Text>
+                        <Text style={styles.infoSubtext}>Build: {BUILD_TIMESTAMP}</Text>
                     </View>
                 </View>
             </ScrollView>
@@ -359,11 +357,11 @@ export default function SettingsScreen() {
                     <View style={styles.restoreContent}>
                         <Text style={styles.restoreTitle}>Restore from Backup</Text>
                         {loadingBackups ? (
-                            <ActivityIndicator size="large" color={COLORS.primary} style={{ marginVertical: 30 }} />
+                            <ActivityIndicator size="large" color={COLORS.primary} style={styles.restoreLoader} />
                         ) : availableBackups.length === 0 ? (
-                            <Text style={[styles.settingDesc, { textAlign: 'center', marginVertical: 30 }]}>No backups found on Google Drive.</Text>
+                            <Text style={styles.noBackupsText}>No backups found on Google Drive.</Text>
                         ) : (
-                            <ScrollView style={{ maxHeight: 300, marginVertical: 12 }}>
+                            <ScrollView style={styles.backupScrollView}>
                                 {availableBackups.map((backup) => {
                                     const isSelected = selectedBackupId === backup.fileId;
                                     const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
@@ -373,7 +371,7 @@ export default function SettingsScreen() {
                                     return (
                                         <TouchableOpacity
                                             key={backup.fileId}
-                                            style={[styles.restoreRow, isSelected && styles.restoreRowSelected]}
+                                            style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
                                             onPress={() => setSelectedBackupId(backup.fileId)}
                                         >
                                             <Ionicons
@@ -381,7 +379,7 @@ export default function SettingsScreen() {
                                                 size={20}
                                                 color={isSelected ? COLORS.primary : '#ccc'}
                                             />
-                                            <Text style={[styles.restoreRowText, isSelected && { color: COLORS.primary }]}>
+                                            <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
                                                 {date}{taskLabel}
                                             </Text>
                                         </TouchableOpacity>
@@ -417,6 +415,7 @@ const styles = StyleSheet.create({
     headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
     section: { marginBottom: 24 },
+    aboutSection: { marginBottom: 24, marginTop: 16 },
     sectionTitle: { fontSize: 14, fontWeight: '700', color: '#666', marginBottom: 12, textTransform: 'uppercase' },
     settingRow: {
         backgroundColor: 'white',
@@ -433,7 +432,9 @@ const styles = StyleSheet.create({
     },
     settingLabel: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     settingTitle: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 2 },
+    settingTitleCentered: { fontSize: 16, fontWeight: '600', color: '#222', marginTop: 8, textAlign: 'center' },
     settingDesc: { fontSize: 12, color: '#999' },
+    settingDescCentered: { fontSize: 12, color: '#999', textAlign: 'center', marginBottom: 12 },
     settingBlock: {
         backgroundColor: 'white',
         borderRadius: 12,
@@ -482,10 +483,13 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         paddingVertical: 12,
     },
-    dataDivider: {
-        height: 1,
-        backgroundColor: '#f0f0f0',
+    dataRowSpaceBetween: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        paddingVertical: 12,
+        justifyContent: 'space-between',
     },
+    dataDivider: { height: 1, backgroundColor: '#f0f0f0' },
     infoBox: {
         backgroundColor: 'white',
         borderRadius: 12,
@@ -509,11 +513,13 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     signInText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
-    cloudUserRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        paddingVertical: 10,
-    },
+    cloudSignInWrapper: { alignItems: 'center', paddingVertical: 8 },
+    cloudUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
+    cloudUserEmail: { fontSize: 12, color: '#999', flex: 1, marginLeft: 8 },
+    signOutText: { fontSize: 13, color: '#E53935', fontWeight: '600' },
+    syncRow: { flexDirection: 'row', alignItems: 'center' },
+    autoBackupTitle: { fontSize: 16, fontWeight: '600', color: '#222', marginLeft: 12 },
+    lastBackupValue: { fontSize: 12, color: '#555', fontWeight: '600' },
     restoreOverlay: {
         flex: 1,
         backgroundColor: 'rgba(0,0,0,0.5)',
@@ -526,12 +532,10 @@ const styles = StyleSheet.create({
         padding: 20,
         paddingBottom: 40,
     },
-    restoreTitle: {
-        fontSize: 18,
-        fontWeight: 'bold',
-        color: '#222',
-        textAlign: 'center',
-    },
+    restoreTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', textAlign: 'center' },
+    restoreLoader: { marginVertical: 30 },
+    noBackupsText: { fontSize: 12, color: '#999', textAlign: 'center', marginVertical: 30 },
+    backupScrollView: { maxHeight: 300, marginVertical: 12 },
     restoreRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -541,19 +545,17 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     restoreRowSelected: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingVertical: 14,
+        paddingHorizontal: 8,
+        borderRadius: 10,
         backgroundColor: 'rgba(79,55,139,0.06)',
     },
-    restoreRowText: {
-        fontSize: 15,
-        color: '#444',
-        fontWeight: '500',
-    },
-    restoreBtnRow: {
-        flexDirection: 'row',
-        justifyContent: 'flex-end',
-        gap: 15,
-        marginTop: 8,
-    },
+    restoreRowText: { fontSize: 15, color: '#444', fontWeight: '500' },
+    restoreRowTextSelected: { fontSize: 15, color: COLORS.primary, fontWeight: '500' },
+    restoreBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15, marginTop: 8 },
     cancelBtn: { padding: 12 },
     cancelBtnText: { color: '#999', fontWeight: 'bold', fontSize: 15 },
     restoreBtn: {
@@ -563,4 +565,7 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     restoreBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+    ml12: { marginLeft: 12 },
+    ml12flex: { marginLeft: 12, flex: 1 },
+    mr8: { marginRight: 8 },
 });
