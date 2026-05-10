@@ -1,4 +1,4 @@
-package com.anonymous.DragonFlow
+package com.plgsw.dragonflow
 import expo.modules.splashscreen.SplashScreenManager
 
 import android.os.Build

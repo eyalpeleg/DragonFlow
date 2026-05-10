@@ -87,9 +87,9 @@ android {
     buildToolsVersion rootProject.ext.buildToolsVersion
     compileSdk rootProject.ext.compileSdkVersion
 
-    namespace 'com.anonymous.DragonFlow'
+    namespace 'com.plgsw.dragonflow'
     defaultConfig {
-        applicationId 'com.anonymous.DragonFlow'
+        applicationId 'com.plgsw.dragonflow'
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionCode 1
