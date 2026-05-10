@@ -21,6 +21,10 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun show(count: Int, message: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            !Settings.canDrawOverlays(reactApplicationContext)) {
+            return
+        }
         val context = reactApplicationContext
         val intent = Intent(context, FloatingBubbleService::class.java).apply {
             putExtra("count", count)
