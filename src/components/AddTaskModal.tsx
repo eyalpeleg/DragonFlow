@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Keyboard, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/taskStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
@@ -36,6 +36,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [interval, setInterval] = useState('1');
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
+    const [dateExpanded, setDateExpanded] = useState(false);
 
     function addSubTask() {
         const t = subTaskInput.trim();
@@ -46,6 +47,13 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function removeSubTask(id: string) {
         setSubTasks((prev) => prev.filter((s) => s.id !== id));
+    }
+
+    function handleTitleSubmit() {
+        Keyboard.dismiss();
+        if (!dueDate) {
+            setDateExpanded(true);
+        }
     }
 
     function handleDateChange(date: Date) {
@@ -81,7 +89,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function reset() {
         setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
-        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(false);
+        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(false); setDateExpanded(false);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
     }
@@ -98,18 +106,20 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                     >
-                        <Text style={styles.modalTitle}>New Task</Text>
+                        <Text style={styles.modalTitle}>{title.trim() || 'New Task'}</Text>
 
                         <TextInput
-                            placeholder="What needs to be done?"
+                            placeholder="Task title"
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
                             autoFocus
+                            returnKeyType="done"
+                            onSubmitEditing={handleTitleSubmit}
                         />
 
                         <TextInput
-                            placeholder="Description (optional)"
+                            placeholder="Add a description"
                             style={[styles.input, styles.textArea]}
                             multiline
                             value={description}
@@ -119,7 +129,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <Text style={styles.label}>Due Date{dueDate ? ' & Time' : ''}</Text>
                         <View style={styles.dateTimeRow}>
                             <View style={dueDate ? styles.dateTimeDate : { flex: 1 }}>
-                                <DatePickerField value={dueDate} onChange={handleDateChange} onClear={handleDateClear} />
+                                <DatePickerField value={dueDate} onChange={handleDateChange} onClear={handleDateClear} expanded={dateExpanded} />
                             </View>
                             {dueDate && (
                                 <View style={styles.dateTimeTime}>
@@ -127,29 +137,6 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                                 </View>
                             )}
                         </View>
-
-                        <Text style={styles.label}>Priority</Text>
-                        <View style={styles.row}>
-                            {priorities.map((p) => (
-                                <TouchableOpacity key={p} onPress={() => setPriority(p)}
-                                    style={[styles.chip, priority === p && { backgroundColor: COLORS.priority[p] }]}>
-                                    <Text style={[styles.chipText, priority === p && { color: 'white' }]}>{p}</Text>
-                                </TouchableOpacity>
-                            ))}
-                        </View>
-
-                        <Text style={styles.label}>Category</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
-                            {categories.map((c) => (
-                                <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
-                                    style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
-                                    <Text style={[styles.chipText, categoryId === c.id && { color: 'white' }]}>{c.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                            <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
-                                <Ionicons name="add" size={14} color={COLORS.primary} />
-                            </TouchableOpacity>
-                        </ScrollView>
 
                         <View style={styles.switchRow}>
                             <View>
@@ -184,6 +171,29 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                                 />
                             </View>
                         )}
+
+                        <Text style={styles.label}>Priority</Text>
+                        <View style={styles.row}>
+                            {priorities.map((p) => (
+                                <TouchableOpacity key={p} onPress={() => setPriority(p)}
+                                    style={[styles.chip, priority === p && { backgroundColor: COLORS.priority[p] }]}>
+                                    <Text style={[styles.chipText, priority === p && { color: 'white' }]}>{p}</Text>
+                                </TouchableOpacity>
+                            ))}
+                        </View>
+
+                        <Text style={styles.label}>Category</Text>
+                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
+                            {categories.map((c) => (
+                                <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
+                                    style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
+                                    <Text style={[styles.chipText, categoryId === c.id && { color: 'white' }]}>{c.name}</Text>
+                                </TouchableOpacity>
+                            ))}
+                            <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
+                                <Ionicons name="add" size={14} color={COLORS.primary} />
+                            </TouchableOpacity>
+                        </ScrollView>
 
                         <Text style={styles.label}>Sub-tasks</Text>
                         <View style={styles.subTaskInputRow}>

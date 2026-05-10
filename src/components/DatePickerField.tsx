@@ -14,10 +14,12 @@ interface Props {
     value: Date | null;
     onChange: (date: Date) => void;
     onClear: () => void;
+    expanded?: boolean;
 }
 
-export default function DatePickerField({ value, onChange, onClear }: Props) {
+export default function DatePickerField({ value, onChange, onClear, expanded }: Props) {
     const [showChips, setShowChips] = useState(false);
+    const chipsVisible = showChips || (expanded && !value);
     const [showPicker, setShowPicker] = useState(false);
 
     const formatted = value?.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' });
@@ -109,7 +111,7 @@ export default function DatePickerField({ value, onChange, onClear }: Props) {
     }
 
     // Empty state: show "Add due date" or chips
-    if (showChips) {
+    if (chipsVisible) {
         return (
             <View>
                 {renderChips()}
