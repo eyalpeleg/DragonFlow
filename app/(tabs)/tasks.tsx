@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
@@ -16,6 +16,8 @@ import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/st
 import { cancelPomodoroNotification, schedulePomodoroEnd } from '@/src/utils/notifications';
 import { Task, TaskStatus } from '@/src/types';
 
+type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
+
 export default function TasksScreen() {
     const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
     const tasks = useSortedFilteredTasks();
@@ -28,13 +30,14 @@ export default function TasksScreen() {
     const [filterModalOpen, setFilterModalOpen] = useState(false);
     const [filterTypeSelectorOpen, setFilterTypeSelectorOpen] = useState(false);
     const [filterBarVisible, setFilterBarVisible] = useState(true);
-    const [selectedFilterType, setSelectedFilterType] = useState<'status' | 'category' | 'priority' | 'dueDate' | null>(null);
+    const [selectedFilterType, setSelectedFilterType] = useState<FilterType | null>(null);
 
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
-    const hasActiveFilters = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size > 0;
+    const totalFilterCount = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size;
+    const hasActiveFilters = totalFilterCount > 0;
 
     // Timer state lives here so it survives modal close/open
     const [modeIdx, setModeIdx] = useState<PomodoroModeIdx>(0);
@@ -77,16 +80,48 @@ export default function TasksScreen() {
         setSecondsLeft(POMODORO_MODES[modeIdx].minutes * 60);
     }, [stopTimer, modeIdx]);
 
+    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
+        <TaskCard
+            task={item}
+            onStatusChange={setStatus}
+            onEdit={setEditTask}
+            onArchive={archiveTask}
+            onOpenStats={setStatsTask}
+        />
+    ), [setStatus, archiveTask]);
+
+    const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
+        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} />
+    ), [restoreTask, deleteTask]);
+
     const timerActive = running && !pomodoroVisible;
     const timerMins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
     const timerSecs = String(secondsLeft % 60).padStart(2, '0');
 
-    const handleFilterPress = (filterType: 'status' | 'category' | 'priority' | 'dueDate') => {
+    function handleFilterToggle() {
+        if (hasActiveFilters) {
+            setFilterBarVisible(!filterBarVisible);
+        } else {
+            setFilterTypeSelectorOpen(true);
+        }
+    }
+
+    function handleFilterPress(filterType: FilterType) {
         setSelectedFilterType(filterType);
         setFilterModalOpen(true);
-    };
+    }
 
-    const handleFilterSave = (filterType: 'status' | 'category' | 'priority' | 'dueDate', selectedSet: Set<string>) => {
+    function handleFilterModalClose() {
+        setFilterModalOpen(false);
+        setSelectedFilterType(null);
+    }
+
+    function handleEditSave(id: string, updates: Partial<Task>) {
+        updateTask(id, updates);
+        setEditTask(null);
+    }
+
+    const handleFilterSave = (filterType: FilterType, selectedSet: Set<string>) => {
         const setFilters = useTaskStore.getState();
         if (filterType === 'status') setFilters.setStatusFilters(selectedSet as Set<TaskStatus>);
         if (filterType === 'category') setFilters.setCategoryFilters(selectedSet);
@@ -96,7 +131,7 @@ export default function TasksScreen() {
 
     if (!hasHydrated) {
         return (
-            <SafeAreaView style={[styles.container, styles.centered]}>
+            <SafeAreaView style={styles.containerCentered}>
                 <ActivityIndicator size="large" color={COLORS.primary} />
             </SafeAreaView>
         );
@@ -108,32 +143,21 @@ export default function TasksScreen() {
                 <Text style={styles.headerTitle}>{showArchive ? 'Archive' : 'DragonFlow'}</Text>
                 <View style={styles.headerActions}>
                     {!showArchive && (
-                        <TouchableOpacity
-                            style={styles.filterBtn}
-                            onPress={() => {
-                                if (hasActiveFilters) {
-                                    setFilterBarVisible(!filterBarVisible);
-                                } else {
-                                    setFilterTypeSelectorOpen(true);
-                                }
-                            }}
-                        >
+                        <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
                             <Ionicons
                                 name={hasActiveFilters && filterBarVisible ? "funnel" : "funnel-outline"}
                                 size={20}
                                 color="white"
                             />
-                            {(statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size > 1) && (
+                            {totalFilterCount > 1 && (
                                 <View style={styles.filterBadge}>
-                                    <Text style={styles.filterBadgeText}>
-                                        {statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size}
-                                    </Text>
+                                    <Text style={styles.filterBadgeText}>{totalFilterCount}</Text>
                                 </View>
                             )}
                         </TouchableOpacity>
                     )}
                     <TouchableOpacity
-                        style={[styles.archiveBtn, showArchive && styles.archiveBtnActive]}
+                        style={showArchive ? styles.archiveBtnActive : styles.archiveBtn}
                         onPress={() => setShowArchive((v) => !v)}
                     >
                         <Ionicons name="archive-outline" size={20} color={showArchive ? COLORS.primary : 'white'} />
@@ -167,9 +191,7 @@ export default function TasksScreen() {
                             <Text style={styles.emptySubtext}>Archived tasks will appear here</Text>
                         </View>
                     }
-                    renderItem={({ item }) => (
-                        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} />
-                    )}
+                    renderItem={renderArchivedTask}
                 />
             ) : (
                 <>
@@ -190,15 +212,7 @@ export default function TasksScreen() {
                                 <Text style={styles.emptySubtext}>Tap + to add your first task</Text>
                             </View>
                         }
-                        renderItem={({ item }) => (
-                            <TaskCard
-                                task={item}
-                                onStatusChange={setStatus}
-                                onEdit={(t) => setEditTask(t)}
-                                onArchive={archiveTask}
-                                onOpenStats={(t) => setStatsTask(t)}
-                            />
-                        )}
+                        renderItem={renderTask}
                     />
                     <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)}>
                         <Text style={styles.fabText}>+</Text>
@@ -209,19 +223,13 @@ export default function TasksScreen() {
             <FilterTypeSelector
                 isOpen={filterTypeSelectorOpen}
                 onClose={() => setFilterTypeSelectorOpen(false)}
-                onSelect={(filterType) => {
-                    setSelectedFilterType(filterType);
-                    setFilterModalOpen(true);
-                }}
+                onSelect={handleFilterPress}
             />
 
             <FilterModal
                 isOpen={filterModalOpen}
                 filterType={selectedFilterType}
-                onClose={() => {
-                    setFilterModalOpen(false);
-                    setSelectedFilterType(null);
-                }}
+                onClose={handleFilterModalClose}
                 onSave={handleFilterSave}
             />
 
@@ -240,17 +248,14 @@ export default function TasksScreen() {
             <AddTaskModal
                 isVisible={addModalVisible}
                 onClose={() => setAddModalVisible(false)}
-                onAdd={(input) => addTask(input)}
+                onAdd={addTask}
             />
 
             <EditTaskModal
                 isVisible={editTask !== null}
                 task={editTask}
                 onClose={() => setEditTask(null)}
-                onSave={(id, updates) => {
-                    updateTask(id, updates);
-                    setEditTask(null);
-                }}
+                onSave={handleEditSave}
             />
 
             <DoneStatsModal
@@ -263,7 +268,7 @@ export default function TasksScreen() {
 
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
-    centered: { justifyContent: 'center', alignItems: 'center' },
+    containerCentered: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
     header: {
         backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
@@ -284,7 +289,10 @@ const styles = StyleSheet.create({
         width: 38, height: 38, borderRadius: 19,
         backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
     },
-    archiveBtnActive: { backgroundColor: 'white' },
+    archiveBtnActive: {
+        width: 38, height: 38, borderRadius: 19,
+        backgroundColor: 'white', alignItems: 'center', justifyContent: 'center',
+    },
     archiveBadge: {
         position: 'absolute', top: -2, right: -2,
         backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16,
@@ -292,7 +300,6 @@ const styles = StyleSheet.create({
     },
     archiveBadgeText: { color: 'white', fontSize: 9, fontWeight: '700' },
     pomodoroBtn: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    pomodoroBtnText: { fontSize: 20 },
     pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: 'white' },
     listContent: { paddingBottom: 100 },
     emptyContainer: { flex: 1 },

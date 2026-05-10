@@ -35,12 +35,18 @@ class FloatingBubbleService : Service() {
     private val bubbleSizeDp = 56
     private val dismissSizeDp = 56
     private val dismissZoneRadiusDp = 60
+    private val dismissBottomOffsetDp = 80
 
     private fun dpToPx(dp: Int): Int {
         return TypedValue.applyDimension(
             TypedValue.COMPLEX_UNIT_DIP, dp.toFloat(), resources.displayMetrics
         ).toInt()
     }
+
+    private val bubbleSizePx: Int by lazy { dpToPx(bubbleSizeDp) }
+    private val dismissSizePx: Int by lazy { dpToPx(dismissSizeDp) }
+    private val dismissZoneRadiusPx: Int by lazy { dpToPx(dismissZoneRadiusDp) }
+    private val dismissBottomOffsetPx: Int by lazy { dpToPx(dismissBottomOffsetDp) }
 
     override fun onBind(intent: Intent?): IBinder? = null
 
@@ -72,9 +78,7 @@ class FloatingBubbleService : Service() {
     }
 
     private fun createBubbleView(count: Int) {
-        val sizePx = dpToPx(bubbleSizeDp)
-
-        bubbleView = BubbleView(this, count, sizePx)
+        bubbleView = BubbleView(this, count, bubbleSizePx)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -83,7 +87,7 @@ class FloatingBubbleService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
 
         bubbleParams = WindowManager.LayoutParams(
-            sizePx, sizePx,
+            bubbleSizePx, bubbleSizePx,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE,
             PixelFormat.TRANSLUCENT
@@ -105,8 +109,7 @@ class FloatingBubbleService : Service() {
     private fun createDismissView() {
         if (dismissView != null) return
 
-        val sizePx = dpToPx(dismissSizeDp)
-        dismissView = DismissTargetView(this, sizePx)
+        dismissView = DismissTargetView(this, dismissSizePx)
 
         val layoutFlag = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             WindowManager.LayoutParams.TYPE_APPLICATION_OVERLAY
@@ -115,13 +118,13 @@ class FloatingBubbleService : Service() {
             WindowManager.LayoutParams.TYPE_PHONE
 
         dismissParams = WindowManager.LayoutParams(
-            sizePx, sizePx,
+            dismissSizePx, dismissSizePx,
             layoutFlag,
             WindowManager.LayoutParams.FLAG_NOT_FOCUSABLE or WindowManager.LayoutParams.FLAG_NOT_TOUCHABLE,
             PixelFormat.TRANSLUCENT
         ).apply {
             gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
-            y = dpToPx(80)
+            y = dismissBottomOffsetPx
         }
 
         windowManager.addView(dismissView, dismissParams)
@@ -136,23 +139,21 @@ class FloatingBubbleService : Service() {
     }
 
     private fun isNearDismissTarget(bubbleX: Int, bubbleY: Int): Boolean {
-        val bubbleSizePx = dpToPx(bubbleSizeDp)
         val bubbleCenterX = bubbleX + bubbleSizePx / 2
         val bubbleCenterY = bubbleY + bubbleSizePx / 2
 
         val dismissCenterX = screenWidth / 2
-        val dismissCenterY = screenHeight - dpToPx(80) - dpToPx(dismissSizeDp) / 2
+        val dismissCenterY = screenHeight - dismissBottomOffsetPx - dismissSizePx / 2
 
         val dx = bubbleCenterX - dismissCenterX
         val dy = bubbleCenterY - dismissCenterY
-        val distance = Math.sqrt((dx * dx + dy * dy).toDouble())
+        val distanceSq = (dx * dx + dy * dy).toLong()
 
-        return distance < dpToPx(dismissZoneRadiusDp)
+        return distanceSq < dismissZoneRadiusPx.toLong() * dismissZoneRadiusPx
     }
 
     private fun snapToEdge() {
         val params = bubbleParams ?: return
-        val bubbleSizePx = dpToPx(bubbleSizeDp)
         val bubbleCenterX = params.x + bubbleSizePx / 2
         val targetX = if (bubbleCenterX < screenWidth / 2) 0 else screenWidth - bubbleSizePx
 
@@ -295,6 +296,10 @@ class FloatingBubbleService : Service() {
     private class BubbleView(context: Context, private var count: Int, private val sizePx: Int) :
         View(context) {
 
+        companion object {
+            val COLOR_NORMAL: Int = Color.parseColor("#00CCFF")
+        }
+
         private val iconBitmap: Bitmap?
         private val iconRect = RectF()
         private val countStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
@@ -305,7 +310,7 @@ class FloatingBubbleService : Service() {
             strokeWidth = 6f
         }
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (count <= 3) Color.parseColor("#00CCFF") else Color.RED
+            color = if (count <= 3) COLOR_NORMAL else Color.RED
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -325,7 +330,7 @@ class FloatingBubbleService : Service() {
 
         fun updateCount(newCount: Int) {
             count = newCount
-            countTextPaint.color = if (count <= 3) Color.parseColor("#00CCFF") else Color.RED
+            countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
             invalidate()
         }
 
