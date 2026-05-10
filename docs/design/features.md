@@ -27,7 +27,7 @@
 | Feature | Status | Notes |
 |---------|--------|-------|
 | iOS floating bubble | Idea | Equivalent of Android overlay for iOS |
-| App Store / Play Store publish | Planned | Bundle ID ready (`com.anonymous.DragonFlow`) |
+| App Store / Play Store publish | Planned | Bundle ID ready (`com.plgsw.dragonflow`) |
 | Data export/import | Idea | Export tasks as JSON or CSV for backup |
 | Cloud sync | Idea | Sync tasks across devices |
 | Widgets | Idea | Home screen widget showing today's tasks |
