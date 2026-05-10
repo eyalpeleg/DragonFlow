@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/taskStore';
@@ -14,26 +14,12 @@ interface Props {
     onOpenStats: (task: Task) => void;
 }
 
-function useElapsed(startTime?: number, active?: boolean) {
-    const [elapsed, setElapsed] = useState(0);
-    useEffect(() => {
-        if (!active || !startTime) { setElapsed(0); return; }
-        const tick = () => setElapsed(Math.floor((Date.now() - startTime) / 60000));
-        tick();
-        const id = setInterval(tick, 60000);
-        return () => clearInterval(id);
-    }, [startTime, active]);
-    return elapsed;
-}
-
 export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, description, priority, categoryId, dueDate, status, startTime, recurrence, subTasks = [] } = task;
+    const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
-    const isActive = status === 'In Progress';
     const isRecurring = !!recurrence;
-    const elapsed = useElapsed(startTime, isActive);
 
     const today = new Date().toISOString().slice(0, 10);
     const isOverdue = status !== 'Done' && dueDate && dueDate < today;
@@ -106,16 +92,13 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         {!displayDate && isRecurring && (
                             <Ionicons name="repeat" size={12} color={COLORS.primary} />
                         )}
-                        {isActive && elapsed > 0 && (
-                            <Text style={styles.timer}>⏱ {elapsed}m</Text>
-                        )}
                     </View>
                     {status === 'Ready' && (
                         <TouchableOpacity
-                            style={[styles.statusBtn, { backgroundColor: COLORS.status['In Progress'] }]}
+                            style={[styles.statusIconBtn, { backgroundColor: COLORS.status['In Progress'] }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
-                            <Text style={styles.statusBtnText}>Start</Text>
+                            <Ionicons name="play" size={14} color="white" />
                         </TouchableOpacity>
                     )}
                     {status === 'In Progress' && (
@@ -136,10 +119,10 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                     )}
                     {status === 'Paused' && (
                         <TouchableOpacity
-                            style={[styles.statusBtn, { backgroundColor: COLORS.status['In Progress'] }]}
+                            style={[styles.statusIconBtn, { backgroundColor: COLORS.status['In Progress'] }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
-                            <Text style={styles.statusBtnText}>Resume</Text>
+                            <Ionicons name="play" size={14} color="white" />
                         </TouchableOpacity>
                     )}
                     {status === 'Done' && (
@@ -202,7 +185,6 @@ const styles = StyleSheet.create({
     dueDate: { fontSize: 11, color: '#888' },
     dueDateOverdue: { color: '#F44336', fontWeight: '600' },
     dueDateToday: { color: '#E53935', fontWeight: '700' },
-    timer: { fontSize: 11, color: COLORS.status['In Progress'], fontWeight: '600' },
     statusBtnGroup: { flexDirection: 'row', gap: 6 },
     statusBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
     statusIconBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
