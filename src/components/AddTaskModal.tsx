@@ -27,7 +27,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [description, setDescription] = useState('');
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
     const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
-    const [dueDate, setDueDate] = useState(new Date());
+    const [dueDate, setDueDate] = useState<Date | null>(null);
+    const [autoOpenTime, setAutoOpenTime] = useState(false);
     const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [isRecurring, setIsRecurring] = useState(false);
@@ -47,17 +48,31 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         setSubTasks((prev) => prev.filter((s) => s.id !== id));
     }
 
+    function handleDateChange(date: Date) {
+        setDueDate(date);
+        setAutoOpenTime(true);
+    }
+
+    function handleDateClear() {
+        setDueDate(null);
+        setAutoOpenTime(false);
+    }
+
     const handleSubmit = () => {
         if (!title.trim()) return;
-        const yyyy = dueDate.getFullYear();
-        const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
-        const dd = String(dueDate.getDate()).padStart(2, '0');
+        let dueDateStr = '';
+        if (dueDate) {
+            const yyyy = dueDate.getFullYear();
+            const mm = String(dueDate.getMonth() + 1).padStart(2, '0');
+            const dd = String(dueDate.getDate()).padStart(2, '0');
+            dueDateStr = `${yyyy}-${mm}-${dd}`;
+        }
         const recurrence: RecurrenceConfig | undefined = isRecurring
             ? { frequency, interval: Math.max(1, parseInt(interval, 10) || 1) }
             : undefined;
         onAdd({
             title: title.trim(), description, priority, categoryId,
-            dueDate: `${yyyy}-${mm}-${dd}`, dueTime,
+            dueDate: dueDateStr, dueTime,
             subTasks, recurrence,
         });
         reset();
@@ -66,7 +81,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function reset() {
         setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
-        setDueDate(new Date()); setDueTime(defaultTaskTime);
+        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(false);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
     }
@@ -101,10 +116,16 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             onChangeText={setDescription}
                         />
 
-                        <Text style={styles.label}>Due Date &amp; Time</Text>
+                        <Text style={styles.label}>Due Date{dueDate ? ' & Time' : ''}</Text>
                         <View style={styles.dateTimeRow}>
-                            <View style={styles.dateTimeDate}><DatePickerField value={dueDate} onChange={setDueDate} /></View>
-                            <View style={styles.dateTimeTime}><TimePickerField value={dueTime} onChange={setDueTime} /></View>
+                            <View style={dueDate ? styles.dateTimeDate : { flex: 1 }}>
+                                <DatePickerField value={dueDate} onChange={handleDateChange} onClear={handleDateClear} />
+                            </View>
+                            {dueDate && (
+                                <View style={styles.dateTimeTime}>
+                                    <TimePickerField value={dueTime} onChange={setDueTime} autoOpen={autoOpenTime} />
+                                </View>
+                            )}
                         </View>
 
                         <Text style={styles.label}>Priority</Text>

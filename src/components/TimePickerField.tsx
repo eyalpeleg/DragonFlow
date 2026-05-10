@@ -1,11 +1,12 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 interface Props {
     value: string; // "HH:MM"
     onChange: (time: string) => void;
+    autoOpen?: boolean;
 }
 
 function timeToDate(time: string): Date {
@@ -19,9 +20,15 @@ function dateToTime(date: Date): string {
     return `${String(date.getHours()).padStart(2, '0')}:${String(date.getMinutes()).padStart(2, '0')}`;
 }
 
-export default function TimePickerField({ value, onChange }: Props) {
+export default function TimePickerField({ value, onChange, autoOpen }: Props) {
     const [showPicker, setShowPicker] = useState(false);
     const date = timeToDate(value);
+
+    useEffect(() => {
+        if (autoOpen && Platform.OS !== 'ios') {
+            setShowPicker(true);
+        }
+    }, [autoOpen]);
 
     if (Platform.OS === 'ios') {
         return (
