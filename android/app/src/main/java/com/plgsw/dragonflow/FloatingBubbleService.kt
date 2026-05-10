@@ -297,6 +297,13 @@ class FloatingBubbleService : Service() {
 
         private val iconBitmap: Bitmap?
         private val iconRect = RectF()
+        private val countStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.BLACK
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.DEFAULT_BOLD
+            style = Paint.Style.STROKE
+            strokeWidth = 6f
+        }
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = if (count <= 3) Color.parseColor("#00CCFF") else Color.RED
             textAlign = Paint.Align.CENTER
@@ -335,7 +342,9 @@ class FloatingBubbleService : Service() {
             if (count > 0) {
                 val text = if (count > 9) "9+" else count.toString()
                 countTextPaint.textSize = w * 0.35f
+                countStrokePaint.textSize = w * 0.35f
                 val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
+                canvas.drawText(text, w / 2f, textY, countStrokePaint)
                 canvas.drawText(text, w / 2f, textY, countTextPaint)
             }
         }
