@@ -4,7 +4,6 @@ import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/taskStore';
 import { Task, TaskStatus } from '../types';
-import { recurrenceLabel } from '../utils/recurrence';
 import TaskChecklist from './TaskChecklist';
 
 interface Props {
@@ -68,17 +67,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                 isDueToday && styles.cardDueToday,
             ]}>
                 <View style={styles.topRow}>
-                    <View style={styles.topLeft}>
-                        <View style={[styles.badge, { backgroundColor: COLORS.status[status] }]}>
-                            <Text style={styles.badgeText}>{status}</Text>
-                        </View>
-                        {isRecurring && (
-                            <View style={styles.recurringBadge}>
-                                <Ionicons name="repeat" size={11} color={COLORS.primary} />
-                                <Text style={styles.recurringText}>Recurring</Text>
-                            </View>
-                        )}
-                    </View>
+                    <Text style={[styles.title, status === 'Done' && styles.titleDone]} numberOfLines={2}>{title}</Text>
                     <View style={styles.actions}>
                         {status === 'Done' && (
                             <TouchableOpacity onPress={() => onOpenStats(task)} style={styles.actionBtn}>
@@ -93,23 +82,29 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         </TouchableOpacity>
                     </View>
                 </View>
-
-                <Text style={[styles.title, status === 'Done' && styles.titleDone]} numberOfLines={2}>{title}</Text>
-                {isRecurring && recurrence && (
-                    <Text style={styles.recurrenceLabel}>{recurrenceLabel(task)}</Text>
-                )}
                 {!!description && <Text style={styles.desc} numberOfLines={2}>{description}</Text>}
 
                 <View style={styles.footer}>
                     <View style={styles.footerLeft}>
+                        <View style={[styles.badge, { backgroundColor: COLORS.status[status] }]}>
+                            <Text style={styles.badgeText}>{status}</Text>
+                        </View>
                         <Text style={[styles.priority, { color: COLORS.priority[priority] }]}>{priority}</Text>
                         <View style={[styles.catChip, { backgroundColor: categoryColor }]}>
                             <Text style={styles.catChipText}>{categoryName}</Text>
                         </View>
                         {displayDate && (
-                            <Text style={[styles.dueDate, isOverdue && styles.dueDateOverdue, isDueToday && styles.dueDateToday]}>
-                                {isOverdue ? '⚠ ' : ''}{isDueToday ? 'Today' : displayDate}
-                            </Text>
+                            <View style={styles.dueDateRow}>
+                                <Text style={[styles.dueDate, isOverdue && styles.dueDateOverdue, isDueToday && styles.dueDateToday]}>
+                                    {isOverdue ? '⚠ ' : ''}{isDueToday ? 'Today' : displayDate}
+                                </Text>
+                                {isRecurring && (
+                                    <Ionicons name="repeat" size={12} color={COLORS.primary} />
+                                )}
+                            </View>
+                        )}
+                        {!displayDate && isRecurring && (
+                            <Ionicons name="repeat" size={12} color={COLORS.primary} />
                         )}
                         {isActive && elapsed > 0 && (
                             <Text style={styles.timer}>⏱ {elapsed}m</Text>
@@ -175,26 +170,19 @@ const styles = StyleSheet.create({
         borderTopColor: '#E53935', borderRightColor: '#E53935', borderBottomColor: '#E53935',
     },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    topLeft: { flexDirection: 'row', alignItems: 'center', gap: 6, flex: 1 },
     badge: { paddingHorizontal: 8, paddingVertical: 2, borderRadius: 10 },
     badgeText: { color: 'white', fontSize: 10, fontWeight: 'bold' },
-    recurringBadge: {
-        flexDirection: 'row', alignItems: 'center', gap: 3,
-        backgroundColor: COLORS.primary + '15', borderRadius: 10,
-        paddingHorizontal: 7, paddingVertical: 2, borderWidth: 1, borderColor: COLORS.primary + '40',
-    },
-    recurringText: { fontSize: 10, color: COLORS.primary, fontWeight: '600' },
     actions: { flexDirection: 'row', gap: 6 },
     actionBtn: { padding: 4 },
-    title: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 2 },
+    title: { fontSize: 16, fontWeight: '600', color: '#222', flex: 1, marginRight: 8 },
     titleDone: { textDecorationLine: 'line-through', color: '#999' },
-    recurrenceLabel: { fontSize: 11, color: COLORS.primary, opacity: 0.8, marginBottom: 2 },
     desc: { fontSize: 13, color: '#777', marginBottom: 8 },
     footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
     footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 8, flex: 1, flexWrap: 'wrap' },
     priority: { fontSize: 11, fontWeight: '700' },
     catChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
     catChipText: { fontSize: 10, color: 'white', fontWeight: '600' },
+    dueDateRow: { flexDirection: 'row', alignItems: 'center', gap: 4 },
     dueDate: { fontSize: 11, color: '#888' },
     dueDateOverdue: { color: '#F44336', fontWeight: '600' },
     dueDateToday: { color: '#E53935', fontWeight: '700' },
