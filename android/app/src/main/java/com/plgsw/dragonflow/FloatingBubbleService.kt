@@ -298,7 +298,7 @@ class FloatingBubbleService : Service() {
         private val iconBitmap: Bitmap?
         private val iconRect = RectF()
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.RED
+            color = if (count <= 3) Color.parseColor("#4CAF50") else Color.RED
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -318,6 +318,7 @@ class FloatingBubbleService : Service() {
 
         fun updateCount(newCount: Int) {
             count = newCount
+            countTextPaint.color = if (count <= 3) Color.parseColor("#4CAF50") else Color.RED
             invalidate()
         }
 
