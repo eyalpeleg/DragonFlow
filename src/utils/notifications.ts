@@ -3,12 +3,8 @@ import { Platform } from 'react-native';
 import { Task } from '../types';
 import { getCategoryName, useTaskStore } from '../store/taskStore';
 
-const CRITICAL_CHANNEL = 'critical-tasks';
 const POMODORO_CHANNEL = 'pomodoro';
 const REMINDERS_CHANNEL = 'task-reminders';
-const TODAY_CHANNEL = 'today-tasks';
-const CRITICAL_NOTIF_ID = 'critical-tasks-summary';
-const TODAY_NOTIF_ID = 'today-tasks-summary';
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -42,15 +38,6 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
-        await Notifications.setNotificationChannelAsync(CRITICAL_CHANNEL, {
-            name: 'Critical Tasks',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 250, 250, 250],
-            lightColor: '#B71C1C',
-            lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-            bypassDnd: true,
-        });
         await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL, {
             name: 'Pomodoro Timer',
             importance: Notifications.AndroidImportance.HIGH,
@@ -65,77 +52,11 @@ export async function setupNotificationChannels(): Promise<void> {
             vibrationPattern: [0, 300, 200, 300],
             lightColor: '#6200EE',
         });
-        await Notifications.setNotificationChannelAsync(TODAY_CHANNEL, {
-            name: 'Today\'s Tasks',
-            importance: Notifications.AndroidImportance.DEFAULT,
-            lockscreenVisibility: Notifications.AndroidNotificationVisibility.PUBLIC,
-            sound: undefined,
-        });
     } catch {
         // ignore — Expo Go
     }
 }
 
-export async function updateTodayTasksNotification(tasks: Task[]): Promise<void> {
-    if (!notificationsAvailable) return;
-    try {
-        const today = new Date().toISOString().slice(0, 10);
-        const todayTasks = tasks.filter((t) => t.dueDate === today && t.status !== 'Done');
-        await Notifications.dismissNotificationAsync(TODAY_NOTIF_ID).catch(() => {});
-        if (todayTasks.length === 0) return;
-
-        const title = todayTasks.length === 1
-            ? `📅 Due Today: ${todayTasks[0].title}`
-            : `📅 ${todayTasks.length} Tasks Due Today`;
-        const body = todayTasks.length === 1
-            ? `${todayTasks[0].priority} · ${getCategoryName(useTaskStore.getState().categories, todayTasks[0].categoryId)}`
-            : todayTasks.map((t) => `• ${t.title}`).join('\n');
-
-        await Notifications.scheduleNotificationAsync({
-            identifier: TODAY_NOTIF_ID,
-            content: {
-                title,
-                body,
-                sticky: true,
-                data: { type: 'today-summary' },
-                ...(Platform.OS === 'android' && { channelId: TODAY_CHANNEL }),
-            },
-            trigger: null,
-        });
-    } catch {
-        // ignore
-    }
-}
-
-export async function updateCriticalTasksNotification(tasks: Task[]): Promise<void> {
-    if (!notificationsAvailable) return;
-    try {
-        const critical = tasks.filter((t) => t.priority === 'Critical' && t.status !== 'Done');
-        await Notifications.dismissNotificationAsync(CRITICAL_NOTIF_ID).catch(() => {});
-        if (critical.length === 0) return;
-
-        const title = critical.length === 1
-            ? `🔴 Critical: ${critical[0].title}`
-            : `🔴 ${critical.length} Critical Tasks Pending`;
-        const body = critical.length === 1
-            ? `Status: ${critical[0].status}`
-            : critical.map((t) => `• ${t.title}`).join('\n');
-
-        await Notifications.scheduleNotificationAsync({
-            identifier: CRITICAL_NOTIF_ID,
-            content: {
-                title,
-                body,
-                sticky: true,
-                data: { type: 'critical-summary' },
-                ...(Platform.OS === 'android' && { channelId: CRITICAL_CHANNEL }),
-            },
-            trigger: null,
-        });
-    } catch {
-        // ignore — Expo Go
-    }
-}
 
 export async function schedulePomodoroEnd(minutes: number): Promise<string> {
     if (!notificationsAvailable) return '';

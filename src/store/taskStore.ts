@@ -4,7 +4,7 @@ import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus } from '../types';
-import { cancelTaskReminders, scheduleTaskReminders, updateCriticalTasksNotification, updateTodayTasksNotification } from '../utils/notifications';
+import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
@@ -39,9 +39,6 @@ export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr:
 }
 
 function syncNotifications(tasks: Task[]) {
-    const active = tasks.filter((t) => !t.archivedAt);
-    updateCriticalTasksNotification(active).catch(() => {});
-    updateTodayTasksNotification(active).catch(() => {});
 
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
