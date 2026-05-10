@@ -26,15 +26,35 @@ export function getCategoryName(categories: Category[], id: string): string {
     return categories.find((c) => c.id === id)?.name ?? 'Unknown';
 }
 
+export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr: string): number {
+    return tasks.filter((t) => {
+        if (t.archivedAt) return false;
+        if (t.status === 'Done') return false;
+        if (t.dueDate < todayStr) return true;
+        if (t.dueDate === todayStr) return true;
+        if (t.dueDate === tomorrowStr && (t.priority === 'Critical' || t.priority === 'High')) return true;
+        return false;
+    }).length;
+}
+
 function syncNotifications(tasks: Task[]) {
     const active = tasks.filter((t) => !t.archivedAt);
     updateCriticalTasksNotification(active).catch(() => {});
     updateTodayTasksNotification(active).catch(() => {});
-    const critical = active.filter((t) => t.priority === 'Critical' && t.status !== 'Done');
-    if (critical.length === 0) {
+
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const now = new Date();
+    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const tom = new Date(now);
+    tom.setDate(tom.getDate() + 1);
+    const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+
+    const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+
+    if (score === 0) {
         FloatingBubble.hide();
     } else {
-        FloatingBubble.show(critical.length, `${critical.length} Critical ${critical.length === 1 ? 'Task' : 'Tasks'}`);
+        FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
     }
 }
 

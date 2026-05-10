@@ -39,27 +39,31 @@ class BootReceiver : BroadcastReceiver() {
                 }
 
                 val tasks = state.optJSONArray("tasks")
-                var criticalCount = 0
-                var firstTitle = ""
+                var score = 0
+                val today = java.time.LocalDate.now().toString()
+                val tomorrow = java.time.LocalDate.now().plusDays(1).toString()
 
                 if (tasks != null) {
                     for (i in 0 until tasks.length()) {
                         val task = tasks.getJSONObject(i)
-                        val priority = task.optString("priority", "")
                         val status = task.optString("status", "")
-                        if (priority == "Critical" && status != "Done") {
-                            criticalCount++
-                            if (firstTitle.isEmpty()) {
-                                firstTitle = task.optString("title", "")
-                            }
+                        if (status == "Done") continue
+                        val dueDate = task.optString("dueDate", "")
+                        val priority = task.optString("priority", "")
+                        if (dueDate < today) {
+                            score++
+                        } else if (dueDate == today) {
+                            score++
+                        } else if (dueDate == tomorrow && (priority == "Critical" || priority == "High")) {
+                            score++
                         }
                     }
                 }
 
-                if (criticalCount > 0) {
+                if (score > 0) {
                     val serviceIntent = Intent(context, FloatingBubbleService::class.java).apply {
-                        putExtra("count", criticalCount)
-                        putExtra("message", firstTitle)
+                        putExtra("count", score)
+                        putExtra("message", "$score Urgent ${if (score == 1) "Task" else "Tasks"}")
                     }
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                         context.startForegroundService(serviceIntent)
