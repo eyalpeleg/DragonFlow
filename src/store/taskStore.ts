@@ -38,8 +38,7 @@ export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr:
     }).length;
 }
 
-function syncNotifications(tasks: Task[]) {
-
+function syncNotifications(tasks: Task[], showBubbleInBackground: boolean) {
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -49,7 +48,7 @@ function syncNotifications(tasks: Task[]) {
 
     const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
 
-    if (score === 0 || AppState.currentState === 'active') {
+    if (score === 0 || AppState.currentState === 'active' || !showBubbleInBackground) {
         FloatingBubble.hide();
     } else {
         FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
@@ -151,14 +150,14 @@ export const useTaskStore = create<TaskStore>()(
                     recurrence: input.recurrence,
                 };
                 const tasks = [task, ...s.tasks];
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 scheduleTaskReminders(task).catch(() => {});
                 return { tasks };
             }),
 
             updateTask: (id, updates) => set((s) => {
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, ...updates } : t);
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 const updated = tasks.find((t) => t.id === id);
                 if (updated) {
                     cancelTaskReminders(id).catch(() => {});
@@ -170,14 +169,14 @@ export const useTaskStore = create<TaskStore>()(
             deleteTask: (id) => set((s) => {
                 cancelTaskReminders(id).catch(() => {});
                 const tasks = s.tasks.filter((t) => t.id !== id);
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 return { tasks };
             }),
 
             archiveTask: (id) => set((s) => {
                 cancelTaskReminders(id).catch(() => {});
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, archivedAt: Date.now() } : t);
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 return { tasks };
             }),
 
@@ -187,7 +186,7 @@ export const useTaskStore = create<TaskStore>()(
                     const { archivedAt: _, ...rest } = t;
                     return rest as Task;
                 });
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 return { tasks };
             }),
 
@@ -209,7 +208,7 @@ export const useTaskStore = create<TaskStore>()(
                     scheduleTaskReminders(next).catch(() => {});
                 }
 
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
                 if (status === 'Done') {
                     cancelTaskReminders(id).catch(() => {});
                 } else if (status === 'In Progress') {
@@ -333,7 +332,7 @@ export const useTaskStore = create<TaskStore>()(
                 const categories = [...s.categories, ...newUserCategories];
 
                 const tasks = data.tasks ?? [];
-                syncNotifications(tasks);
+                syncNotifications(tasks, s.showBubbleInBackground);
 
                 set({
                     tasks,

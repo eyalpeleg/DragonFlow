@@ -8,7 +8,7 @@ import { useTaskStore, computeBubbleScore } from '@/src/store/taskStore';
 import { backupService } from '@/src/services/cloudBackup';
 
 export default function RootLayout() {
-    const { setFloatingBubbleDismissed, showBubbleInBackground } = useTaskStore();
+    const { setFloatingBubbleDismissed } = useTaskStore();
 
     useEffect(() => {
         setupNotificationChannels();
