@@ -28,7 +28,11 @@ export function validateExportData(data: unknown): data is ExportPayload {
 export async function exportToFile(): Promise<void> {
     const payload = useTaskStore.getState().exportData();
     const json = JSON.stringify(payload, null, 2);
-    const file = new File(Paths.cache, 'dragonflow-backup.json');
+    const now = new Date();
+    const pad = (n: number) => String(n).padStart(2, '0');
+    const date = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+    const hour = pad(now.getHours());
+    const file = new File(Paths.cache, `dragonFlow-backup.${date}.${hour}.json`);
     file.write(json);
     await Sharing.shareAsync(file.uri, { mimeType: 'application/json', dialogTitle: 'Export DragonFlow Data' });
 }
