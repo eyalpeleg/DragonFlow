@@ -1,50 +1,136 @@
-# Welcome to your Expo app 👋
+# DragonFlow
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A personal task management app for Android, built for family use with a focus on clarity and flow. Tasks move through a simple lifecycle — Ready → In Progress → Paused → Done — with priority levels, categories, sub-tasks, recurrence, and Pomodoro-style timers.
 
-## Get started
+---
 
-1. Install dependencies
+## Goals
 
-   ```bash
-   npm install
-   ```
+- **Stay focused**: Surface today's and this week's work at a glance, not an overwhelming backlog
+- **Low friction**: Start, pause, and complete tasks in one tap
+- **Always available**: A persistent floating bubble shows in-progress task count even when the app is in the background
+- **Private & local-first**: All data lives on device; optional Google Drive backup for personal safety
 
-2. Start the app
+---
 
-   ```bash
-   npx expo start
-   ```
+## Screens
 
-In the output, you'll find options to open the app in a
+| Tab | Purpose |
+|-----|---------|
+| **Tasks** | Full task list with filtering by status, priority, and category |
+| **Today** | Tasks due today, plus a Pomodoro timer for the active task |
+| **Weekly** | Completion stats and done-task history by week |
+| **Settings** | Google Drive backup/restore, auto-backup toggle |
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
+---
 
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
+## Key Modules
 
-## Get a fresh project
+### `src/store/taskStore.ts`
+Zustand store — single source of truth for all tasks and categories. Persisted to AsyncStorage with schema migration (v0→v1). Side effects on task changes: schedules notifications, updates the FloatingBubble count, triggers auto-backup.
 
-When you're ready, run:
+### `src/types.ts`
+Core data model:
+- **Task**: id, title, description, priority (`Critical/High/Medium/Low`), categoryId, dueDate, dueTime, status, subTasks, recurrence, completionComment
+- **Category**: id, name, color
+- **RecurrenceConfig**: frequency (`daily/weekly/monthly`), interval
+
+### `src/modules/FloatingBubble.ts`
+Bridge to a custom native Android module. Shows a system-overlay bubble with the in-progress task count while the app is backgrounded. Requires `SYSTEM_ALERT_WINDOW` permission on Android.
+
+### `src/services/cloudBackup/`
+Google Drive backup using native Google Sign-In (`@react-native-google-signin/google-signin`).
+
+| File | Role |
+|------|------|
+| `googleAuth.ts` | Sign-in/sign-out/token management via native SDK |
+| `googleDrive.ts` | Drive REST API — upload, download, list, cleanup |
+| `backupService.ts` | Orchestration: auto-backup with 30s debounce, restore flow |
+| `backupStore.ts` | Zustand state for backup status, user email, last backup time |
+
+Backups are stored in the app's private `appDataFolder` space (not visible in the user's Drive).
+
+### `src/utils/`
+- `notifications.ts` — schedules due-date reminders via `expo-notifications`
+- `recurrence.ts` — generates next task instances for recurring tasks
+- `summaryLogic.ts` — weekly stats aggregation
+- `dataTransfer.ts` — import/export JSON schema with validation
+
+---
+
+## Running the App
+
+### Prerequisites
+- Node.js 20+
+- Android Studio with an emulator or physical Android device
+- Java 17 (for Gradle)
 
 ```bash
-npm run reset-project
+npm install
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+### Development
+```bash
+npx expo run:android       # Build and run on Android (device or emulator)
+npx expo start             # Start Metro bundler only (use with Expo Go or dev build)
+```
 
-## Learn more
+### Type checking & linting
+```bash
+npx tsc --noEmit           # TypeScript check
+npm run lint               # ESLint
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+### Rebuild native layer
+Only needed after adding/removing native packages:
+```bash
+npx expo prebuild          # Regenerate android/ from config (preserves existing customizations)
+```
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+## Google Drive Backup Setup (Android)
 
-Join our community of developers creating universal apps.
+Native sign-in requires an Android OAuth client registered in Google Cloud Console:
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+1. Go to **APIs & Services → Credentials → Create OAuth Client ID → Android**
+2. Package name: `com.plgsw.dragonflow`
+3. SHA-1: run `cd android && ./gradlew signingReport` and copy the debug SHA-1
+4. Enable **Google Drive API** in the same project (APIs & Services → Library)
+5. Sign in through the app's Settings tab — the native account picker will appear
+
+No `google-services.json` or Firebase is required.
+
+---
+
+## Project Structure
+
+```
+app/
+  _layout.tsx              # Root layout, initializes backup and notifications
+  (tabs)/
+    tasks.tsx              # Task list screen
+    daily.tsx              # Today view + Pomodoro timer
+    weekly.tsx             # Weekly stats
+    settings.tsx           # Backup settings
+
+src/
+  components/              # UI: TaskCard, modals (Add/Edit/Filter), PomodoroTimer
+  store/taskStore.ts       # Zustand store + persistence
+  types.ts                 # Task, Category, SubTask, RecurrenceConfig
+  styles/theme.ts          # COLORS, PRESET_PALETTE, priority colors
+  modules/FloatingBubble.ts
+  services/cloudBackup/
+  utils/
+
+android/                   # Bare Android project (committed, contains native modules)
+```
+
+---
+
+## Architecture Notes
+
+- **Local-first**: no backend, no auth wall — the app works fully offline
+- **No Firebase**: Google Sign-In uses the native Play Services SDK directly
+- **New Architecture**: `newArchEnabled: true` (React Native Fabric + JSI)
+- **Android-only native modules**: FloatingBubble overlay is Android-specific; the JS bridge checks `Platform.OS` before calling
