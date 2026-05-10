@@ -12,12 +12,14 @@ const CHIPS: { label: string; value: TaskStatus | null }[] = [
     { label: 'All',         value: null },
     { label: 'Ready',       value: 'Ready' },
     { label: 'In Progress', value: 'In Progress' },
+    { label: 'Paused',      value: 'Paused' },
     { label: 'Done',        value: 'Done' },
 ];
 
 const STATUS_COLORS: Record<string, string> = {
     Ready:        COLORS.status['Ready'],
     'In Progress': COLORS.status['In Progress'],
+    Paused:       COLORS.status['Paused'],
     Done:         COLORS.status['Done'],
 };
 

@@ -15,7 +15,7 @@ interface Props {
     onSave: (filterType: FilterType, selectedSet: Set<string>) => void;
 }
 
-const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Done'];
+const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Paused', 'Done'];
 const PRIORITY_OPTIONS: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 const PRIORITY_COLORS: Record<PriorityLevel, string> = {
     Critical: '#F44336',
