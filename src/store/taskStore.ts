@@ -99,8 +99,9 @@ const priorityOrder: Record<PriorityLevel, number> = {
 
 const statusOrder: Record<TaskStatus, number> = {
     'In Progress': 0,
-    'Ready': 1,
-    'Done': 2,
+    'Paused': 1,
+    'Ready': 2,
+    'Done': 3,
 };
 
 export const useTaskStore = create<TaskStore>()(

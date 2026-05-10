@@ -11,6 +11,7 @@ export const COLORS = {
     status: {
         'Ready': '#78909C',
         'In Progress': '#2196F3',
+        'Paused': '#FF9800',
         'Done': '#4CAF50',
     },
 };

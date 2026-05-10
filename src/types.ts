@@ -1,6 +1,6 @@
 import { PriorityLevel } from './styles/theme';
 
-export type TaskStatus = 'Ready' | 'In Progress' | 'Done';
+export type TaskStatus = 'Ready' | 'In Progress' | 'Paused' | 'Done';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
 
 export interface Category {

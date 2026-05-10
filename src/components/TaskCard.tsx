@@ -119,11 +119,27 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         </TouchableOpacity>
                     )}
                     {status === 'In Progress' && (
+                        <View style={styles.statusBtnGroup}>
+                            <TouchableOpacity
+                                style={[styles.statusIconBtn, { backgroundColor: COLORS.status['Paused'] }]}
+                                onPress={() => onStatusChange(id, 'Paused')}
+                            >
+                                <Ionicons name="pause" size={14} color="white" />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.statusIconBtn, { backgroundColor: COLORS.status['Done'] }]}
+                                onPress={() => onStatusChange(id, 'Done')}
+                            >
+                                <Ionicons name="checkmark" size={16} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    )}
+                    {status === 'Paused' && (
                         <TouchableOpacity
-                            style={[styles.statusBtn, { backgroundColor: COLORS.status['Done'] }]}
-                            onPress={() => onStatusChange(id, 'Done')}
+                            style={[styles.statusBtn, { backgroundColor: COLORS.status['In Progress'] }]}
+                            onPress={() => onStatusChange(id, 'In Progress')}
                         >
-                            <Text style={styles.statusBtnText}>Done ✓</Text>
+                            <Text style={styles.statusBtnText}>Resume</Text>
                         </TouchableOpacity>
                     )}
                     {status === 'Done' && (
@@ -187,7 +203,9 @@ const styles = StyleSheet.create({
     dueDateOverdue: { color: '#F44336', fontWeight: '600' },
     dueDateToday: { color: '#E53935', fontWeight: '700' },
     timer: { fontSize: 11, color: COLORS.status['In Progress'], fontWeight: '600' },
+    statusBtnGroup: { flexDirection: 'row', gap: 6 },
     statusBtn: { paddingHorizontal: 14, paddingVertical: 6, borderRadius: 16 },
+    statusIconBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     statusBtnText: { color: 'white', fontSize: 12, fontWeight: '700' },
     tapHint: { fontSize: 10, color: COLORS.primary, marginTop: 6, opacity: 0.7, textAlign: 'right' },
 });
