@@ -1,10 +1,13 @@
 import React from 'react';
-import { ActivityIndicator, FlatList, StyleSheet, Text, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
 import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
 import { getDailySummary, getTasksCompletedToday } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
+
+const HEADER_HEIGHT = 56;
+const appIcon = require('@/assets/images/dragonflow3.png');
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
     return (
@@ -59,8 +62,10 @@ export default function DailyScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Today</Text>
-                <Text style={styles.headerDate}>{today}</Text>
+                <Image source={appIcon} style={styles.headerIcon} />
+                <View style={styles.headerContent}>
+                    <Text style={styles.headerTitle}>Today</Text>
+                </View>
             </View>
 
             <View style={styles.statsRow}>
@@ -113,9 +118,10 @@ export default function DailyScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    header: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
-    headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
-    headerDate: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+    header: { backgroundColor: COLORS.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+    headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
+    headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
     statCard: { flex: 1, backgroundColor: 'white', borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
     statValue: { fontSize: 20, fontWeight: 'bold', color: '#222' },
