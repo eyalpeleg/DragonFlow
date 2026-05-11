@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { Category, RecurrenceConfig, SubTask, Task, TaskStatus } from '../types';
+import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
@@ -78,6 +78,7 @@ interface TaskStore {
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
     firstDayOfWeek: 'sunday' | 'monday';
+    statusOrderConfig: StatusOrderConfig;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -105,6 +106,7 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    setStatusOrderConfig: (config: StatusOrderConfig) => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean } }) => { tasksImported: number };
 }
@@ -133,6 +135,12 @@ export const useTaskStore = create<TaskStore>()(
             showBubbleInBackground: true,
             defaultTaskTime: '08:00',
             firstDayOfWeek: 'sunday',
+            statusOrderConfig: {
+                'In Progress': 0,
+                'Paused': 1,
+                'Ready': 2,
+                'Done': 3,
+            },
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -312,6 +320,8 @@ export const useTaskStore = create<TaskStore>()(
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
 
+            setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -445,6 +455,7 @@ export const useTaskStore = create<TaskStore>()(
 
 export function useSortedFilteredTasks(): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
+    const statusOrderConfig = useTaskStore((s) => s.statusOrderConfig);
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
@@ -473,16 +484,23 @@ export function useSortedFilteredTasks(): Task[] {
         });
 
         return [...filtered].sort((a, b) => {
-            const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+            const statusDiff = statusOrderConfig[a.status] - statusOrderConfig[b.status];
             if (statusDiff !== 0) return statusDiff;
+
             const dateA = a.dueDate || '9999-12-31';
             const dateB = b.dueDate || '9999-12-31';
-            if (dateA !== dateB) return dateA < dateB ? -1 : 1;
-            const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-            if (priorityDiff !== 0) return priorityDiff;
+            const timeA = a.dueTime || '23:59';
+            const timeB = b.dueTime || '23:59';
+            const dateTimeA = `${dateA}T${timeA}`;
+            const dateTimeB = `${dateB}T${timeB}`;
+            if (dateTimeA !== dateTimeB) return dateTimeA < dateTimeB ? -1 : 1;
+
+            const nameCompare = a.title.localeCompare(b.title);
+            if (nameCompare !== 0) return nameCompare;
+
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
+    }, [tasks, statusOrderConfig, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
 }
 
 export function useArchivedTasks(): Task[] {
