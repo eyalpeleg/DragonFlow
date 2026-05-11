@@ -31,6 +31,7 @@
 | Data export/import | Idea | Export tasks as JSON or CSV for backup |
 | Cloud sync | Idea | Sync tasks across devices |
 | Widgets | Idea | Home screen widget showing today's tasks |
+| Dark/Light Theme Toggle | Idea | Manual in-app switch between dark and light theme, overriding system setting |
 | | | |
 
 > Add new ideas to the Planned table as they come up.
