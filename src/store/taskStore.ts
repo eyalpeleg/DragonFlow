@@ -77,6 +77,7 @@ interface TaskStore {
     dismissedFloatingBubble: boolean;
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
+    firstDayOfWeek: 'sunday' | 'monday';
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -99,6 +100,7 @@ interface TaskStore {
     setFloatingBubbleDismissed: (dismissed: boolean) => void;
     setShowBubbleInBackground: (show: boolean) => void;
     setDefaultTaskTime: (time: string) => void;
+    setFirstDayOfWeek: (day: 'sunday' | 'monday') => void;
     setStatusFilters: (filters: Set<TaskStatus>) => void;
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
@@ -130,6 +132,7 @@ export const useTaskStore = create<TaskStore>()(
             dismissedFloatingBubble: false,
             showBubbleInBackground: true,
             defaultTaskTime: '08:00',
+            firstDayOfWeek: 'sunday',
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -299,6 +302,8 @@ export const useTaskStore = create<TaskStore>()(
 
             setDefaultTaskTime: (time) => set({ defaultTaskTime: time }),
 
+            setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
+
             setStatusFilters: (filters) => set({ statusFilters: filters }),
 
             setCategoryFilters: (filters) => set({ categoryFilters: filters }),
@@ -352,6 +357,7 @@ export const useTaskStore = create<TaskStore>()(
                 categories: state.categories,
                 defaultTaskTime: state.defaultTaskTime,
                 showBubbleInBackground: state.showBubbleInBackground,
+                firstDayOfWeek: state.firstDayOfWeek,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
@@ -405,6 +411,7 @@ export const useTaskStore = create<TaskStore>()(
                     _schemaVersion: 1,
                     tasks,
                     categories,
+                    firstDayOfWeek: p.firstDayOfWeek ?? 'sunday',
                     statusFilters: new Set(p.statusFilters ?? []),
                     categoryFilters: new Set<string>(),
                     priorityFilters: new Set(p.priorityFilters ?? []),
