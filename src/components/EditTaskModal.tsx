@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '../store/taskStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask, Task } from '../types';
@@ -22,6 +23,7 @@ interface Props {
 }
 
 export default function EditTaskModal({ isVisible, task, onClose, onSave }: Props) {
+    const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
     const [title, setTitle] = useState('');
@@ -96,7 +98,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                 <View style={styles.overlay}>
                     <ScrollView
                         style={styles.content}
-                        contentContainerStyle={styles.contentInner}
+                        contentContainerStyle={[styles.contentInner, { paddingBottom: Math.max(20, insets.bottom) }]}
                         keyboardShouldPersistTaps="handled"
                         showsVerticalScrollIndicator={false}
                     >

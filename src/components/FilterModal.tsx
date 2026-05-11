@@ -1,5 +1,6 @@
 import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 import { useTaskStore, getCategoryColor, getCategoryName } from '../store/taskStore';
@@ -27,6 +28,7 @@ const DUE_DATE_OPTIONS: Array<'overdue' | 'today' | 'upcoming'> = ['overdue', 't
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };
 
 export default function FilterModal({ isOpen, filterType, onClose, onSave }: Props) {
+    const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
@@ -143,7 +145,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                         })}
                     </ScrollView>
 
-                    <View style={styles.footer}>
+                    <View style={[styles.footer, { paddingBottom: Math.max(12, insets.bottom) }]}>
                         <TouchableOpacity
                             style={styles.clearBtn}
                             onPress={handleClearAll}

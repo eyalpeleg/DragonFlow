@@ -1,5 +1,6 @@
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../styles/theme';
 import { useTaskStore } from '../store/taskStore';
 import { Task } from '../types';
@@ -22,6 +23,7 @@ function formatDuration(ms: number): string {
 }
 
 export default function DoneStatsModal({ task, onClose }: Props) {
+    const insets = useSafeAreaInsets();
     const updateCompletionComment = useTaskStore((s) => s.updateCompletionComment);
     const [comment, setComment] = useState('');
 
@@ -63,7 +65,7 @@ export default function DoneStatsModal({ task, onClose }: Props) {
     return (
         <Modal visible animationType="slide" transparent onRequestClose={handleClose}>
             <View style={styles.overlay}>
-                <View style={styles.sheet}>
+                <View style={[styles.sheet, { paddingBottom: Math.max(20, insets.bottom) }]}>
                     {/* Handle */}
                     <View style={styles.handle} />
 
