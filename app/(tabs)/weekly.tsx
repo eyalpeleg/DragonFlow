@@ -1,5 +1,6 @@
-import React from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Ionicons } from '@expo/vector-icons';
+import React, { useState } from 'react';
+import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
 import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
@@ -15,10 +16,27 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
     );
 }
 
+function getWeekBounds(weekOffset: number, firstDayOfWeek: 'sunday' | 'monday'): { start: Date; end: Date } {
+    const firstDay = firstDayOfWeek === 'sunday' ? 0 : 1;
+    const now = new Date();
+    const day = now.getDay();
+    const daysBack = (day - firstDay + 7) % 7;
+    const start = new Date(now);
+    start.setDate(now.getDate() - daysBack + weekOffset * 7);
+    start.setHours(0, 0, 0, 0);
+    const end = new Date(start);
+    end.setDate(start.getDate() + 6);
+    end.setHours(23, 59, 59, 999);
+    return { start, end };
+}
+
 export default function WeeklyScreen() {
     const tasks = useTaskStore((s) => s.tasks);
     const categories = useTaskStore((s) => s.categories);
     const hasHydrated = useTaskStore((s) => s.hasHydrated);
+    const firstDayOfWeek = useTaskStore((s) => s.firstDayOfWeek);
+
+    const [weekOffset, setWeekOffset] = useState(0);
 
     if (!hasHydrated) {
         return (
@@ -28,31 +46,49 @@ export default function WeeklyScreen() {
         );
     }
 
+    const { start: weekStart, end: weekEnd } = getWeekBounds(weekOffset, firstDayOfWeek);
+    const weekStartMs = weekStart.getTime();
+    const weekEndMs = weekEnd.getTime();
+
     const activeTasks = tasks.filter((t) => !t.archivedAt);
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
-    const weeklyTasks = activeTasks.filter((t: Task) => !t.completedTime || t.completedTime >= weekAgo);
+
+    const doneTasks = activeTasks
+        .filter((t: Task) => t.status === 'Done' && t.completedTime && t.completedTime >= weekStartMs && t.completedTime <= weekEndMs)
+        .sort((a: Task, b: Task) => (b.completedTime ?? 0) - (a.completedTime ?? 0));
+
+    // Current week: all active (non-done) tasks + done tasks this week
+    // Past weeks: only tasks completed in that window
+    const weeklyTasks = weekOffset === 0
+        ? activeTasks.filter((t: Task) => t.status !== 'Done' || (t.completedTime && t.completedTime >= weekStartMs && t.completedTime <= weekEndMs))
+        : doneTasks;
+
     const summary = getDailySummary(weeklyTasks);
-    const timeSpent = getWeeklyTimeSpent(activeTasks);
-    const catStats = getWeeklyCategoryStats(activeTasks);
+    const timeSpent = getWeeklyTimeSpent(activeTasks, weekStartMs, weekEndMs);
+    const catStats = getWeeklyCategoryStats(activeTasks, weekStartMs, weekEndMs);
     const totalDone = Object.values(catStats as Record<string, number>).reduce((a: number, b: number) => a + b, 0);
 
-    const doneTasks = activeTasks.filter(
-        (t: Task) => t.status === 'Done' && t.completedTime && t.completedTime >= weekAgo
-    ).sort((a: Task, b: Task) => (b.completedTime ?? 0) - (a.completedTime ?? 0));
-
-    const now = new Date();
-    const dayOfWeek = now.getDay();
-    const monday = new Date(now);
-    monday.setDate(now.getDate() - ((dayOfWeek + 6) % 7));
-    const sunday = new Date(monday);
-    sunday.setDate(monday.getDate() + 6);
-    const dateRange = `${monday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${sunday.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    const dateRange = `${weekStart.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })} – ${weekEnd.toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}`;
+    const weekTitle = weekOffset === 0 ? 'This Week' : weekOffset === -1 ? 'Last Week' : dateRange;
 
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>This Week</Text>
-                <Text style={styles.headerDate}>{dateRange}</Text>
+                <View style={styles.weekNavRow}>
+                    <TouchableOpacity style={styles.navBtn} onPress={() => setWeekOffset((o) => o - 1)}>
+                        <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
+                    </TouchableOpacity>
+                    <View style={styles.weekInfo}>
+                        <Text style={styles.headerTitle}>{weekTitle}</Text>
+                        <Text style={styles.headerDate}>{dateRange}</Text>
+                    </View>
+                    <TouchableOpacity
+                        style={styles.navBtn}
+                        onPress={() => weekOffset < 0 && setWeekOffset((o) => o + 1)}
+                        disabled={weekOffset === 0}
+                    >
+                        <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)'} />
+                    </TouchableOpacity>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -112,8 +148,11 @@ export default function WeeklyScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    header: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 20 },
-    headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+    header: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingTop: 16, paddingBottom: 20 },
+    weekNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    navBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    weekInfo: { flex: 1, alignItems: 'center' },
+    headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
     headerDate: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
     scroll: { paddingBottom: 40 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },

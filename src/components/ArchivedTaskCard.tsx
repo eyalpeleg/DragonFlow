@@ -9,9 +9,10 @@ interface Props {
     task: Task;
     onRestore: (id: string) => void;
     onDelete: (id: string) => void;
+    onEdit: (task: Task) => void;
 }
 
-export default function ArchivedTaskCard({ task, onRestore, onDelete }: Props) {
+export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: Props) {
     const categories = useTaskStore((s) => s.categories);
     const { id, title, priority, categoryId, dueDate, archivedAt } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
@@ -37,6 +38,9 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete }: Props) {
             <View style={styles.topRow}>
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
                 <View style={styles.actions}>
+                    <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(task)}>
+                        <Ionicons name="pencil-sharp" size={13} color="white" />
+                    </TouchableOpacity>
                     <TouchableOpacity style={styles.restoreBtn} onPress={() => onRestore(id)}>
                         <Ionicons name="refresh-outline" size={13} color="white" />
                         <Text style={styles.restoreText}>Restore</Text>
@@ -72,6 +76,10 @@ const styles = StyleSheet.create({
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     title: { fontSize: 14, fontWeight: '600', color: '#555', flex: 1, marginRight: 8 },
     actions: { flexDirection: 'row', gap: 6 },
+    editBtn: {
+        width: 28, height: 28, borderRadius: 14,
+        backgroundColor: '#888', alignItems: 'center', justifyContent: 'center',
+    },
     restoreBtn: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
         backgroundColor: COLORS.status['In Progress'], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,

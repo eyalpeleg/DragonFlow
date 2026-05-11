@@ -64,7 +64,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                             <Ionicons name="pencil-sharp" size={15} color="#000" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
-                            <Ionicons name="trash" size={15} color="#F44336" />
+                            <Ionicons name={status === 'Done' ? 'archive' : 'trash'} size={15} color="#F44336" />
                         </TouchableOpacity>
                     </View>
                 </View>
