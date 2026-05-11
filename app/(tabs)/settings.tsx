@@ -1,5 +1,5 @@
 import React, { useState } from 'react';
-import { ActivityIndicator, Alert, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -11,6 +11,8 @@ import { Category } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
 import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
 
+const HEADER_HEIGHT = 56;
+const appIcon = require('@/assets/images/dragonflow3.png');
 const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 
@@ -166,7 +168,10 @@ export default function SettingsScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>Settings</Text>
+                <Image source={appIcon} style={styles.headerIcon} />
+                <View style={styles.headerContent}>
+                    <Text style={styles.headerTitle}>Settings</Text>
+                </View>
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
@@ -430,11 +435,14 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: '#f5f5f5' },
     header: {
         backgroundColor: COLORS.primary,
-        paddingHorizontal: 20,
-        paddingVertical: 16,
+        paddingHorizontal: 16,
+        height: HEADER_HEIGHT,
+        flexDirection: 'row',
         alignItems: 'center',
     },
-    headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+    headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
+    headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
     section: { marginBottom: 24 },
     aboutSection: { marginBottom: 24, marginTop: 16 },

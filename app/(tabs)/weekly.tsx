@@ -1,11 +1,14 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
-import { ActivityIndicator, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
 import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
 import { formatDuration, getDailySummary, getWeeklyTimeSpent, getWeeklyCategoryStats } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
+
+const HEADER_HEIGHT = 56;
+const appIcon = require('@/assets/images/dragonflow3.png');
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
     return (
@@ -73,22 +76,20 @@ export default function WeeklyScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <View style={styles.weekNavRow}>
-                    <TouchableOpacity style={styles.navBtn} onPress={() => setWeekOffset((o) => o - 1)}>
-                        <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
-                    </TouchableOpacity>
-                    <View style={styles.weekInfo}>
-                        <Text style={styles.headerTitle}>{weekTitle}</Text>
-                        <Text style={styles.headerDate}>{dateRange}</Text>
-                    </View>
-                    <TouchableOpacity
-                        style={styles.navBtn}
-                        onPress={() => weekOffset < 0 && setWeekOffset((o) => o + 1)}
-                        disabled={weekOffset === 0}
-                    >
-                        <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)'} />
-                    </TouchableOpacity>
+                <Image source={appIcon} style={styles.headerIcon} />
+                <TouchableOpacity style={styles.navBtn} onPress={() => setWeekOffset((o) => o - 1)}>
+                    <Ionicons name="chevron-back" size={22} color="rgba(255,255,255,0.9)" />
+                </TouchableOpacity>
+                <View style={styles.headerContent}>
+                    <Text style={styles.headerTitle}>{weekTitle}</Text>
                 </View>
+                <TouchableOpacity
+                    style={styles.navBtn}
+                    onPress={() => weekOffset < 0 && setWeekOffset((o) => o + 1)}
+                    disabled={weekOffset === 0}
+                >
+                    <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? 'rgba(255,255,255,0.9)' : 'rgba(255,255,255,0.2)'} />
+                </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -148,12 +149,11 @@ export default function WeeklyScreen() {
 const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    header: { backgroundColor: COLORS.primary, paddingHorizontal: 12, paddingTop: 16, paddingBottom: 20 },
-    weekNavRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    header: { backgroundColor: COLORS.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+    headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
+    headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     navBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    weekInfo: { flex: 1, alignItems: 'center' },
-    headerTitle: { color: 'white', fontSize: 22, fontWeight: 'bold' },
-    headerDate: { color: 'rgba(255,255,255,0.8)', fontSize: 13, marginTop: 2 },
+    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     scroll: { paddingBottom: 40 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
     statCard: { flex: 1, backgroundColor: 'white', borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: '#000', shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },

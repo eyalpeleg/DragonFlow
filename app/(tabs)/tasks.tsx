@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, FlatList, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
@@ -17,6 +17,9 @@ import { cancelPomodoroNotification, schedulePomodoroEnd } from '@/src/utils/not
 import { Task, TaskStatus } from '@/src/types';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
+
+const HEADER_HEIGHT = 56;
+const appIcon = require('@/assets/images/dragonflow3.png');
 
 export default function TasksScreen() {
     const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
@@ -140,7 +143,10 @@ export default function TasksScreen() {
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
-                <Text style={styles.headerTitle}>{showArchive ? 'Archive' : 'DragonFlow'}</Text>
+                <Image source={appIcon} style={styles.headerIcon} />
+                <View style={styles.headerContent}>
+                    <Text style={styles.headerTitle}>{showArchive ? 'Archive' : 'DragonFlow'}</Text>
+                </View>
                 <View style={styles.headerActions}>
                     {!showArchive && (
                         <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
@@ -270,10 +276,12 @@ const styles = StyleSheet.create({
     container: { flex: 1, backgroundColor: COLORS.background },
     containerCentered: { flex: 1, backgroundColor: COLORS.background, justifyContent: 'center', alignItems: 'center' },
     header: {
-        backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingTop: 16, paddingBottom: 16,
-        flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
+        backgroundColor: COLORS.primary, paddingHorizontal: 16, height: HEADER_HEIGHT,
+        flexDirection: 'row', alignItems: 'center',
     },
-    headerTitle: { color: 'white', fontSize: 24, fontWeight: 'bold' },
+    headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
+    headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
+    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     filterBtn: {
         width: 38, height: 38, borderRadius: 19,
