@@ -91,7 +91,7 @@ export default function TasksScreen() {
     ), [setStatus, archiveTask]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} />
+        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={setEditTask} />
     ), [restoreTask, deleteTask]);
 
     const timerActive = running && !pomodoroVisible;
