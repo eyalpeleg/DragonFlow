@@ -47,7 +47,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
         >
             <View style={[
                 styles.card,
-                { borderLeftColor: categoryColor },
+                { borderLeftColor: COLORS.primary },
                 isRecurring && styles.cardRecurring,
                 status === 'Done' && styles.cardDone,
                 isDueToday && styles.cardDueToday,
