@@ -8,10 +8,9 @@ export const getDailySummary = (tasks: Task[]) => {
     return { total, done, inProgress, completionRate };
 };
 
-export const getWeeklyCategoryStats = (tasks: Task[]) => {
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+export const getWeeklyCategoryStats = (tasks: Task[], weekStart: number, weekEnd: number) => {
     return tasks
-        .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekAgo)
+        .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekStart && t.completedTime <= weekEnd)
         .reduce((acc, task) => {
             acc[task.categoryId] = (acc[task.categoryId] || 0) + 1;
             return acc;
@@ -26,10 +25,9 @@ export const getTasksCompletedToday = (tasks: Task[]): Task[] => {
     );
 };
 
-export const getWeeklyTimeSpent = (tasks: Task[]): Record<string, number> => {
-    const weekAgo = Date.now() - 7 * 24 * 60 * 60 * 1000;
+export const getWeeklyTimeSpent = (tasks: Task[], weekStart: number, weekEnd: number): Record<string, number> => {
     return tasks
-        .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekAgo && t.startTime)
+        .filter((t) => t.status === 'Done' && t.completedTime && t.completedTime >= weekStart && t.completedTime <= weekEnd && t.startTime)
         .reduce((acc, t) => {
             const ms = (t.completedTime ?? 0) - (t.startTime ?? 0);
             acc[t.categoryId] = (acc[t.categoryId] || 0) + ms;

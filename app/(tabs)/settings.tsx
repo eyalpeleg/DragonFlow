@@ -27,7 +27,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -206,6 +206,28 @@ export default function SettingsScreen() {
                                 keyboardType="numbers-and-punctuation"
                             />
                             <Text style={styles.timeFormat}>24-hour format</Text>
+                        </View>
+                    </View>
+                </View>
+
+                {/* Week Start */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Weekly Report</Text>
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>First Day of Week</Text>
+                        <Text style={styles.settingDesc}>Sets the start of the week in the weekly report</Text>
+                        <View style={styles.weekDayRow}>
+                            {(['sunday', 'monday'] as const).map((day) => (
+                                <TouchableOpacity
+                                    key={day}
+                                    style={[styles.weekDayBtn, firstDayOfWeek === day && styles.weekDayBtnActive]}
+                                    onPress={() => setFirstDayOfWeek(day)}
+                                >
+                                    <Text style={[styles.weekDayText, firstDayOfWeek === day && styles.weekDayTextActive]}>
+                                        {day.charAt(0).toUpperCase() + day.slice(1)}
+                                    </Text>
+                                </TouchableOpacity>
+                            ))}
                         </View>
                     </View>
                 </View>
@@ -565,6 +587,14 @@ const styles = StyleSheet.create({
         borderRadius: 10,
     },
     restoreBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+    weekDayRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
+    weekDayBtn: {
+        flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
+        borderWidth: 1, borderColor: '#e0e0e0', backgroundColor: '#fafafa',
+    },
+    weekDayBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
+    weekDayText: { fontSize: 14, fontWeight: '600', color: '#666' },
+    weekDayTextActive: { color: 'white' },
     ml12: { marginLeft: 12 },
     ml12flex: { marginLeft: 12, flex: 1 },
     mr8: { marginRight: 8 },
