@@ -8,7 +8,7 @@ import { useTaskStore, computeBubbleScore } from '@/src/store/taskStore';
 import { backupService } from '@/src/services/cloudBackup';
 
 export default function RootLayout() {
-    const { setFloatingBubbleDismissed } = useTaskStore();
+    const { setFloatingBubbleDismissed, dismissedFloatingBubble } = useTaskStore();
 
     useEffect(() => {
         setupNotificationChannels();
@@ -30,6 +30,9 @@ export default function RootLayout() {
             const { tasks, dismissedFloatingBubble, showBubbleInBackground: showBubble } = useTaskStore.getState();
             if (nextState === 'active') {
                 FloatingBubble.hide();
+                if (dismissedFloatingBubble) {
+                    setFloatingBubbleDismissed(false);
+                }
             } else if (nextState === 'background') {
                 const pad = (n: number) => String(n).padStart(2, '0');
                 const now = new Date();
