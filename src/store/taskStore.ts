@@ -5,9 +5,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
+import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
+
+// Re-export for backward compatibility
+export { getCategoryColor, getCategoryName };
 
 export const DEFAULT_CATEGORY_ID = 'default';
 
@@ -18,14 +22,6 @@ const BUILTIN_CATEGORIES: Category[] = [
     { id: 'fitness',  name: 'Fitness',  color: 'rgba(239, 119, 13, 0.95)' },
     { id: 'study',    name: 'Study',    color: 'rgba(34, 218, 166, 0.69)' },
 ];
-
-export function getCategoryColor(categories: Category[], id: string): string {
-    return categories.find((c) => c.id === id)?.color ?? COLORS.primary;
-}
-
-export function getCategoryName(categories: Category[], id: string): string {
-    return categories.find((c) => c.id === id)?.name ?? 'Unknown';
-}
 
 export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr: string): number {
     return tasks.filter((t) => {

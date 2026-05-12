@@ -1,7 +1,8 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
 import { Task } from '../types';
-import { getCategoryName, useTaskStore } from '../store/taskStore';
+import { getCategoryName } from './categories';
+import { useTaskStore } from '../store/taskStore';
 
 const POMODORO_CHANNEL = 'pomodoro';
 const REMINDERS_CHANNEL = 'task-reminders';
