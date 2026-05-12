@@ -426,7 +426,6 @@ export const useTaskStore = create<TaskStore>()(
             },
             onRehydrateStorage: () => (state) => {
                 if (state) {
-                    state.dismissedFloatingBubble = false;
                     if (!(state.statusFilters instanceof Set)) {
                         state.statusFilters = new Set();
                     }
