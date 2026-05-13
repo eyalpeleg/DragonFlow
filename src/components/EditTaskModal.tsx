@@ -94,7 +94,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
     return (
         <>
-            <Modal visible={isVisible} animationType="slide" transparent>
+            <Modal visible={isVisible} animationType="slide" transparent onRequestClose={onClose}>
                 <View style={styles.overlay}>
                     <ScrollView
                         style={styles.content}

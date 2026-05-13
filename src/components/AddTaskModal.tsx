@@ -100,11 +100,16 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         setSubTasks([]); setSubTaskInput('');
     }
 
+    function handleClose() {
+        reset();
+        onClose();
+    }
+
     const priorities: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 
     return (
         <>
-            <Modal visible={isVisible} animationType="slide" transparent>
+            <Modal visible={isVisible} animationType="slide" transparent onRequestClose={handleClose}>
                 <View style={styles.overlay}>
                     <ScrollView
                         style={styles.content}
