@@ -26,6 +26,16 @@ const FloatingBubble = {
             return false;
         }
     },
+    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'tada', volume: number) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.scheduleSound(alarmId, triggerAtMs, soundType, soundFile, volume); } catch {}
+        }
+    },
+    cancelSound(alarmId: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.cancelSound(alarmId); } catch {}
+        }
+    },
     onDismissed(callback: () => void) {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
         try {
