@@ -127,7 +127,7 @@ const priorityOrder: Record<PriorityLevel, number> = {
 const statusOrder: Record<TaskStatus, number> = {
     'In Progress': 0,
     'Paused': 1,
-    'Ready': 2,
+    'Ready': 1,
     'Done': 3,
 };
 
@@ -149,7 +149,7 @@ export const useTaskStore = create<TaskStore>()(
             statusOrderConfig: {
                 'In Progress': 0,
                 'Paused': 1,
-                'Ready': 2,
+                'Ready': 1,
                 'Done': 3,
             },
             statusFilters: new Set(),
