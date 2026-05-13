@@ -43,3 +43,4 @@ app-example
 /ios
 .claude/*
 !.claude/skills/
+build*.apk
