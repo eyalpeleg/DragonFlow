@@ -354,10 +354,7 @@ export default function SettingsScreen() {
                             <Ionicons name="chevron-forward" size={18} color="#ccc" />
                         </TouchableOpacity>
                     </View>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Cloud Backup">
-                    <View style={styles.settingBlock}>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         {!isSignedIn ? (
                             <View style={styles.cloudSignInWrapper}>
                                 <Ionicons name="cloud-outline" size={32} color={COLORS.primary} />
