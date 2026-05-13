@@ -1,5 +1,6 @@
 import * as Notifications from 'expo-notifications';
 import { Platform, Alert } from 'react-native';
+import { Audio } from 'expo-av';
 import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
 import { useTaskStore } from '../store/taskStore';
@@ -175,7 +176,24 @@ export async function playPreviewSound(soundType: 'ding' | 'tada', preference: S
         return;
     }
 
-    const soundName = soundType === 'ding' ? 'Ding' : 'Ta-da';
-    const typeLabel = preference === 'AppSound' ? 'App Sound' : 'System Sound';
-    Alert.alert('Sound Preview', `${soundName} (${typeLabel}) will play with notifications.`);
+    try {
+        // Set up audio mode for playback
+        await Audio.setAudioModeAsync({
+            playsInSilentModeIOS: true,
+            shouldDuckAndroid: true,
+        });
+
+        const soundFile = soundType === 'ding' ? require('../../assets/audio/ding.mp3') : require('../../assets/audio/tada.mp3');
+        const { sound } = await Audio.Sound.createAsync(soundFile);
+        await sound.playAsync();
+
+        // Clean up after sound finishes
+        sound.setOnPlaybackStatusUpdate(async (status) => {
+            if (status.isLoaded && status.didJustFinish) {
+                await sound.unloadAsync();
+            }
+        });
+    } catch (error) {
+        Alert.alert('Playback Error', 'Could not play preview sound. It will play with notifications.');
+    }
 }
