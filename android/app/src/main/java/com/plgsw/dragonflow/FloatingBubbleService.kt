@@ -10,7 +10,9 @@ import android.content.Intent
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
+import android.os.Handler
 import android.os.IBinder
+import android.os.Looper
 import android.util.DisplayMetrics
 import android.util.TypedValue
 import android.view.*
@@ -24,6 +26,24 @@ class FloatingBubbleService : Service() {
     private var bubbleParams: WindowManager.LayoutParams? = null
     private var dismissView: DismissTargetView? = null
     private var dismissParams: WindowManager.LayoutParams? = null
+    // Pomodoro countdown state
+    private var pomodoroEndTimeMs: Long = 0L
+    private var pomodoroFallbackCount: Int = 0
+    private var pomodoroFallbackMessage: String = ""
+    private val timerHandler = Handler(Looper.getMainLooper())
+    private val timerRunnable: Runnable = object : Runnable {
+        override fun run() {
+            val remaining = pomodoroEndTimeMs - System.currentTimeMillis()
+            if (remaining <= 0) {
+                stopPomodoroCountdown(pomodoroFallbackCount, pomodoroFallbackMessage)
+                return
+            }
+            val totalSecs = (remaining / 1000).toInt()
+            bubbleView?.setTimerText(String.format("%02d:%02d", totalSecs / 60, totalSecs % 60))
+            timerHandler.postDelayed(this, 1000)
+        }
+    }
+
     private var isDragging = false
     private var initialTouchX = 0f
     private var initialTouchY = 0f
@@ -65,16 +85,59 @@ class FloatingBubbleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
-        val count = intent?.getIntExtra("count", 0) ?: 0
-        val message = intent?.getStringExtra("message") ?: ""
-
-        if (bubbleView == null) {
-            createBubbleView(count)
-        } else {
-            bubbleView?.updateCount(count)
+        when (intent?.getStringExtra("action")) {
+            "startPomodoro" -> {
+                val endTimeMs = intent.getLongExtra("pomodoroEndTimeMs", 0L)
+                val label = intent.getStringExtra("pomodoroLabel") ?: ""
+                val fallbackCount = intent.getIntExtra("fallbackCount", 0)
+                val fallbackMessage = intent.getStringExtra("fallbackMessage") ?: ""
+                if (bubbleView == null) createBubbleView(0)
+                startPomodoroCountdown(endTimeMs, label, fallbackCount, fallbackMessage)
+            }
+            "stopPomodoro" -> {
+                val fallbackCount = intent.getIntExtra("fallbackCount", 0)
+                val fallbackMessage = intent.getStringExtra("fallbackMessage") ?: ""
+                stopPomodoroCountdown(fallbackCount, fallbackMessage)
+            }
+            else -> {
+                val count = intent?.getIntExtra("count", 0) ?: 0
+                if (bubbleView == null) {
+                    createBubbleView(count)
+                } else {
+                    bubbleView?.setTimerText(null)
+                    bubbleView?.updateCount(count)
+                }
+                updateNotification("Critical tasks active")
+            }
         }
-
         return START_STICKY
+    }
+
+    private fun startPomodoroCountdown(endTimeMs: Long, label: String, fallbackCount: Int, fallbackMessage: String) {
+        timerHandler.removeCallbacks(timerRunnable)
+        pomodoroEndTimeMs = endTimeMs
+        pomodoroFallbackCount = fallbackCount
+        pomodoroFallbackMessage = fallbackMessage
+        updateNotification("Pomodoro: $label timer running")
+        timerRunnable.run()
+    }
+
+    private fun stopPomodoroCountdown(fallbackCount: Int, fallbackMessage: String) {
+        timerHandler.removeCallbacks(timerRunnable)
+        pomodoroEndTimeMs = 0L
+        bubbleView?.setTimerText(null)
+        if (fallbackCount > 0) {
+            bubbleView?.updateCount(fallbackCount)
+            updateNotification("Critical tasks active")
+        } else {
+            stopSelf()
+        }
+    }
+
+    private fun updateNotification(contentText: String) {
+        val notification = buildNotification(contentText)
+        val manager = getSystemService(NotificationManager::class.java)
+        manager.notify(NOTIFICATION_ID, notification)
     }
 
     private fun createBubbleView(count: Int) {
@@ -184,6 +247,7 @@ class FloatingBubbleService : Service() {
     }
 
     override fun onDestroy() {
+        timerHandler.removeCallbacks(timerRunnable)
         bubbleView?.let {
             try { windowManager.removeView(it) } catch (_: Exception) {}
         }
@@ -206,7 +270,7 @@ class FloatingBubbleService : Service() {
         }
     }
 
-    private fun buildNotification(): Notification {
+    private fun buildNotification(contentText: String = "Critical tasks active"): Notification {
         val builder = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O)
             Notification.Builder(this, CHANNEL_ID)
         else
@@ -215,7 +279,7 @@ class FloatingBubbleService : Service() {
 
         return builder
             .setContentTitle("DragonFlow")
-            .setContentText("Critical tasks active")
+            .setContentText(contentText)
             .setSmallIcon(R.drawable.bubble_icon)
             .build()
     }
@@ -328,9 +392,15 @@ class FloatingBubbleService : Service() {
             } else null
         }
 
+        private var timerText: String? = null
+
+        fun setTimerText(text: String?) {
+            timerText = text
+            invalidate()
+        }
+
         fun updateCount(newCount: Int) {
             count = newCount
-            countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
             invalidate()
         }
 
@@ -344,7 +414,17 @@ class FloatingBubbleService : Service() {
                 canvas.drawBitmap(it, null, iconRect, null)
             }
 
-            if (count > 0) {
+            val t = timerText
+            if (t != null) {
+                // Timer mode: show MM:SS in white
+                countTextPaint.color = Color.WHITE
+                countTextPaint.textSize = w * 0.28f
+                countStrokePaint.textSize = w * 0.28f
+                val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
+                canvas.drawText(t, w / 2f, textY, countStrokePaint)
+                canvas.drawText(t, w / 2f, textY, countTextPaint)
+            } else if (count > 0) {
+                countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
                 val text = if (count > 9) "9+" else count.toString()
                 countTextPaint.textSize = w * 0.35f
                 countStrokePaint.textSize = w * 0.35f

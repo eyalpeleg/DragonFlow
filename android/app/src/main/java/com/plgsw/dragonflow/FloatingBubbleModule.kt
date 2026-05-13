@@ -102,6 +102,42 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
+    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            !Settings.canDrawOverlays(reactApplicationContext)) {
+            return
+        }
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "startPomodoro")
+            putExtra("pomodoroEndTimeMs", endTimeMs.toLong())
+            putExtra("pomodoroLabel", label)
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    @ReactMethod
+    fun stopPomodoroTimer(fallbackCount: Int, fallbackMessage: String) {
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "stopPomodoro")
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    @ReactMethod
     fun addListener(eventName: String) {}
 
     @ReactMethod

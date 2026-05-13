@@ -36,6 +36,16 @@ const FloatingBubble = {
             try { NativeFloatingBubble.cancelSound(alarmId); } catch {}
         }
     },
+    startPomodoroTimer(endTimeMs: number, label: string, fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.startPomodoroTimer(endTimeMs, label, fallbackCount, fallbackMessage); } catch {}
+        }
+    },
+    stopPomodoroTimer(fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.stopPomodoroTimer(fallbackCount, fallbackMessage); } catch {}
+        }
+    },
     onDismissed(callback: () => void) {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
         try {
