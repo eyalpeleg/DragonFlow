@@ -281,7 +281,7 @@ export default function SettingsScreen() {
                     </View>
                 </CollapsibleSection>
 
-                <CollapsibleSection title="Tasks List">
+                <CollapsibleSection title="Task-List">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Default Task Time</Text>
                         <Text style={styles.settingDesc}>Time used when creating new tasks</Text>
@@ -330,6 +330,34 @@ export default function SettingsScreen() {
                                 </View>
                             </View>
                             <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
+                        {categories.map((cat) => {
+                            const isDefault = cat.id === DEFAULT_CATEGORY_ID;
+                            return (
+                                <View key={cat.id} style={styles.catRow}>
+                                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
+                                    <Text style={styles.catName}>{cat.name}</Text>
+                                    {isDefault && (
+                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
+                                    )}
+                                    {!isDefault && (
+                                        <View style={styles.catActions}>
+                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="pencil" size={16} color={COLORS.primary} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="trash" size={16} color="#E53935" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })}
+                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
+                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+                            <Text style={styles.addCatText}>Add Category</Text>
                         </TouchableOpacity>
                     </View>
                 </CollapsibleSection>
@@ -418,37 +446,6 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             </>
                         )}
-                    </View>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Categories">
-                    <View style={styles.settingBlock}>
-                        {categories.map((cat) => {
-                            const isDefault = cat.id === DEFAULT_CATEGORY_ID;
-                            return (
-                                <View key={cat.id} style={styles.catRow}>
-                                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
-                                    <Text style={styles.catName}>{cat.name}</Text>
-                                    {isDefault && (
-                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
-                                    )}
-                                    {!isDefault && (
-                                        <View style={styles.catActions}>
-                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="pencil" size={16} color={COLORS.primary} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="trash" size={16} color="#E53935" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })}
-                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
-                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-                            <Text style={styles.addCatText}>Add Category</Text>
-                        </TouchableOpacity>
                     </View>
                 </CollapsibleSection>
 
