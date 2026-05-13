@@ -1,5 +1,5 @@
 import React from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 
@@ -20,9 +20,9 @@ const FILTER_TYPES: Array<{ type: FilterType; label: string; icon: string; descr
 
 export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props) {
     return (
-        <Modal visible={isOpen} transparent animationType="slide">
-            <View style={styles.overlay}>
-                <View style={styles.modal}>
+        <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
+            <Pressable style={styles.overlay} onPress={onClose}>
+                <Pressable style={styles.modal} onPress={() => {}}>
                     <View style={styles.header}>
                         <Text style={styles.title}>Add Filter</Text>
                         <TouchableOpacity onPress={onClose}>
@@ -49,8 +49,8 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
-                </View>
-            </View>
+                </Pressable>
+            </Pressable>
         </Modal>
     );
 }
