@@ -21,6 +21,25 @@ const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'SystemSound', 'Disabled'];
 
+function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
+    const [expanded, setExpanded] = useState(true);
+    return (
+        <View style={sectionStyles.wrapper}>
+            <TouchableOpacity style={sectionStyles.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
+                <Text style={sectionStyles.title}>{title}</Text>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#999" />
+            </TouchableOpacity>
+            {expanded && children}
+        </View>
+    );
+}
+
+const sectionStyles = StyleSheet.create({
+    wrapper: { marginBottom: 24 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    title: { fontSize: 14, fontWeight: '700', color: '#666', textTransform: 'uppercase' },
+});
+
 function formatRelativeTime(isoString: string | null): string {
     if (!isoString) return 'Never';
     const diff = Date.now() - new Date(isoString).getTime();
@@ -185,15 +204,13 @@ export default function SettingsScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
-                {/* Bubble Settings */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Floating Bubble</Text>
+                <CollapsibleSection title="Floating Bubble">
                     <View style={styles.settingRow}>
                         <View style={styles.settingLabel}>
                             <Ionicons name="alert-circle" size={20} color={COLORS.primary} />
                             <View style={styles.ml12}>
-                                <Text style={styles.settingTitle}>Show in Background</Text>
-                                <Text style={styles.settingDesc}>Display critical task badge when app is closed</Text>
+                                <Text style={styles.settingTitle}>Show Bubble</Text>
+                                <Text style={styles.settingDesc}>Display urgent task badge when app is in the background</Text>
                             </View>
                         </View>
                         <Switch
@@ -203,11 +220,9 @@ export default function SettingsScreen() {
                             thumbColor="white"
                         />
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Audio Settings */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Audio</Text>
+                <CollapsibleSection title="Audio">
 
                     {/* Tasks Sound Section */}
                     <View style={styles.settingBlock}>
@@ -264,11 +279,9 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                         </View>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Task Defaults */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Task Defaults</Text>
+                <CollapsibleSection title="Task Defaults">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Default Task Time</Text>
                         <Text style={styles.settingDesc}>Time used when creating new tasks</Text>
@@ -284,11 +297,9 @@ export default function SettingsScreen() {
                             <Text style={styles.timeFormat}>24-hour format</Text>
                         </View>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Week Start */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Weekly Report</Text>
+                <CollapsibleSection title="Weekly Report">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>First Day of Week</Text>
                         <Text style={styles.settingDesc}>Sets the start of the week in the weekly report</Text>
@@ -306,11 +317,9 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Status Order */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Task Display</Text>
+                <CollapsibleSection title="Task Display">
                     <View style={styles.settingBlock}>
                         <TouchableOpacity style={styles.statusOrderRow} onPress={() => setStatusOrderModalVisible(true)}>
                             <View style={styles.statusOrderContent}>
@@ -329,11 +338,9 @@ export default function SettingsScreen() {
                             <Ionicons name="chevron-forward" size={18} color="#ccc" />
                         </TouchableOpacity>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Data */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Data</Text>
+                <CollapsibleSection title="Data">
                     <View style={styles.settingBlock}>
                         <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
                             <Ionicons name="download-outline" size={20} color={COLORS.primary} />
@@ -353,11 +360,9 @@ export default function SettingsScreen() {
                             <Ionicons name="chevron-forward" size={18} color="#ccc" />
                         </TouchableOpacity>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Cloud Backup */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Cloud Backup</Text>
+                <CollapsibleSection title="Cloud Backup">
                     <View style={styles.settingBlock}>
                         {!isSignedIn ? (
                             <View style={styles.cloudSignInWrapper}>
@@ -423,11 +428,9 @@ export default function SettingsScreen() {
                             </>
                         )}
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Categories */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Categories</Text>
+                <CollapsibleSection title="Categories">
                     <View style={styles.settingBlock}>
                         {categories.map((cat) => {
                             const isDefault = cat.id === DEFAULT_CATEGORY_ID;
@@ -456,17 +459,15 @@ export default function SettingsScreen() {
                             <Text style={styles.addCatText}>Add Category</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* About */}
-                <View style={styles.aboutSection}>
-                    <Text style={styles.sectionTitle}>About</Text>
+                <CollapsibleSection title="About">
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
                         <Text style={styles.infoSubtext}>Build: {BUILD_TIMESTAMP}</Text>
                     </View>
-                </View>
+                </CollapsibleSection>
             </ScrollView>
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
@@ -569,9 +570,6 @@ const styles = StyleSheet.create({
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
-    section: { marginBottom: 24 },
-    aboutSection: { marginBottom: 24, marginTop: 16 },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: '#666', marginBottom: 12, textTransform: 'uppercase' },
     settingRow: {
         backgroundColor: 'white',
         borderRadius: 12,

@@ -1,5 +1,5 @@
 import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
@@ -90,9 +90,9 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
     };
 
     return (
-        <Modal visible={isOpen} transparent animationType="slide">
-            <View style={styles.overlay}>
-                <View style={styles.modal}>
+        <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
+            <Pressable style={styles.overlay} onPress={onClose}>
+                <Pressable style={styles.modal} onPress={() => {}}>
                     <View style={styles.header}>
                         <Text style={styles.title}>Filter by {filterType?.charAt(0).toUpperCase()}{filterType?.slice(1)}</Text>
                         <TouchableOpacity onPress={onClose}>
@@ -159,8 +159,8 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                             <Text style={styles.doneBtnText}>Done</Text>
                         </TouchableOpacity>
                     </View>
-                </View>
-            </View>
+                </Pressable>
+            </Pressable>
         </Modal>
     );
 }
