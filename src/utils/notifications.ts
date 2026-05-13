@@ -13,12 +13,12 @@ function getNotificationSound(soundType: 'ding' | 'tada', preference: SoundType)
     return undefined;
 }
 
-const POMODORO_CHANNEL_APP    = 'pomodoro-app';
-const POMODORO_CHANNEL_SYSTEM = 'pomodoro-system';
-const POMODORO_CHANNEL_SILENT = 'pomodoro-silent';
-const REMINDERS_CHANNEL_APP    = 'task-reminders-app';
-const REMINDERS_CHANNEL_SYSTEM = 'task-reminders-system';
-const REMINDERS_CHANNEL_SILENT = 'task-reminders-silent';
+const POMODORO_CHANNEL_APP    = 'pomodoro-tada-1';
+const POMODORO_CHANNEL_SYSTEM = 'pomodoro-sys-1';
+const POMODORO_CHANNEL_SILENT = 'pomodoro-off-1';
+const REMINDERS_CHANNEL_APP    = 'reminders-ding-1';
+const REMINDERS_CHANNEL_SYSTEM = 'reminders-sys-1';
+const REMINDERS_CHANNEL_SILENT = 'reminders-off-1';
 
 function remindersChannel(pref: SoundType): string {
     if (pref === 'AppSound') return REMINDERS_CHANNEL_APP;
@@ -77,8 +77,6 @@ export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
         for (const ch of CHANNEL_DEFS) {
-            // Delete first — Android never updates a channel's sound after creation
-            await Notifications.deleteNotificationChannelAsync(ch.id).catch(() => {});
             await Notifications.setNotificationChannelAsync(ch.id, {
                 name: ch.name,
                 importance: Notifications.AndroidImportance.HIGH,
