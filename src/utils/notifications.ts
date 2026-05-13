@@ -10,10 +10,6 @@ function getNotificationSound(soundType: 'ding' | 'tada', preference: SoundType)
         return soundType === 'ding' ? 'ding.mp3' : 'tada.mp3';
     }
     if (preference === 'SystemSound') return 'default';
-    if (preference === 'Custom') {
-        // TODO: Return custom sound path when available
-        return 'default';
-    }
     return undefined;
 }
 
@@ -180,6 +176,6 @@ export async function playPreviewSound(soundType: 'ding' | 'tada', preference: S
     }
 
     const soundName = soundType === 'ding' ? 'Ding' : 'Ta-da';
-    const typeLabel = preference === 'AppSound' ? 'App Sound' : preference === 'SystemSound' ? 'System Sound' : 'Custom Sound';
+    const typeLabel = preference === 'AppSound' ? 'App Sound' : 'System Sound';
     Alert.alert('Sound Preview', `${soundName} (${typeLabel}) will play with notifications.`);
 }

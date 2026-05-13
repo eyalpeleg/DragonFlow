@@ -17,7 +17,7 @@ const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
-const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'SystemSound', 'Custom', 'Disabled'];
+const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'SystemSound', 'Disabled'];
 
 function formatRelativeTime(isoString: string | null): string {
     if (!isoString) return 'Never';
@@ -208,34 +208,27 @@ export default function SettingsScreen() {
                         <Text style={styles.settingTitle}>Pomodoro Sound</Text>
                         <Text style={styles.settingDesc}>Sound played when timer completes</Text>
                         <View style={styles.soundSelectorRow}>
-                            <View style={styles.soundDropdown}>
-                                <Text style={styles.soundDropdownLabel}>Sound Type</Text>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    style={styles.soundOptionsScroll}
-                                >
-                                    {SOUND_TYPE_OPTIONS.map((option) => (
-                                        <TouchableOpacity
-                                            key={option}
-                                            style={[
-                                                styles.soundOption,
-                                                pomodoroSoundType === option && styles.soundOptionSelected,
-                                            ]}
-                                            onPress={() => setPomodoroSoundType(option)}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.soundOptionText,
-                                                    pomodoroSoundType === option && styles.soundOptionTextSelected,
-                                                ]}
-                                            >
-                                                {option}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </View>
+                            <TouchableOpacity
+                                style={styles.soundDropdownButton}
+                                onPress={() => {
+                                    const options = [...SOUND_TYPE_OPTIONS];
+                                    const cancelButtonIndex = options.length;
+                                    Alert.alert(
+                                        'Select Sound Type',
+                                        undefined,
+                                        [
+                                            ...options.map((option) => ({
+                                                text: option,
+                                                onPress: () => setPomodoroSoundType(option),
+                                            })),
+                                            { text: 'Cancel', style: 'cancel' },
+                                        ]
+                                    );
+                                }}
+                            >
+                                <Text style={styles.soundDropdownButtonText}>{pomodoroSoundType}</Text>
+                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.playButton}
                                 onPress={() => playPreviewSound('tada', pomodoroSoundType)}
@@ -250,34 +243,26 @@ export default function SettingsScreen() {
                         <Text style={styles.settingTitle}>Task Reminders Sound</Text>
                         <Text style={styles.settingDesc}>Sound played for task notifications</Text>
                         <View style={styles.soundSelectorRow}>
-                            <View style={styles.soundDropdown}>
-                                <Text style={styles.soundDropdownLabel}>Sound Type</Text>
-                                <ScrollView
-                                    horizontal
-                                    showsHorizontalScrollIndicator={false}
-                                    style={styles.soundOptionsScroll}
-                                >
-                                    {SOUND_TYPE_OPTIONS.map((option) => (
-                                        <TouchableOpacity
-                                            key={option}
-                                            style={[
-                                                styles.soundOption,
-                                                tasksSoundType === option && styles.soundOptionSelected,
-                                            ]}
-                                            onPress={() => setTasksSoundType(option)}
-                                        >
-                                            <Text
-                                                style={[
-                                                    styles.soundOptionText,
-                                                    tasksSoundType === option && styles.soundOptionTextSelected,
-                                                ]}
-                                            >
-                                                {option}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </ScrollView>
-                            </View>
+                            <TouchableOpacity
+                                style={styles.soundDropdownButton}
+                                onPress={() => {
+                                    const options = [...SOUND_TYPE_OPTIONS];
+                                    Alert.alert(
+                                        'Select Sound Type',
+                                        undefined,
+                                        [
+                                            ...options.map((option) => ({
+                                                text: option,
+                                                onPress: () => setTasksSoundType(option),
+                                            })),
+                                            { text: 'Cancel', style: 'cancel' },
+                                        ]
+                                    );
+                                }}
+                            >
+                                <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
+                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.playButton}
                                 onPress={() => playPreviewSound('ding', tasksSoundType)}
@@ -752,38 +737,22 @@ const styles = StyleSheet.create({
         marginTop: 12,
         gap: 12,
     },
-    soundDropdown: {
+    soundDropdownButton: {
         flex: 1,
-    },
-    soundDropdownLabel: {
-        fontSize: 12,
-        fontWeight: '600',
-        color: '#666',
-        marginBottom: 8,
-    },
-    soundOptionsScroll: {
-        flexGrow: 0,
-    },
-    soundOption: {
-        paddingHorizontal: 12,
-        paddingVertical: 6,
-        borderRadius: 6,
-        backgroundColor: '#f0f0f0',
-        marginRight: 8,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
         borderWidth: 1,
         borderColor: '#e0e0e0',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: '#fafafa',
     },
-    soundOptionSelected: {
-        backgroundColor: COLORS.primary,
-        borderColor: COLORS.primary,
-    },
-    soundOptionText: {
-        fontSize: 13,
+    soundDropdownButtonText: {
+        fontSize: 15,
         fontWeight: '600',
-        color: '#666',
-    },
-    soundOptionTextSelected: {
-        color: 'white',
+        color: COLORS.primary,
     },
     playButton: {
         backgroundColor: COLORS.primary,
