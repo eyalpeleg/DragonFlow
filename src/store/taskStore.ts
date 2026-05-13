@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig } from '../types';
+import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
@@ -75,6 +75,11 @@ interface TaskStore {
     defaultTaskTime: string;
     firstDayOfWeek: 'sunday' | 'monday';
     statusOrderConfig: StatusOrderConfig;
+    notificationSoundEnabled: boolean;
+    pomodoroSoundType: SoundType;
+    tasksSoundType: SoundType;
+    pomodoroVolume: number;
+    tasksVolume: number;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -98,13 +103,18 @@ interface TaskStore {
     setShowBubbleInBackground: (show: boolean) => void;
     setDefaultTaskTime: (time: string) => void;
     setFirstDayOfWeek: (day: 'sunday' | 'monday') => void;
+    setNotificationSoundEnabled: (enabled: boolean) => void;
+    setPomodoroSoundType: (type: SoundType) => void;
+    setTasksSoundType: (type: SoundType) => void;
+    setPomodoroVolume: (volume: number) => void;
+    setTasksVolume: (volume: number) => void;
     setStatusFilters: (filters: Set<TaskStatus>) => void;
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
     setStatusOrderConfig: (config: StatusOrderConfig) => void;
     exportData: () => object;
-    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean } }) => { tasksImported: number };
+    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -131,6 +141,11 @@ export const useTaskStore = create<TaskStore>()(
             showBubbleInBackground: true,
             defaultTaskTime: '08:00',
             firstDayOfWeek: 'sunday',
+            notificationSoundEnabled: true,
+            pomodoroSoundType: 'AppSound',
+            tasksSoundType: 'AppSound',
+            pomodoroVolume: 1.0,
+            tasksVolume: 1.0,
             statusOrderConfig: {
                 'In Progress': 0,
                 'Paused': 1,
@@ -308,6 +323,16 @@ export const useTaskStore = create<TaskStore>()(
 
             setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
 
+            setNotificationSoundEnabled: (enabled) => set({ notificationSoundEnabled: enabled }),
+
+            setPomodoroSoundType: (type) => set({ pomodoroSoundType: type }),
+
+            setTasksSoundType: (type) => set({ tasksSoundType: type }),
+
+            setPomodoroVolume: (volume) => set({ pomodoroVolume: volume }),
+
+            setTasksVolume: (volume) => set({ tasksVolume: volume }),
+
             setStatusFilters: (filters) => set({ statusFilters: filters }),
 
             setCategoryFilters: (filters) => set({ categoryFilters: filters }),
@@ -328,6 +353,9 @@ export const useTaskStore = create<TaskStore>()(
                     settings: {
                         defaultTaskTime: s.defaultTaskTime,
                         showBubbleInBackground: s.showBubbleInBackground,
+                        notificationSoundEnabled: s.notificationSoundEnabled,
+                        pomodoroSoundType: s.pomodoroSoundType,
+                        tasksSoundType: s.tasksSoundType,
                     },
                 };
             },
@@ -350,6 +378,9 @@ export const useTaskStore = create<TaskStore>()(
                     categories,
                     ...(data.settings?.defaultTaskTime && { defaultTaskTime: data.settings.defaultTaskTime }),
                     ...(data.settings?.showBubbleInBackground !== undefined && { showBubbleInBackground: data.settings.showBubbleInBackground }),
+                    ...(data.settings?.notificationSoundEnabled !== undefined && { notificationSoundEnabled: data.settings.notificationSoundEnabled }),
+                    ...(data.settings?.pomodoroSoundType && { pomodoroSoundType: data.settings.pomodoroSoundType }),
+                    ...(data.settings?.tasksSoundType && { tasksSoundType: data.settings.tasksSoundType }),
                 });
 
                 return { tasksImported: tasks.length };
@@ -364,6 +395,11 @@ export const useTaskStore = create<TaskStore>()(
                 defaultTaskTime: state.defaultTaskTime,
                 showBubbleInBackground: state.showBubbleInBackground,
                 firstDayOfWeek: state.firstDayOfWeek,
+                notificationSoundEnabled: state.notificationSoundEnabled,
+                pomodoroSoundType: state.pomodoroSoundType,
+                tasksSoundType: state.tasksSoundType,
+                pomodoroVolume: state.pomodoroVolume,
+                tasksVolume: state.tasksVolume,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

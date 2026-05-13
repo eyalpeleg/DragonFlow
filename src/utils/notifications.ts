@@ -1,8 +1,17 @@
 import * as Notifications from 'expo-notifications';
-import { Platform } from 'react-native';
-import { Task } from '../types';
+import { Platform, Alert } from 'react-native';
+import { createAudioPlayer } from 'expo-audio';
+import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
-import { useTaskStore } from '../store/taskStore';
+
+function getNotificationSound(soundType: 'ding' | 'tada', preference: SoundType): string | undefined {
+    if (preference === 'Disabled') return undefined;
+    if (preference === 'AppSound') {
+        return soundType === 'ding' ? 'ding.mp3' : 'tada.mp3';
+    }
+    if (preference === 'SystemSound') return 'default';
+    return undefined;
+}
 
 const POMODORO_CHANNEL = 'pomodoro';
 const REMINDERS_CHANNEL = 'task-reminders';
@@ -12,12 +21,15 @@ let notificationsAvailable = false;
 
 try {
     Notifications.setNotificationHandler({
-        handleNotification: async () => ({
-            shouldPlaySound: true,
-            shouldSetBadge: false,
-            shouldShowBanner: true,
-            shouldShowList: true,
-        }),
+        handleNotification: async (notification) => {
+            const isPreviewSound = notification.request.content.data?.isPreviewSound === true;
+            return {
+                shouldPlaySound: true,
+                shouldSetBadge: false,
+                shouldShowBanner: !isPreviewSound,
+                shouldShowList: !isPreviewSound,
+            };
+        },
     });
     notificationsAvailable = true;
 } catch {
@@ -62,13 +74,15 @@ export async function setupNotificationChannels(): Promise<void> {
 export async function schedulePomodoroEnd(minutes: number): Promise<string> {
     if (!notificationsAvailable) return '';
     try {
+        const { useTaskStore } = await import('../store/taskStore');
+        const soundType = useTaskStore.getState().pomodoroSoundType;
         const labels: Record<number, string> = { 25: 'Focus session', 5: 'Short break', 15: 'Long break' };
         const label = labels[minutes] ?? `${minutes}min timer`;
         return await Notifications.scheduleNotificationAsync({
             content: {
                 title: `⏱ ${label} complete!`,
                 body: minutes === 25 ? 'Great work! Take a break.' : 'Break over — time to focus.',
-                sound: 'default',
+                sound: getNotificationSound('tada', soundType) ?? 'default',
                 data: { type: 'pomodoro' },
                 ...(Platform.OS === 'android' && { channelId: POMODORO_CHANNEL }),
             },
@@ -106,7 +120,10 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     const dueMs = new Date(`${task.dueDate}T${time}:00`).getTime();
     if (isNaN(dueMs)) return;
 
-    const reminders: { id: string; fireMs: number; label: string }[] = [
+    const { useTaskStore } = await import('../store/taskStore');
+    const soundType = useTaskStore.getState().tasksSoundType;
+
+    const reminders: { id: string; fireMs: number; label: string; isLastWarning?: boolean }[] = [
         ...(dueHour < 12
             ? [
                 { id: `${task.id}-ra`, fireMs: dayBefore(task.dueDate, 8),  label: '⏰ Due Tomorrow' },
@@ -118,22 +135,24 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                 { id: `${task.id}-rb`, fireMs: dayBefore(task.dueDate, 18), label: '⏰ Due Tomorrow' },
                 { id: `${task.id}-rc`, fireMs: sameDay(task.dueDate, 8),    label: '⏰ Due Today' },
                 { id: `${task.id}-rd`, fireMs: sameDay(task.dueDate, 12),   label: '⏰ Due Today' },
-                { id: `${task.id}-re`, fireMs: dueMs - 3600 * 1000,         label: '⏰ Due in 1 hour' },
+                { id: `${task.id}-re`, fireMs: dueMs - 3600 * 1000,         label: '⏰ Due in 1 hour', isLastWarning: true },
             ]),
-        { id: `${task.id}-r5m`, fireMs: dueMs - 5 * 60 * 1000, label: '🔔 Due in 5 minutes' },
+        { id: `${task.id}-r5m`, fireMs: dueMs - 5 * 60 * 1000, label: '🔔 Due in 5 minutes', isLastWarning: true },
+        { id: `${task.id}-rdt`, fireMs: dueMs, label: '🔔 Due now', isLastWarning: true },
     ];
 
     const now = Date.now();
     for (const r of reminders) {
         await Notifications.cancelScheduledNotificationAsync(r.id).catch(() => {});
         if (r.fireMs <= now) continue;
+        const sound = r.isLastWarning ? (getNotificationSound('ding', soundType) ?? 'default') : 'default';
         try {
             await Notifications.scheduleNotificationAsync({
                 identifier: r.id,
                 content: {
                     title: `${r.label}: ${task.title}`,
                     body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
-                    sound: 'default',
+                    sound,
                     data: { type: 'reminder', taskId: task.id },
                     ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
                 },
@@ -150,7 +169,52 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
 
 export async function cancelTaskReminders(taskId: string): Promise<void> {
     if (!notificationsAvailable) return;
-    for (const suffix of ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m']) {
+    for (const suffix of ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m', '-rdt']) {
         await Notifications.cancelScheduledNotificationAsync(taskId + suffix).catch(() => {});
+    }
+}
+
+export async function playPreviewSound(soundType: 'ding' | 'tada', preference: SoundType, volume: number = 1.0): Promise<void> {
+    if (preference === 'Disabled') {
+        Alert.alert('Sound Disabled', 'No sound will play for notifications.');
+        return;
+    }
+
+    if (preference === 'SystemSound') {
+        if (!notificationsAvailable) {
+            Alert.alert('Unavailable', 'Notifications not available in this environment.');
+            return;
+        }
+        try {
+            // Schedule a notification that plays immediately with only sound (no banner)
+            await Notifications.scheduleNotificationAsync({
+                content: {
+                    title: '',
+                    body: '',
+                    sound: 'default',
+                    data: { isPreviewSound: true },
+                },
+                trigger: {
+                    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
+                    seconds: 0.1, // Fire in 100ms
+                },
+            });
+        } catch (error) {
+            console.error('System sound error:', error);
+            Alert.alert('Playback Error', 'Could not play system sound.');
+        }
+        return;
+    }
+
+    if (preference === 'AppSound') {
+        try {
+            const soundFile = soundType === 'ding' ? require('../../assets/audio/ding.mp3') : require('../../assets/audio/tada.mp3');
+            const player = createAudioPlayer(soundFile);
+            player.volume = Math.max(0, Math.min(1, volume));
+            player.play();
+        } catch (error) {
+            console.error('Audio playback error:', error);
+            Alert.alert('Playback Error', 'Could not play preview sound. It will play with notifications.');
+        }
     }
 }
