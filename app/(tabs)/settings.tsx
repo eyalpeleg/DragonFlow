@@ -281,7 +281,7 @@ export default function SettingsScreen() {
                     </View>
                 </CollapsibleSection>
 
-                <CollapsibleSection title="Task Defaults">
+                <CollapsibleSection title="Tasks List">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Default Task Time</Text>
                         <Text style={styles.settingDesc}>Time used when creating new tasks</Text>
@@ -297,10 +297,7 @@ export default function SettingsScreen() {
                             <Text style={styles.timeFormat}>24-hour format</Text>
                         </View>
                     </View>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Weekly Report">
-                    <View style={styles.settingBlock}>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         <Text style={styles.settingTitle}>First Day of Week</Text>
                         <Text style={styles.settingDesc}>Sets the start of the week in the weekly report</Text>
                         <View style={styles.weekDayRow}>
@@ -317,10 +314,7 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     </View>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Task Display">
-                    <View style={styles.settingBlock}>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         <TouchableOpacity style={styles.statusOrderRow} onPress={() => setStatusOrderModalVisible(true)}>
                             <View style={styles.statusOrderContent}>
                                 <Text style={styles.settingTitle}>Status Order</Text>
@@ -597,6 +591,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
+    },
+    settingBlockGap: {
+        marginTop: 12,
     },
     timeInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 10 },
     timeInput: {
