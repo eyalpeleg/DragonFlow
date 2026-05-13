@@ -13,8 +13,24 @@ function getNotificationSound(soundType: 'ding' | 'tada', preference: SoundType)
     return undefined;
 }
 
-const POMODORO_CHANNEL = 'pomodoro';
-const REMINDERS_CHANNEL = 'task-reminders';
+const POMODORO_CHANNEL_APP    = 'pomodoro-app';
+const POMODORO_CHANNEL_SYSTEM = 'pomodoro-system';
+const POMODORO_CHANNEL_SILENT = 'pomodoro-silent';
+const REMINDERS_CHANNEL_APP    = 'task-reminders-app';
+const REMINDERS_CHANNEL_SYSTEM = 'task-reminders-system';
+const REMINDERS_CHANNEL_SILENT = 'task-reminders-silent';
+
+function remindersChannel(pref: SoundType): string {
+    if (pref === 'AppSound') return REMINDERS_CHANNEL_APP;
+    if (pref === 'Disabled') return REMINDERS_CHANNEL_SILENT;
+    return REMINDERS_CHANNEL_SYSTEM;
+}
+
+function pomodoroChannel(pref: SoundType): string {
+    if (pref === 'AppSound') return POMODORO_CHANNEL_APP;
+    if (pref === 'Disabled') return POMODORO_CHANNEL_SILENT;
+    return POMODORO_CHANNEL_SYSTEM;
+}
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -51,17 +67,45 @@ export async function requestNotificationPermission(): Promise<boolean> {
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
-        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL, {
-            name: 'Pomodoro Timer',
+        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_APP, {
+            name: 'Pomodoro Timer (App Sound)',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: 'tada.mp3',
+            vibrationPattern: [0, 500, 200, 500],
+            lightColor: '#6200EE',
+        });
+        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_SYSTEM, {
+            name: 'Pomodoro Timer (System Sound)',
             importance: Notifications.AndroidImportance.HIGH,
             sound: 'default',
             vibrationPattern: [0, 500, 200, 500],
             lightColor: '#6200EE',
         });
-        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL, {
-            name: 'Task Reminders',
+        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_SILENT, {
+            name: 'Pomodoro Timer (Silent)',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: undefined,
+            vibrationPattern: [0, 500, 200, 500],
+            lightColor: '#6200EE',
+        });
+        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_APP, {
+            name: 'Task Reminders (App Sound)',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: 'ding.mp3',
+            vibrationPattern: [0, 300, 200, 300],
+            lightColor: '#6200EE',
+        });
+        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_SYSTEM, {
+            name: 'Task Reminders (System Sound)',
             importance: Notifications.AndroidImportance.HIGH,
             sound: 'default',
+            vibrationPattern: [0, 300, 200, 300],
+            lightColor: '#6200EE',
+        });
+        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_SILENT, {
+            name: 'Task Reminders (Silent)',
+            importance: Notifications.AndroidImportance.HIGH,
+            sound: undefined,
             vibrationPattern: [0, 300, 200, 300],
             lightColor: '#6200EE',
         });
@@ -84,7 +128,7 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
                 body: minutes === 25 ? 'Great work! Take a break.' : 'Break over — time to focus.',
                 sound: getNotificationSound('tada', soundType) ?? 'default',
                 data: { type: 'pomodoro' },
-                ...(Platform.OS === 'android' && { channelId: POMODORO_CHANNEL }),
+                ...(Platform.OS === 'android' && { channelId: pomodoroChannel(soundType) }),
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
         });
@@ -146,6 +190,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
         await Notifications.cancelScheduledNotificationAsync(r.id).catch(() => {});
         if (r.fireMs <= now) continue;
         const sound = r.isLastWarning ? (getNotificationSound('ding', soundType) ?? 'default') : 'default';
+        const channelId = r.isLastWarning ? remindersChannel(soundType) : REMINDERS_CHANNEL_SYSTEM;
         try {
             await Notifications.scheduleNotificationAsync({
                 identifier: r.id,
@@ -154,7 +199,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                     body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
                     sound,
                     data: { type: 'reminder', taskId: task.id },
-                    ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
+                    ...(Platform.OS === 'android' && { channelId }),
                 },
                 trigger: {
                     type: Notifications.SchedulableTriggerInputTypes.DATE,
