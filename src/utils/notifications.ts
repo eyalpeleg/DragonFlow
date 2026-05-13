@@ -5,16 +5,14 @@ import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
 import FloatingBubble from '../modules/FloatingBubble';
 
-const POMODORO_CHANNEL_APP    = 'pomodoro-tada-1';
-const POMODORO_CHANNEL_SYSTEM = 'pomodoro-sys-1';
-const POMODORO_CHANNEL_SILENT = 'pomodoro-off-1';
-const REMINDERS_CHANNEL_APP    = 'reminders-ding-1';
-const REMINDERS_CHANNEL_SYSTEM = 'reminders-sys-1';
-const REMINDERS_CHANNEL_SILENT = 'reminders-off-1';
+const POMODORO_CHANNEL_SOUND  = 'pomodoro-sound-2';
+const POMODORO_CHANNEL_SILENT = 'pomodoro-off-2';
+const REMINDERS_CHANNEL_SOUND  = 'reminders-sound-2';
+const REMINDERS_CHANNEL_SILENT = 'reminders-off-2';
 
 function pomodoroChannel(pref: SoundType): string {
     if (pref === 'Disabled') return POMODORO_CHANNEL_SILENT;
-    return POMODORO_CHANNEL_APP;
+    return POMODORO_CHANNEL_SOUND;
 }
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
@@ -23,7 +21,7 @@ let notificationsAvailable = false;
 try {
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldPlaySound: false,
+            shouldPlaySound: true,
             shouldSetBadge: false,
             shouldShowBanner: true,
             shouldShowList: true,
@@ -46,16 +44,12 @@ export async function requestNotificationPermission(): Promise<boolean> {
     }
 }
 
-// All channels are silent — sound is played directly via native AlarmManager + MediaPlayer.
-// This bypasses Android's channel sound caching issues entirely.
 const CHANNEL_DEFS = [
-    { id: POMODORO_CHANNEL_APP,     name: 'Pomodoro Timer',  sound: undefined, vibe: [0, 500, 200, 500] },
-    { id: POMODORO_CHANNEL_SYSTEM,  name: 'Pomodoro Timer',  sound: undefined, vibe: [0, 500, 200, 500] },
-    { id: POMODORO_CHANNEL_SILENT,  name: 'Pomodoro Timer',  sound: undefined, vibe: [0, 500, 200, 500] },
-    { id: REMINDERS_CHANNEL_APP,    name: 'Task Reminders',  sound: undefined, vibe: [0, 300, 200, 300] },
-    { id: REMINDERS_CHANNEL_SYSTEM, name: 'Task Reminders',  sound: undefined, vibe: [0, 300, 200, 300] },
-    { id: REMINDERS_CHANNEL_SILENT, name: 'Task Reminders',  sound: undefined, vibe: [0, 300, 200, 300] },
-] as const;
+    { id: POMODORO_CHANNEL_SOUND,  name: 'Pomodoro Timer', sound: 'default',  vibe: [0, 500, 200, 500] },
+    { id: POMODORO_CHANNEL_SILENT, name: 'Pomodoro Timer', sound: null,        vibe: [0, 500, 200, 500] },
+    { id: REMINDERS_CHANNEL_SOUND,  name: 'Task Reminders', sound: 'default', vibe: [0, 300, 200, 300] },
+    { id: REMINDERS_CHANNEL_SILENT, name: 'Task Reminders', sound: null,       vibe: [0, 300, 200, 300] },
+];
 
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
@@ -160,7 +154,9 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                     body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
                     sound: undefined,
                     data: { type: 'reminder', taskId: task.id },
-                    ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL_SYSTEM }),
+                    ...(Platform.OS === 'android' && {
+                        channelId: soundType === 'Disabled' ? REMINDERS_CHANNEL_SILENT : REMINDERS_CHANNEL_SOUND,
+                    }),
                 },
                 trigger: {
                     type: Notifications.SchedulableTriggerInputTypes.DATE,
