@@ -5,15 +5,8 @@ import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
 import FloatingBubble from '../modules/FloatingBubble';
 
-const POMODORO_CHANNEL_SOUND  = 'pomodoro-sound-2';
-const POMODORO_CHANNEL_SILENT = 'pomodoro-off-2';
-const REMINDERS_CHANNEL_SOUND  = 'reminders-sound-2';
-const REMINDERS_CHANNEL_SILENT = 'reminders-off-2';
-
-function pomodoroChannel(pref: SoundType): string {
-    if (pref === 'Disabled') return POMODORO_CHANNEL_SILENT;
-    return POMODORO_CHANNEL_SOUND;
-}
+const POMODORO_CHANNEL = 'pomodoro-3';
+const REMINDERS_CHANNEL = 'reminders-3';
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -45,10 +38,8 @@ export async function requestNotificationPermission(): Promise<boolean> {
 }
 
 const CHANNEL_DEFS = [
-    { id: POMODORO_CHANNEL_SOUND,  name: 'Pomodoro Timer', sound: 'default',  vibe: [0, 500, 200, 500] },
-    { id: POMODORO_CHANNEL_SILENT, name: 'Pomodoro Timer', sound: null,        vibe: [0, 500, 200, 500] },
-    { id: REMINDERS_CHANNEL_SOUND,  name: 'Task Reminders', sound: 'default', vibe: [0, 300, 200, 300] },
-    { id: REMINDERS_CHANNEL_SILENT, name: 'Task Reminders', sound: null,       vibe: [0, 300, 200, 300] },
+    { id: POMODORO_CHANNEL,  name: 'Pomodoro Timer',  vibe: [0, 500, 200, 500] },
+    { id: REMINDERS_CHANNEL, name: 'Task Reminders',  vibe: [0, 300, 200, 300] },
 ];
 
 export async function setupNotificationChannels(): Promise<void> {
@@ -58,7 +49,6 @@ export async function setupNotificationChannels(): Promise<void> {
             await Notifications.setNotificationChannelAsync(ch.id, {
                 name: ch.name,
                 importance: Notifications.AndroidImportance.HIGH,
-                sound: ch.sound,
                 vibrationPattern: ch.vibe as unknown as number[],
                 lightColor: '#6200EE',
             });
@@ -72,8 +62,6 @@ export async function setupNotificationChannels(): Promise<void> {
 export async function schedulePomodoroEnd(minutes: number): Promise<string> {
     if (!notificationsAvailable) return '';
     try {
-        const { useTaskStore } = await import('../store/taskStore');
-        const soundType = useTaskStore.getState().pomodoroSoundType;
         const labels: Record<number, string> = { 25: 'Focus session', 5: 'Short break', 15: 'Long break' };
         const label = labels[minutes] ?? `${minutes}min timer`;
         const notifId = await Notifications.scheduleNotificationAsync({
@@ -82,7 +70,7 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
                 body: minutes === 25 ? 'Great work! Take a break.' : 'Break over — time to focus.',
                 sound: undefined,
                 data: { type: 'pomodoro' },
-                ...(Platform.OS === 'android' && { channelId: pomodoroChannel(soundType) }),
+                ...(Platform.OS === 'android' && { channelId: POMODORO_CHANNEL }),
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
         });
@@ -154,9 +142,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                     body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
                     sound: undefined,
                     data: { type: 'reminder', taskId: task.id },
-                    ...(Platform.OS === 'android' && {
-                        channelId: soundType === 'Disabled' ? REMINDERS_CHANNEL_SILENT : REMINDERS_CHANNEL_SOUND,
-                    }),
+                    ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
                 },
                 trigger: {
                     type: Notifications.SchedulableTriggerInputTypes.DATE,
