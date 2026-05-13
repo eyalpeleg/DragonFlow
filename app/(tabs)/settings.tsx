@@ -233,7 +233,7 @@ export default function SettingsScreen() {
                                 style={styles.playButton}
                                 onPress={() => playPreviewSound('tada', pomodoroSoundType)}
                             >
-                                <Ionicons name="play" size={20} color="white" />
+                                <Ionicons name="musical-note" size={20} color="white" />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -267,7 +267,7 @@ export default function SettingsScreen() {
                                 style={styles.playButton}
                                 onPress={() => playPreviewSound('ding', tasksSoundType)}
                             >
-                                <Ionicons name="play" size={20} color="white" />
+                                <Ionicons name="musical-note" size={20} color="white" />
                             </TouchableOpacity>
                         </View>
                     </View>
