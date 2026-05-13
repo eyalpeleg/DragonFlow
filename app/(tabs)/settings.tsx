@@ -203,6 +203,40 @@ export default function SettingsScreen() {
                 <View style={styles.section}>
                     <Text style={styles.sectionTitle}>Audio</Text>
 
+                    {/* Tasks Sound Section */}
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>Task Reminders Sound</Text>
+                        <Text style={styles.settingDesc}>Sound played for task notifications</Text>
+                        <View style={styles.soundSelectorRow}>
+                            <TouchableOpacity
+                                style={styles.soundDropdownButton}
+                                onPress={() => {
+                                    const options = [...SOUND_TYPE_OPTIONS];
+                                    Alert.alert(
+                                        'Select Sound Type',
+                                        undefined,
+                                        [
+                                            ...options.map((option) => ({
+                                                text: option,
+                                                onPress: () => setTasksSoundType(option),
+                                            })),
+                                            { text: 'Cancel', style: 'cancel' },
+                                        ]
+                                    );
+                                }}
+                            >
+                                <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
+                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.playButton}
+                                onPress={() => playPreviewSound('ding', tasksSoundType)}
+                            >
+                                <Ionicons name="musical-note" size={20} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
                     {/* Pomodoro Sound Section */}
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Pomodoro Sound</Text>
@@ -232,40 +266,6 @@ export default function SettingsScreen() {
                             <TouchableOpacity
                                 style={styles.playButton}
                                 onPress={() => playPreviewSound('tada', pomodoroSoundType)}
-                            >
-                                <Ionicons name="musical-note" size={20} color="white" />
-                            </TouchableOpacity>
-                        </View>
-                    </View>
-
-                    {/* Tasks Sound Section */}
-                    <View style={styles.settingBlock}>
-                        <Text style={styles.settingTitle}>Task Reminders Sound</Text>
-                        <Text style={styles.settingDesc}>Sound played for task notifications</Text>
-                        <View style={styles.soundSelectorRow}>
-                            <TouchableOpacity
-                                style={styles.soundDropdownButton}
-                                onPress={() => {
-                                    const options = [...SOUND_TYPE_OPTIONS];
-                                    Alert.alert(
-                                        'Select Sound Type',
-                                        undefined,
-                                        [
-                                            ...options.map((option) => ({
-                                                text: option,
-                                                onPress: () => setTasksSoundType(option),
-                                            })),
-                                            { text: 'Cancel', style: 'cancel' },
-                                        ]
-                                    );
-                                }}
-                            >
-                                <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
-                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={() => playPreviewSound('ding', tasksSoundType)}
                             >
                                 <Ionicons name="musical-note" size={20} color="white" />
                             </TouchableOpacity>
