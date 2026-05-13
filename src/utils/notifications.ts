@@ -64,51 +64,29 @@ export async function requestNotificationPermission(): Promise<boolean> {
     }
 }
 
+const CHANNEL_DEFS = [
+    { id: POMODORO_CHANNEL_APP,    name: 'Pomodoro Timer (App Sound)',    sound: 'tada.mp3',  vibe: [0, 500, 200, 500] },
+    { id: POMODORO_CHANNEL_SYSTEM, name: 'Pomodoro Timer (System Sound)', sound: 'default',   vibe: [0, 500, 200, 500] },
+    { id: POMODORO_CHANNEL_SILENT, name: 'Pomodoro Timer (Silent)',        sound: undefined,   vibe: [0, 500, 200, 500] },
+    { id: REMINDERS_CHANNEL_APP,    name: 'Task Reminders (App Sound)',    sound: 'ding.mp3',  vibe: [0, 300, 200, 300] },
+    { id: REMINDERS_CHANNEL_SYSTEM, name: 'Task Reminders (System Sound)', sound: 'default',   vibe: [0, 300, 200, 300] },
+    { id: REMINDERS_CHANNEL_SILENT, name: 'Task Reminders (Silent)',        sound: undefined,   vibe: [0, 300, 200, 300] },
+] as const;
+
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
-        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_APP, {
-            name: 'Pomodoro Timer (App Sound)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'tada.mp3',
-            vibrationPattern: [0, 500, 200, 500],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_SYSTEM, {
-            name: 'Pomodoro Timer (System Sound)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 500, 200, 500],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL_SILENT, {
-            name: 'Pomodoro Timer (Silent)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: undefined,
-            vibrationPattern: [0, 500, 200, 500],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_APP, {
-            name: 'Task Reminders (App Sound)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'ding.mp3',
-            vibrationPattern: [0, 300, 200, 300],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_SYSTEM, {
-            name: 'Task Reminders (System Sound)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 300, 200, 300],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL_SILENT, {
-            name: 'Task Reminders (Silent)',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: undefined,
-            vibrationPattern: [0, 300, 200, 300],
-            lightColor: '#6200EE',
-        });
+        for (const ch of CHANNEL_DEFS) {
+            // Delete first — Android never updates a channel's sound after creation
+            await Notifications.deleteNotificationChannelAsync(ch.id).catch(() => {});
+            await Notifications.setNotificationChannelAsync(ch.id, {
+                name: ch.name,
+                importance: Notifications.AndroidImportance.HIGH,
+                sound: ch.sound,
+                vibrationPattern: ch.vibe as unknown as number[],
+                lightColor: '#6200EE',
+            });
+        }
     } catch {
         // ignore — Expo Go
     }
