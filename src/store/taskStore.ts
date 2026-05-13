@@ -78,6 +78,8 @@ interface TaskStore {
     notificationSoundEnabled: boolean;
     pomodoroSoundType: SoundType;
     tasksSoundType: SoundType;
+    pomodoroVolume: number;
+    tasksVolume: number;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -104,6 +106,8 @@ interface TaskStore {
     setNotificationSoundEnabled: (enabled: boolean) => void;
     setPomodoroSoundType: (type: SoundType) => void;
     setTasksSoundType: (type: SoundType) => void;
+    setPomodoroVolume: (volume: number) => void;
+    setTasksVolume: (volume: number) => void;
     setStatusFilters: (filters: Set<TaskStatus>) => void;
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
@@ -140,6 +144,8 @@ export const useTaskStore = create<TaskStore>()(
             notificationSoundEnabled: true,
             pomodoroSoundType: 'AppSound',
             tasksSoundType: 'AppSound',
+            pomodoroVolume: 1.0,
+            tasksVolume: 1.0,
             statusOrderConfig: {
                 'In Progress': 0,
                 'Paused': 1,
@@ -323,6 +329,10 @@ export const useTaskStore = create<TaskStore>()(
 
             setTasksSoundType: (type) => set({ tasksSoundType: type }),
 
+            setPomodoroVolume: (volume) => set({ pomodoroVolume: volume }),
+
+            setTasksVolume: (volume) => set({ tasksVolume: volume }),
+
             setStatusFilters: (filters) => set({ statusFilters: filters }),
 
             setCategoryFilters: (filters) => set({ categoryFilters: filters }),
@@ -388,6 +398,8 @@ export const useTaskStore = create<TaskStore>()(
                 notificationSoundEnabled: state.notificationSoundEnabled,
                 pomodoroSoundType: state.pomodoroSoundType,
                 tasksSoundType: state.tasksSoundType,
+                pomodoroVolume: state.pomodoroVolume,
+                tasksVolume: state.tasksVolume,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

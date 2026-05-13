@@ -8,6 +8,8 @@ import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';
+import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
+import VolumeControl from '@/src/components/VolumeControl';
 import { Category, SoundType } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
 import { playPreviewSound } from '@/src/utils/notifications';
@@ -32,11 +34,15 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [statusOrderModalVisible, setStatusOrderModalVisible] = useState(false);
+    const [tasksDropdownOpen, setTasksDropdownOpen] = useState(false);
+    const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
+    const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
+    const [pomodoroVolumeVisible, setPomodoroVolumeVisible] = useState(false);
 
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
@@ -210,29 +216,23 @@ export default function SettingsScreen() {
                         <View style={styles.soundSelectorRow}>
                             <TouchableOpacity
                                 style={styles.soundDropdownButton}
-                                onPress={() => {
-                                    const options = [...SOUND_TYPE_OPTIONS];
-                                    Alert.alert(
-                                        'Select Sound Type',
-                                        undefined,
-                                        [
-                                            ...options.map((option) => ({
-                                                text: option,
-                                                onPress: () => setTasksSoundType(option),
-                                            })),
-                                            { text: 'Cancel', style: 'cancel' },
-                                        ]
-                                    );
-                                }}
+                                onPress={() => setTasksDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
                                 <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={() => playPreviewSound('ding', tasksSoundType)}
+                                style={styles.volumeButton}
+                                onPress={() => setTasksVolumeVisible(true)}
                             >
-                                <Ionicons name="musical-note" size={20} color="white" />
+                                <Ionicons name="volume-high" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.playButton, (tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled') && styles.playButtonDisabled]}
+                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume)}
+                                disabled={tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled'}
+                            >
+                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -244,30 +244,23 @@ export default function SettingsScreen() {
                         <View style={styles.soundSelectorRow}>
                             <TouchableOpacity
                                 style={styles.soundDropdownButton}
-                                onPress={() => {
-                                    const options = [...SOUND_TYPE_OPTIONS];
-                                    const cancelButtonIndex = options.length;
-                                    Alert.alert(
-                                        'Select Sound Type',
-                                        undefined,
-                                        [
-                                            ...options.map((option) => ({
-                                                text: option,
-                                                onPress: () => setPomodoroSoundType(option),
-                                            })),
-                                            { text: 'Cancel', style: 'cancel' },
-                                        ]
-                                    );
-                                }}
+                                onPress={() => setPomodoroDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{pomodoroSoundType}</Text>
                                 <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={styles.playButton}
-                                onPress={() => playPreviewSound('tada', pomodoroSoundType)}
+                                style={styles.volumeButton}
+                                onPress={() => setPomodoroVolumeVisible(true)}
                             >
-                                <Ionicons name="musical-note" size={20} color="white" />
+                                <Ionicons name="volume-high" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.playButton, (pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled') && styles.playButtonDisabled]}
+                                onPress={() => playPreviewSound('tada', pomodoroSoundType, pomodoroVolume)}
+                                disabled={pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled'}
+                            >
+                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -479,6 +472,36 @@ export default function SettingsScreen() {
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
             <EditStatusOrderModal visible={statusOrderModalVisible} onClose={() => setStatusOrderModalVisible(false)} />
+
+            <SoundSelectorDropdown
+                visible={tasksDropdownOpen}
+                options={SOUND_TYPE_OPTIONS}
+                selectedValue={tasksSoundType}
+                onSelect={setTasksSoundType}
+                onClose={() => setTasksDropdownOpen(false)}
+            />
+            <SoundSelectorDropdown
+                visible={pomodoroDropdownOpen}
+                options={SOUND_TYPE_OPTIONS}
+                selectedValue={pomodoroSoundType}
+                onSelect={setPomodoroSoundType}
+                onClose={() => setPomodoroDropdownOpen(false)}
+            />
+
+            <VolumeControl
+                visible={tasksVolumeVisible}
+                volume={tasksVolume}
+                onVolumeChange={setTasksVolume}
+                onClose={() => setTasksVolumeVisible(false)}
+                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol)}
+            />
+            <VolumeControl
+                visible={pomodoroVolumeVisible}
+                volume={pomodoroVolume}
+                onVolumeChange={setPomodoroVolume}
+                onClose={() => setPomodoroVolumeVisible(false)}
+                onPlayPreview={(vol) => playPreviewSound('tada', pomodoroSoundType, vol)}
+            />
 
             {/* Restore Picker Modal */}
             <Modal visible={restorePickerVisible} animationType="slide" transparent>
@@ -754,6 +777,15 @@ const styles = StyleSheet.create({
         fontWeight: '600',
         color: COLORS.primary,
     },
+    volumeButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+    },
     playButton: {
         backgroundColor: COLORS.primary,
         width: 40,
@@ -761,5 +793,8 @@ const styles = StyleSheet.create({
         borderRadius: 8,
         justifyContent: 'center',
         alignItems: 'center',
+    },
+    playButtonDisabled: {
+        backgroundColor: '#e0e0e0',
     },
 });
