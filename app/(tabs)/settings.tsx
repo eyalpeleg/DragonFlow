@@ -8,14 +8,16 @@ import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';
-import { Category } from '@/src/types';
+import { Category, SoundType } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
+import { playPreviewSound } from '@/src/utils/notifications';
 import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
+const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'SystemSound', 'Custom', 'Disabled'];
 
 function formatRelativeTime(isoString: string | null): string {
     if (!isoString) return 'Never';
@@ -30,7 +32,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -194,6 +196,95 @@ export default function SettingsScreen() {
                             trackColor={SWITCH_TRACK_COLOR}
                             thumbColor="white"
                         />
+                    </View>
+                </View>
+
+                {/* Audio Settings */}
+                <View style={styles.section}>
+                    <Text style={styles.sectionTitle}>Audio</Text>
+
+                    {/* Pomodoro Sound Section */}
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>Pomodoro Sound</Text>
+                        <Text style={styles.settingDesc}>Sound played when timer completes</Text>
+                        <View style={styles.soundSelectorRow}>
+                            <View style={styles.soundDropdown}>
+                                <Text style={styles.soundDropdownLabel}>Sound Type</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.soundOptionsScroll}
+                                >
+                                    {SOUND_TYPE_OPTIONS.map((option) => (
+                                        <TouchableOpacity
+                                            key={option}
+                                            style={[
+                                                styles.soundOption,
+                                                pomodoroSoundType === option && styles.soundOptionSelected,
+                                            ]}
+                                            onPress={() => setPomodoroSoundType(option)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.soundOptionText,
+                                                    pomodoroSoundType === option && styles.soundOptionTextSelected,
+                                                ]}
+                                            >
+                                                {option}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.playButton}
+                                onPress={() => playPreviewSound('tada', pomodoroSoundType)}
+                            >
+                                <Ionicons name="play" size={20} color="white" />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Tasks Sound Section */}
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>Task Reminders Sound</Text>
+                        <Text style={styles.settingDesc}>Sound played for task notifications</Text>
+                        <View style={styles.soundSelectorRow}>
+                            <View style={styles.soundDropdown}>
+                                <Text style={styles.soundDropdownLabel}>Sound Type</Text>
+                                <ScrollView
+                                    horizontal
+                                    showsHorizontalScrollIndicator={false}
+                                    style={styles.soundOptionsScroll}
+                                >
+                                    {SOUND_TYPE_OPTIONS.map((option) => (
+                                        <TouchableOpacity
+                                            key={option}
+                                            style={[
+                                                styles.soundOption,
+                                                tasksSoundType === option && styles.soundOptionSelected,
+                                            ]}
+                                            onPress={() => setTasksSoundType(option)}
+                                        >
+                                            <Text
+                                                style={[
+                                                    styles.soundOptionText,
+                                                    tasksSoundType === option && styles.soundOptionTextSelected,
+                                                ]}
+                                            >
+                                                {option}
+                                            </Text>
+                                        </TouchableOpacity>
+                                    ))}
+                                </ScrollView>
+                            </View>
+                            <TouchableOpacity
+                                style={styles.playButton}
+                                onPress={() => playPreviewSound('ding', tasksSoundType)}
+                            >
+                                <Ionicons name="play" size={20} color="white" />
+                            </TouchableOpacity>
+                        </View>
                     </View>
                 </View>
 
@@ -655,4 +746,51 @@ const styles = StyleSheet.create({
     ml12: { marginLeft: 12 },
     ml12flex: { marginLeft: 12, flex: 1 },
     mr8: { marginRight: 8 },
+    soundSelectorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        gap: 12,
+    },
+    soundDropdown: {
+        flex: 1,
+    },
+    soundDropdownLabel: {
+        fontSize: 12,
+        fontWeight: '600',
+        color: '#666',
+        marginBottom: 8,
+    },
+    soundOptionsScroll: {
+        flexGrow: 0,
+    },
+    soundOption: {
+        paddingHorizontal: 12,
+        paddingVertical: 6,
+        borderRadius: 6,
+        backgroundColor: '#f0f0f0',
+        marginRight: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    soundOptionSelected: {
+        backgroundColor: COLORS.primary,
+        borderColor: COLORS.primary,
+    },
+    soundOptionText: {
+        fontSize: 13,
+        fontWeight: '600',
+        color: '#666',
+    },
+    soundOptionTextSelected: {
+        color: 'white',
+    },
+    playButton: {
+        backgroundColor: COLORS.primary,
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
 });
