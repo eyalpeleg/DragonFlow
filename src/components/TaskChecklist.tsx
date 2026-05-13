@@ -13,10 +13,12 @@ interface Props {
 }
 
 export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone }: Props) {
-    const { toggleSubTask, addSubTask, removeSubTask } = useTaskStore();
+    const { toggleSubTask, addSubTask, removeSubTask, renameSubTask } = useTaskStore();
     const [expanded, setExpanded] = useState(false);
     const [adding, setAdding] = useState(false);
     const [newTitle, setNewTitle] = useState('');
+    const [editingId, setEditingId] = useState<string | null>(null);
+    const [editingTitle, setEditingTitle] = useState('');
 
     const total = subTasks.length;
     const done = subTasks.filter((s) => s.completed).length;
@@ -47,6 +49,24 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
         ]);
     }
 
+    function startEdit(sub: SubTask) {
+        if (taskStatus === 'Done') return;
+        setEditingId(sub.id);
+        setEditingTitle(sub.title);
+    }
+
+    function cancelEdit() {
+        setEditingId(null);
+        setEditingTitle('');
+    }
+
+    function commitEdit() {
+        if (!editingId) return;
+        const trimmed = editingTitle.trim();
+        if (trimmed) renameSubTask(taskId, editingId, trimmed);
+        cancelEdit();
+    }
+
     if (total === 0 && taskStatus === 'Done') return null;
 
     return (
@@ -71,13 +91,38 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                                     color={sub.completed ? COLORS.status['Done'] : '#ccc'}
                                 />
                             </TouchableOpacity>
-                            <Text style={[styles.subTitle, sub.completed && styles.subTitleDone]} numberOfLines={2}>
-                                {sub.title}
-                            </Text>
-                            {taskStatus !== 'Done' && (
-                                <TouchableOpacity onPress={() => handleRemove(sub)} style={styles.removeBtn}>
-                                    <Ionicons name="close" size={14} color="#ccc" />
+                            {editingId === sub.id ? (
+                                <TextInput
+                                    style={[styles.subTitle, styles.editInput, sub.completed && styles.subTitleDone]}
+                                    value={editingTitle}
+                                    onChangeText={setEditingTitle}
+                                    autoFocus
+                                    selectTextOnFocus
+                                    onSubmitEditing={commitEdit}
+                                    returnKeyType="done"
+                                />
+                            ) : (
+                                <TouchableOpacity
+                                    style={styles.subTitleTouch}
+                                    onPress={() => startEdit(sub)}
+                                    disabled={taskStatus === 'Done'}
+                                    activeOpacity={0.6}
+                                >
+                                    <Text style={[styles.subTitle, sub.completed && styles.subTitleDone]} numberOfLines={2}>
+                                        {sub.title}
+                                    </Text>
                                 </TouchableOpacity>
+                            )}
+                            {taskStatus !== 'Done' && (
+                                editingId === sub.id ? (
+                                    <TouchableOpacity onPress={cancelEdit} style={styles.removeBtn}>
+                                        <Ionicons name="close" size={14} color="#ccc" />
+                                    </TouchableOpacity>
+                                ) : (
+                                    <TouchableOpacity onPress={() => handleRemove(sub)} style={styles.removeBtn}>
+                                        <Ionicons name="close" size={14} color="#ccc" />
+                                    </TouchableOpacity>
+                                )
                             )}
                         </View>
                     ))}
@@ -124,7 +169,9 @@ const styles = StyleSheet.create({
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     check: { padding: 2 },
     subTitle: { flex: 1, fontSize: 13, color: '#444' },
+    subTitleTouch: { flex: 1 },
     subTitleDone: { textDecorationLine: 'line-through', color: '#bbb' },
+    editInput: { borderBottomWidth: 1, borderBottomColor: '#ddd', paddingVertical: 2 },
     removeBtn: { padding: 4 },
     addRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
     addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: '#ddd', fontSize: 13, paddingVertical: 4 },
