@@ -2,7 +2,7 @@ import { PriorityLevel } from './styles/theme';
 
 export type TaskStatus = 'Ready' | 'In Progress' | 'Paused' | 'Done';
 export type RecurrenceFrequency = 'daily' | 'weekly' | 'monthly';
-export type SoundType = 'AppSound' | 'SystemSound' | 'Custom' | 'Disabled';
+export type SoundType = 'AppSound' | 'Disabled';
 
 export type StatusOrderConfig = Record<TaskStatus, number>;
 

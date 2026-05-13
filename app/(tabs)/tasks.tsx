@@ -13,7 +13,7 @@ import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx } from '@/src/components
 import TaskCard from '@/src/components/TaskCard';
 import { COLORS, PriorityLevel } from '@/src/styles/theme';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/taskStore';
-import { cancelPomodoroNotification, schedulePomodoroEnd } from '@/src/utils/notifications';
+import { cancelPomodoroNotification, playAppSound, schedulePomodoroEnd } from '@/src/utils/notifications';
 import { Task, TaskStatus } from '@/src/types';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
@@ -48,18 +48,27 @@ export default function TasksScreen() {
     const [running, setRunning] = useState(false);
     const notifIdRef = useRef<string | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
+    const completedRef = useRef(false);
 
     const stopTimer = useCallback(() => {
+        const didComplete = completedRef.current;
+        completedRef.current = false;
         setRunning(false);
         if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
         if (notifIdRef.current) { cancelPomodoroNotification(notifIdRef.current); notifIdRef.current = null; }
+        if (didComplete) {
+            const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
+            if (pomodoroSoundType === 'AppSound') {
+                playAppSound('tada', pomodoroVolume);
+            }
+        }
     }, []);
 
     useEffect(() => {
         if (!running) return;
         intervalRef.current = setInterval(() => {
             setSecondsLeft((s) => {
-                if (s <= 1) { stopTimer(); return 0; }
+                if (s <= 1) { completedRef.current = true; stopTimer(); return 0; }
                 return s - 1;
             });
         }, 1000);

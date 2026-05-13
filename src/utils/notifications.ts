@@ -1,5 +1,5 @@
 import * as Notifications from 'expo-notifications';
-import { Platform, Alert } from 'react-native';
+import { Platform } from 'react-native';
 import { createAudioPlayer } from 'expo-audio';
 import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
@@ -12,16 +12,9 @@ const REMINDERS_CHANNEL_APP    = 'reminders-ding-1';
 const REMINDERS_CHANNEL_SYSTEM = 'reminders-sys-1';
 const REMINDERS_CHANNEL_SILENT = 'reminders-off-1';
 
-function remindersChannel(pref: SoundType): string {
-    if (pref === 'AppSound') return REMINDERS_CHANNEL_APP;
-    if (pref === 'Disabled') return REMINDERS_CHANNEL_SILENT;
-    return REMINDERS_CHANNEL_SYSTEM;
-}
-
 function pomodoroChannel(pref: SoundType): string {
-    if (pref === 'AppSound') return POMODORO_CHANNEL_APP;
     if (pref === 'Disabled') return POMODORO_CHANNEL_SILENT;
-    return POMODORO_CHANNEL_SYSTEM;
+    return POMODORO_CHANNEL_APP;
 }
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
@@ -29,15 +22,12 @@ let notificationsAvailable = false;
 
 try {
     Notifications.setNotificationHandler({
-        handleNotification: async (notification) => {
-            const isPreviewSound = notification.request.content.data?.isPreviewSound === true;
-            return {
-                shouldPlaySound: true,
-                shouldSetBadge: false,
-                shouldShowBanner: !isPreviewSound,
-                shouldShowList: !isPreviewSound,
-            };
-        },
+        handleNotification: async () => ({
+            shouldPlaySound: false,
+            shouldSetBadge: false,
+            shouldShowBanner: true,
+            shouldShowList: true,
+        }),
     });
     notificationsAvailable = true;
 } catch {
@@ -102,16 +92,6 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
         });
-        if (soundType !== 'Disabled') {
-            const volume = useTaskStore.getState().pomodoroVolume;
-            FloatingBubble.scheduleSound(
-                `pomodoro-${notifId}`,
-                Date.now() + minutes * 60 * 1000,
-                soundType,
-                'tada',
-                volume
-            );
-        }
         return notifId;
     } catch {
         return '';
@@ -121,7 +101,6 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
 export async function cancelPomodoroNotification(id: string): Promise<void> {
     if (!notificationsAvailable || !id) return;
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
-    FloatingBubble.cancelSound(`pomodoro-${id}`);
 }
 
 function dayBefore(date: string, hours: number, minutes = 0): number {
@@ -205,47 +184,22 @@ export async function cancelTaskReminders(taskId: string): Promise<void> {
     }
 }
 
+export async function playAppSound(soundFile: 'ding' | 'tada', volume: number = 1.0): Promise<void> {
+    try {
+        const soundAsset = soundFile === 'tada'
+            ? require('../../assets/audio/tada.mp3')
+            : require('../../assets/audio/ding.mp3');
+        const player = createAudioPlayer(soundAsset);
+        player.volume = Math.max(0, Math.min(1, volume));
+        player.play();
+    } catch (error) {
+        console.error('Audio playback error:', error);
+    }
+}
+
 export async function playPreviewSound(soundType: 'ding' | 'tada', preference: SoundType, volume: number = 1.0): Promise<void> {
-    if (preference === 'Disabled') {
-        Alert.alert('Sound Disabled', 'No sound will play for notifications.');
-        return;
-    }
-
-    if (preference === 'SystemSound') {
-        if (!notificationsAvailable) {
-            Alert.alert('Unavailable', 'Notifications not available in this environment.');
-            return;
-        }
-        try {
-            // Schedule a notification that plays immediately with only sound (no banner)
-            await Notifications.scheduleNotificationAsync({
-                content: {
-                    title: '',
-                    body: '',
-                    sound: 'default',
-                    data: { isPreviewSound: true },
-                },
-                trigger: {
-                    type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL,
-                    seconds: 0.1, // Fire in 100ms
-                },
-            });
-        } catch (error) {
-            console.error('System sound error:', error);
-            Alert.alert('Playback Error', 'Could not play system sound.');
-        }
-        return;
-    }
-
+    if (preference === 'Disabled') return;
     if (preference === 'AppSound') {
-        try {
-            const soundFile = soundType === 'ding' ? require('../../assets/audio/ding.mp3') : require('../../assets/audio/tada.mp3');
-            const player = createAudioPlayer(soundFile);
-            player.volume = Math.max(0, Math.min(1, volume));
-            player.play();
-        } catch (error) {
-            console.error('Audio playback error:', error);
-            Alert.alert('Playback Error', 'Could not play preview sound. It will play with notifications.');
-        }
+        await playAppSound(soundType, volume);
     }
 }

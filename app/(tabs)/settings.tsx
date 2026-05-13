@@ -19,7 +19,7 @@ const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
-const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'SystemSound', 'Disabled'];
+const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
 
 function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
     const [expanded, setExpanded] = useState(true);
@@ -243,11 +243,11 @@ export default function SettingsScreen() {
                                 <Ionicons name="volume-high" size={20} color={COLORS.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.playButton, (tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled') && styles.playButtonDisabled]}
+                                style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
                                 onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume)}
-                                disabled={tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled'}
+                                disabled={tasksSoundType === 'Disabled'}
                             >
-                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'SystemSound' || tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -271,11 +271,11 @@ export default function SettingsScreen() {
                                 <Ionicons name="volume-high" size={20} color={COLORS.primary} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.playButton, (pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled') && styles.playButtonDisabled]}
+                                style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
                                 onPress={() => playPreviewSound('tada', pomodoroSoundType, pomodoroVolume)}
-                                disabled={pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled'}
+                                disabled={pomodoroSoundType === 'Disabled'}
                             >
-                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'SystemSound' || pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
                             </TouchableOpacity>
                         </View>
                     </View>

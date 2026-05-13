@@ -437,6 +437,10 @@ export const useTaskStore = create<TaskStore>()(
                     });
                 }
 
+                // Coerce removed SoundType values ('SystemSound', 'Custom') → 'AppSound'
+                if (p.pomodoroSoundType !== 'AppSound' && p.pomodoroSoundType !== 'Disabled') p.pomodoroSoundType = 'AppSound';
+                if (p.tasksSoundType !== 'AppSound' && p.tasksSoundType !== 'Disabled') p.tasksSoundType = 'AppSound';
+
                 // Ensure all built-in categories exist
                 const existingIds = new Set(categories.map((c) => c.id));
                 for (const bc of BUILTIN_CATEGORIES) {
