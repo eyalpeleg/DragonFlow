@@ -5,8 +5,10 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
+import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.os.Build
@@ -19,7 +21,7 @@ import android.view.*
 import android.view.animation.DecelerateInterpolator
 import androidx.core.content.ContextCompat
 
-class FloatingBubbleService : Service() {
+class FloatingBubbleService : Service(), ComponentCallbacks2 {
 
     private lateinit var windowManager: WindowManager
     private var bubbleView: BubbleView? = null
@@ -68,17 +70,29 @@ class FloatingBubbleService : Service() {
     private val dismissZoneRadiusPx: Int by lazy { dpToPx(dismissZoneRadiusDp) }
     private val dismissBottomOffsetPx: Int by lazy { dpToPx(dismissBottomOffsetDp) }
 
-    override fun onBind(intent: Intent?): IBinder? = null
-
-    override fun onCreate() {
-        super.onCreate()
-        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-
+    private fun updateScreenDimensions() {
         val metrics = DisplayMetrics()
         @Suppress("DEPRECATION")
         windowManager.defaultDisplay.getMetrics(metrics)
         screenWidth = metrics.widthPixels
         screenHeight = metrics.heightPixels
+
+        // Update dismiss view position if it exists
+        dismissParams?.let {
+            it.gravity = Gravity.BOTTOM or Gravity.CENTER_HORIZONTAL
+            it.y = dismissBottomOffsetPx
+            try { windowManager.updateViewLayout(dismissView, it) } catch (_: Exception) {}
+        }
+    }
+
+    override fun onBind(intent: Intent?): IBinder? = null
+
+    override fun onCreate() {
+        super.onCreate()
+        windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
+        registerComponentCallbacks(this)
+
+        updateScreenDimensions()
 
         createNotificationChannel()
         startForeground(NOTIFICATION_ID, buildNotification())
@@ -246,6 +260,15 @@ class FloatingBubbleService : Service() {
         }
     }
 
+    override fun onConfigurationChanged(newConfig: Configuration) {
+        super.onConfigurationChanged(newConfig)
+        updateScreenDimensions()
+    }
+
+    override fun onTrimMemory(level: Int) {}
+
+    override fun onLowMemory() {}
+
     override fun onDestroy() {
         timerHandler.removeCallbacks(timerRunnable)
         bubbleView?.let {
@@ -253,6 +276,7 @@ class FloatingBubbleService : Service() {
         }
         bubbleView = null
         removeDismissView()
+        unregisterComponentCallbacks(this)
         super.onDestroy()
     }
 
