@@ -63,15 +63,3 @@ export async function getValidToken(): Promise<string> {
         throw new AuthError('Session expired. Please sign in again.');
     }
 }
-
-export function getCachedTokens(): GoogleAuthTokens | null {
-    const user = GoogleSignin.getCurrentUser();
-    if (!user) return null;
-    return {
-        accessToken: '',
-        refreshToken: null,
-        expiresAt: 0,
-        userEmail: user.user.email,
-        userName: user.user.name ?? undefined,
-    };
-}

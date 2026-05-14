@@ -2,7 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import * as Crypto from 'expo-crypto';
+import { COLORS, PriorityLevel } from '../styles/theme'
+import { randomUUID } from 'expo-crypto';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
@@ -55,7 +57,7 @@ function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomod
 }
 
 function makeId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    return randomUUID();
 }
 
 export interface AddTaskInput {
