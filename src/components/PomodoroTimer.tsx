@@ -32,6 +32,7 @@ export default function PomodoroTimer({
 }: Props) {
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
+    const [customTimeSubmitted, setCustomTimeSubmitted] = useState(false);
 
     const isCustomMode = modeIdx === 3;
     const mode = isCustomMode ? null : POMODORO_MODES[modeIdx as 0 | 1 | 2];
@@ -39,9 +40,10 @@ export default function PomodoroTimer({
     const totalSeconds = modeSeconds;
     const progress = totalSeconds > 0 ? secondsLeft / totalSeconds : 0;
 
-    const hours = String(Math.floor(secondsLeft / 3600)).padStart(2, '0');
-    const mins = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, '0');
-    const secs = String(secondsLeft % 60).padStart(2, '0');
+    const displaySeconds = isCustomMode && customTimeSubmitted && !running ? customTimerSeconds : secondsLeft;
+    const hours = String(Math.floor(displaySeconds / 3600)).padStart(2, '0');
+    const mins = String(Math.floor((displaySeconds % 3600) / 60)).padStart(2, '0');
+    const secs = String(displaySeconds % 60).padStart(2, '0');
 
     const validateAndParseTime = (input: string): { hours: number; minutes: number; seconds: number } | null => {
         const match = input.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
@@ -60,10 +62,15 @@ export default function PomodoroTimer({
             setCustomTimeError('Invalid format (hh:mm:ss, max 59:59)');
         } else {
             setCustomTimeError(null);
-            if (parsed) {
-                const totalSecs = parsed.hours * 3600 + parsed.minutes * 60 + parsed.seconds;
-                onSetCustomTimerSeconds(totalSecs);
-            }
+        }
+    };
+
+    const handleCustomTimeSubmit = () => {
+        const parsed = validateAndParseTime(customTimeInput);
+        if (parsed && customTimeError === null) {
+            const totalSecs = parsed.hours * 3600 + parsed.minutes * 60 + parsed.seconds;
+            onSetCustomTimerSeconds(totalSecs);
+            setCustomTimeSubmitted(true);
         }
     };
 
@@ -71,6 +78,7 @@ export default function PomodoroTimer({
         onSelectMode(3);
         setCustomTimeInput('00:00:00');
         setCustomTimeError(null);
+        setCustomTimeSubmitted(false);
         onSetCustomTimerSeconds(0);
     };
 
@@ -115,7 +123,7 @@ export default function PomodoroTimer({
                     </View>
 
                     <View style={styles.clockContainer}>
-                        {isCustomMode && customTimerSeconds === 0 ? (
+                        {isCustomMode && !customTimeSubmitted ? (
                             <View style={styles.customTimerContainer}>
                                 <TextInput
                                     style={styles.customTimeInput}
@@ -128,12 +136,21 @@ export default function PomodoroTimer({
                                 {customTimeError && (
                                     <Text style={styles.customTimeError}>{customTimeError}</Text>
                                 )}
+                                <TouchableOpacity
+                                    style={[styles.submitBtn, customTimeError !== null && { opacity: 0.5 }]}
+                                    onPress={handleCustomTimeSubmit}
+                                    disabled={customTimeError !== null}
+                                >
+                                    <Text style={styles.submitBtnText}>✓ Set Timer</Text>
+                                </TouchableOpacity>
                             </View>
                         ) : (
                             <View style={[styles.ringOuter, { borderColor: '#eee' }]}>
                                 <View style={[styles.ringInner, { borderColor: isCustomMode ? COLORS.primary : mode?.color, opacity: progress }]} />
                                 <View style={styles.clockFace}>
-                                    <Text style={[styles.clockTime, { color: isCustomMode ? COLORS.primary : mode?.color }]}>{parseInt(hours) > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`}</Text>
+                                    <Text style={[styles.clockTime, { color: isCustomMode ? COLORS.primary : mode?.color }]}>
+                                        {isCustomMode ? `${hours}:${mins}:${secs}` : (parseInt(hours) > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`)}
+                                    </Text>
                                     <Text style={styles.clockLabel}>{isCustomMode ? 'Custom' : mode?.label}</Text>
                                 </View>
                             </View>
@@ -194,10 +211,12 @@ const styles = StyleSheet.create({
     customTimerContainer: { alignItems: 'center', gap: 12 },
     customTimeInput: { fontSize: 48, fontWeight: '700', color: COLORS.primary, textAlign: 'center', borderBottomWidth: 2, borderColor: COLORS.primary, paddingVertical: 12, minWidth: 200 },
     customTimeError: { fontSize: 12, color: '#d32f2f', textAlign: 'center' },
+    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.primary, marginTop: 8 },
+    submitBtnText: { fontSize: 14, fontWeight: '700', color: 'white' },
     ringOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 8, alignItems: 'center', justifyContent: 'center' },
     ringInner: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 8 },
     clockFace: { alignItems: 'center' },
-    clockTime: { fontSize: 36, fontWeight: '700' },
+    clockTime: { fontSize: 28, fontWeight: '700' },
     clockLabel: { fontSize: 12, color: '#888', marginTop: 2 },
     controls: { flexDirection: 'row', gap: 16, marginBottom: 16 },
     resetBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, backgroundColor: '#f0f0f0' },
