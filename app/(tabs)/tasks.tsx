@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
@@ -9,10 +9,10 @@ import EditTaskModal from '@/src/components/EditTaskModal';
 import FilterBar from '@/src/components/FilterBar';
 import FilterModal from '@/src/components/FilterModal';
 import FilterTypeSelector from '@/src/components/FilterTypeSelector';
-import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx, getModeSeconds } from '@/src/components/PomodoroTimer';
+import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx } from '@/src/components/PomodoroTimer';
 import TaskCard from '@/src/components/TaskCard';
 import { COLORS, PriorityLevel } from '@/src/styles/theme';
-import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
+import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/taskStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { cancelPomodoroNotification, playAppSound, schedulePomodoroEnd } from '@/src/utils/notifications';
 import { Task, TaskStatus } from '@/src/types';
@@ -40,12 +40,13 @@ export default function TasksScreen() {
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
+    const customTimerSeconds = useTaskStore((s) => s.customTimerSeconds);
     const totalFilterCount = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size;
     const hasActiveFilters = totalFilterCount > 0;
 
     // Timer state lives here so it survives modal close/open
     const [modeIdx, setModeIdx] = useState<PomodoroModeIdx>(0);
-    const [secondsLeft, setSecondsLeft] = useState(getModeSeconds(POMODORO_MODES[0]));
+    const [secondsLeft, setSecondsLeft] = useState(POMODORO_MODES[0].minutes * 60);
     const [running, setRunning] = useState(false);
     const pomodoroPausedSecondsLeft = useTaskStore((s) => s.pomodoroPausedSecondsLeft);
     const isPaused = pomodoroPausedSecondsLeft !== null;
@@ -59,7 +60,17 @@ export default function TasksScreen() {
     useEffect(() => { modeIdxRef.current = modeIdx; }, [modeIdx]);
     useEffect(() => { runningRef.current = running; }, [running]);
 
-    const { setPomodoroTimer, pausePomodoroTimer, clearPomodoroTimer } = useTaskStore();
+    const { setPomodoroTimer, pausePomodoroTimer, clearPomodoroTimer, setCustomTimerSeconds } = useTaskStore();
+
+    const getModeSeconds = (idx: PomodoroModeIdx, customSecs: number): number => {
+        if (idx === 3) return customSecs;
+        return POMODORO_MODES[idx as 0 | 1 | 2].minutes * 60;
+    };
+
+    const getModeLabel = (idx: PomodoroModeIdx): string => {
+        if (idx === 3) return 'Custom';
+        return POMODORO_MODES[idx as 0 | 1 | 2].label;
+    };
 
     // Returns current task score + message for bubble fallback
     const getFallbackBubble = useCallback(() => {
@@ -74,21 +85,17 @@ export default function TasksScreen() {
     }, []);
 
     // isPause=true saves remaining seconds; default clears the timer entirely
-    const formatTime = (ms: number) => new Date(ms).toLocaleString();
-    const now = () => formatTime(Date.now());
-
     const stopTimer = useCallback((isPause = false) => {
         const didComplete = completedRef.current;
         completedRef.current = false;
-        console.log(`[${now()}] [Pomodoro] stopTimer: isPause=${isPause}, didComplete=${didComplete}`);
 
         if (isPause && endTimeRef.current) {
             const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
-            console.log(`[${now()}] [Pomodoro] pausing timer: ${remaining}s remaining`);
             pausePomodoroTimer(remaining, modeIdxRef.current);
         } else {
-            console.log(`[${now()}] [Pomodoro] clearing timer`);
             clearPomodoroTimer();
+            // Cancel the background sound alarm (in-foreground completion plays it below)
+            FloatingBubble.cancelSound('pomodoro-end');
             if (notifIdRef.current) { cancelPomodoroNotification(notifIdRef.current); notifIdRef.current = null; }
         }
 
@@ -101,7 +108,6 @@ export default function TasksScreen() {
         FloatingBubble.stopPomodoroTimer(score, message);
 
         if (didComplete) {
-            console.log(`[${now()}] [Pomodoro] timer completed, playing sound`);
             const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
             if (pomodoroSoundType === 'AppSound') playAppSound('tada', pomodoroVolume);
         }
@@ -121,77 +127,41 @@ export default function TasksScreen() {
 
     // Rehydrate timer from persisted store on mount
     useEffect(() => {
-        const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft, pomodoroNotifId } = useTaskStore.getState();
+        const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft, pomodoroNotifId, customTimerSeconds: storedCustomTimerSeconds } = useTaskStore.getState();
         if (pomodoroEndTime !== null && pomodoroModeIdx !== null) {
             const remaining = Math.round((pomodoroEndTime - Date.now()) / 1000);
-            console.log(`[${now()}] [Pomodoro] rehydrating: endTime=${formatTime(pomodoroEndTime)}, remaining=${remaining}s`);
             setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             if (remaining > 0) {
-                console.log(`[${now()}] [Pomodoro] timer still running, resuming`);
                 endTimeRef.current = pomodoroEndTime;
                 notifIdRef.current = pomodoroNotifId;
                 setSecondsLeft(remaining);
                 setRunning(true);
             } else {
                 // Timer completed while app was away — sound already played via AlarmManager
-                // Reset completedRef so interval doesn't trigger sound again
-                console.log(`[${now()}] [Pomodoro] timer completed while away, clearing and marking as NOT completed`);
-                completedRef.current = false;
                 clearPomodoroTimer();
-                setSecondsLeft(getModeSeconds(POMODORO_MODES[pomodoroModeIdx]));
+                setSecondsLeft(getModeSeconds(pomodoroModeIdx as PomodoroModeIdx, storedCustomTimerSeconds));
             }
         } else if (pomodoroPausedSecondsLeft !== null && pomodoroModeIdx !== null) {
-            console.log(`[${now()}] [Pomodoro] rehydrating paused state: ${pomodoroPausedSecondsLeft}s`);
             setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             setSecondsLeft(pomodoroPausedSecondsLeft);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
-    // Register hardware back button listener
-    useEffect(() => {
-        if (!showArchive) return; // Only active when viewing archive
-
-        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
-            setShowArchive(false);
-            return true; // Prevent default behavior
-        });
-
-        return () => backHandler.remove(); // Cleanup on unmount or showArchive change
-    }, [showArchive]);
-
     // Show bubble countdown when app goes to background; stop it when app returns
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {
-            console.log(`[${now()}] [Pomodoro] AppState changed to: ${nextState}, running=${runningRef.current}`);
             if (nextState === 'background' && runningRef.current && endTimeRef.current) {
-                const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
-                console.log(`[${now()}] [Pomodoro] app going to background, ${remaining}s remaining, starting bubble countdown`);
                 const { score, message } = getFallbackBubble();
-                const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
                 FloatingBubble.startPomodoroTimer(
                     endTimeRef.current,
-                    POMODORO_MODES[modeIdxRef.current].label,
+                    getModeLabel(modeIdxRef.current as PomodoroModeIdx),
                     score,
                     message,
-                    pomodoroSoundType,
-                    pomodoroVolume,
                 );
             } else if (nextState === 'active' && runningRef.current) {
-                // Only stop the bubble if timer is still running (hasn't expired yet)
-                if (endTimeRef.current && endTimeRef.current > Date.now()) {
-                    console.log(`[${now()}] [Pomodoro] app came to foreground, timer still running, stopping bubble countdown`);
-                    const { score, message } = getFallbackBubble();
-                    FloatingBubble.stopPomodoroTimer(score, message);
-                } else if (endTimeRef.current) {
-                    console.log(`[${now()}] [Pomodoro] app came to foreground, timer already expired, clearing without sound`);
-                    completedRef.current = false;
-                    endTimeRef.current = null;
-                    clearPomodoroTimer();
-                    setRunning(false);
-                    setSecondsLeft(getModeSeconds(POMODORO_MODES[modeIdxRef.current]));
-                    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
-                }
+                const { score, message } = getFallbackBubble();
+                FloatingBubble.stopPomodoroTimer(score, message);
             }
         });
         return () => sub.remove();
@@ -200,27 +170,38 @@ export default function TasksScreen() {
     const handleSelectMode = useCallback((idx: PomodoroModeIdx) => {
         stopTimer();
         setModeIdx(idx);
-        setSecondsLeft(getModeSeconds(POMODORO_MODES[idx]));
-    }, [stopTimer]);
+        if (idx === 3) {
+            setCustomTimerSeconds(0);
+            setSecondsLeft(0);
+        } else {
+            setSecondsLeft(getModeSeconds(idx, customTimerSeconds));
+        }
+    }, [stopTimer, customTimerSeconds, setCustomTimerSeconds]);
 
     const handleStart = useCallback(async () => {
-        const durationMs = isPaused ? secondsLeft * 1000 : getModeSeconds(POMODORO_MODES[modeIdx]) * 1000;
+        const durationSecs = isPaused ? secondsLeft : getModeSeconds(modeIdx, customTimerSeconds);
+        const durationMs = durationSecs * 1000;
         const endTime = Date.now() + durationMs;
         endTimeRef.current = endTime;
-        console.log(`[${now()}] [Pomodoro] starting timer: ${durationMs}ms, endTime=${formatTime(endTime)}`);
 
         const durationMinutes = Math.ceil(durationMs / 60000);
         const id = await schedulePomodoroEnd(durationMinutes);
         notifIdRef.current = id;
 
+        // Schedule background sound alarm (fires via AlarmManager even if app is killed)
+        const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
+        if (pomodoroSoundType !== 'Disabled') {
+            FloatingBubble.scheduleSound('pomodoro-end', endTime, pomodoroSoundType, 'tada', pomodoroVolume);
+        }
+
         setPomodoroTimer(endTime, modeIdx, id);
         setRunning(true);
-    }, [modeIdx, isPaused, secondsLeft, setPomodoroTimer]);
+    }, [modeIdx, isPaused, secondsLeft, customTimerSeconds, setPomodoroTimer]);
 
     const handleReset = useCallback(() => {
         stopTimer();
-        setSecondsLeft(getModeSeconds(POMODORO_MODES[modeIdx]));
-    }, [stopTimer, modeIdx]);
+        setSecondsLeft(getModeSeconds(modeIdx, customTimerSeconds));
+    }, [stopTimer, modeIdx, customTimerSeconds]);
 
     const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
         <TaskCard
@@ -237,7 +218,8 @@ export default function TasksScreen() {
     ), [restoreTask, deleteTask]);
 
     const timerActive = running && !pomodoroVisible;
-    const timerMins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');
+    const timerHours = String(Math.floor(secondsLeft / 3600)).padStart(2, '0');
+    const timerMins = String(Math.floor((secondsLeft % 3600) / 60)).padStart(2, '0');
     const timerSecs = String(secondsLeft % 60).padStart(2, '0');
 
     function handleFilterToggle() {
@@ -305,16 +287,17 @@ export default function TasksScreen() {
                         style={showArchive ? styles.archiveBtnActive : styles.archiveBtn}
                         onPress={() => setShowArchive((v) => !v)}
                     >
-                        <Ionicons
-                            name={showArchive ? 'chevron-back' : 'archive-outline'}
-                            size={20}
-                            color={showArchive ? COLORS.primary : 'white'}
-                        />
+                        <Ionicons name="archive-outline" size={20} color={showArchive ? COLORS.primary : 'white'} />
+                        {archivedTasks.length > 0 && (
+                            <View style={styles.archiveBadge}>
+                                <Text style={styles.archiveBadgeText}>{archivedTasks.length}</Text>
+                            </View>
+                        )}
                     </TouchableOpacity>
                     {!showArchive && (
                         <TouchableOpacity style={styles.pomodoroBtn} onPress={() => setPomodoroVisible(true)}>
                             {timerActive ? (
-                                <Text style={styles.pomodoroBtnTimer}>{timerMins}:{timerSecs}</Text>
+                                <Text style={styles.pomodoroBtnTimer}>{parseInt(timerHours) > 0 ? `${timerHours}:${timerMins}:${timerSecs}` : `${timerMins}:${timerSecs}`}</Text>
                             ) : (
                                 <Ionicons name="hourglass" size={20} color="white" />
                             )}
@@ -384,7 +367,9 @@ export default function TasksScreen() {
                 secondsLeft={secondsLeft}
                 running={running}
                 isPaused={isPaused}
+                customTimerSeconds={customTimerSeconds}
                 onSelectMode={handleSelectMode}
+                onSetCustomTimerSeconds={setCustomTimerSeconds}
                 onStart={handleStart}
                 onPause={() => stopTimer(true)}
                 onReset={handleReset}

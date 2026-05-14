@@ -2,9 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import * as Crypto from 'expo-crypto';
-import { COLORS, PriorityLevel } from '../styles/theme'
-import { randomUUID } from 'expo-crypto';
+import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
@@ -57,7 +55,7 @@ function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomod
 }
 
 function makeId(): string {
-    return randomUUID();
+    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 export interface AddTaskInput {
@@ -93,7 +91,7 @@ interface TaskStore {
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
-    debugModeEnabled: boolean;
+    customTimerSeconds: number;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -123,11 +121,11 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
-    setDebugModeEnabled: (enabled: boolean) => void;
     setStatusOrderConfig: (config: StatusOrderConfig) => void;
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
+    setCustomTimerSeconds: (seconds: number) => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
@@ -175,7 +173,7 @@ export const useTaskStore = create<TaskStore>()(
             categoryFilters: new Set(),
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
-            debugModeEnabled: false,
+            customTimerSeconds: 0,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -377,8 +375,6 @@ export const useTaskStore = create<TaskStore>()(
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
 
-            setDebugModeEnabled: (enabled) => set({ debugModeEnabled: enabled }),
-
             setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
 
             setPomodoroTimer: (endTime, modeIdx, notifId) => set({
@@ -400,6 +396,10 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroModeIdx: null,
                 pomodoroPausedSecondsLeft: null,
                 pomodoroNotifId: null,
+            }),
+
+            setCustomTimerSeconds: (seconds) => set({
+                customTimerSeconds: seconds,
             }),
 
             exportData: () => {
@@ -463,12 +463,12 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroModeIdx: state.pomodoroModeIdx,
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
+                customTimerSeconds: state.customTimerSeconds,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
                 dueDateFilters: Array.from(state.dueDateFilters),
-                debugModeEnabled: state.debugModeEnabled,
             }),
             merge: (persisted: unknown, current: TaskStore) => {
                 if (!persisted) return current;
