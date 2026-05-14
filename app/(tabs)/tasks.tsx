@@ -47,7 +47,8 @@ export default function TasksScreen() {
     const [modeIdx, setModeIdx] = useState<PomodoroModeIdx>(0);
     const [secondsLeft, setSecondsLeft] = useState(POMODORO_MODES[0].minutes * 60);
     const [running, setRunning] = useState(false);
-    const [isPaused, setIsPaused] = useState(false);
+    const pomodoroPausedSecondsLeft = useTaskStore((s) => s.pomodoroPausedSecondsLeft);
+    const isPaused = pomodoroPausedSecondsLeft !== null;
     const notifIdRef = useRef<string | null>(null);
     const intervalRef = useRef<ReturnType<typeof setInterval> | null>(null);
     const completedRef = useRef(false);
@@ -80,10 +81,8 @@ export default function TasksScreen() {
         if (isPause && endTimeRef.current) {
             const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
             pausePomodoroTimer(remaining, modeIdxRef.current);
-            setIsPaused(true);
         } else {
             clearPomodoroTimer();
-            setIsPaused(false);
             // Cancel the background sound alarm (in-foreground completion plays it below)
             FloatingBubble.cancelSound('pomodoro-end');
             if (notifIdRef.current) { cancelPomodoroNotification(notifIdRef.current); notifIdRef.current = null; }
@@ -136,7 +135,6 @@ export default function TasksScreen() {
         } else if (pomodoroPausedSecondsLeft !== null && pomodoroModeIdx !== null) {
             setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             setSecondsLeft(pomodoroPausedSecondsLeft);
-            setIsPaused(true);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -164,7 +162,6 @@ export default function TasksScreen() {
         stopTimer();
         setModeIdx(idx);
         setSecondsLeft(POMODORO_MODES[idx].minutes * 60);
-        setIsPaused(false);
     }, [stopTimer]);
 
     const handleStart = useCallback(async () => {
@@ -183,14 +180,12 @@ export default function TasksScreen() {
         }
 
         setPomodoroTimer(endTime, modeIdx, id);
-        setIsPaused(false);
         setRunning(true);
     }, [modeIdx, isPaused, secondsLeft, setPomodoroTimer]);
 
     const handleReset = useCallback(() => {
         stopTimer();
         setSecondsLeft(POMODORO_MODES[modeIdx].minutes * 60);
-        setIsPaused(false);
     }, [stopTimer, modeIdx]);
 
     const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
