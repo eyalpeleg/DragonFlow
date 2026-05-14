@@ -89,6 +89,8 @@ export default function TasksScreen() {
         } else {
             console.log(`[${now()}] [Pomodoro] clearing timer`);
             clearPomodoroTimer();
+            // Cancel the background sound alarm (in-foreground completion plays it below)
+            FloatingBubble.cancelSound('pomodoro-end');
             if (notifIdRef.current) { cancelPomodoroNotification(notifIdRef.current); notifIdRef.current = null; }
         }
 
@@ -212,6 +214,13 @@ export default function TasksScreen() {
         const durationMinutes = Math.ceil(durationMs / 60000);
         const id = await schedulePomodoroEnd(durationMinutes);
         notifIdRef.current = id;
+
+        // Schedule background sound alarm (fires via AlarmManager even if app is killed)
+        const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
+        if (pomodoroSoundType !== 'Disabled') {
+            console.log(`[${now()}] [Pomodoro] scheduling background sound alarm for ${formatTime(endTime)}`);
+            FloatingBubble.scheduleSound('pomodoro-end', endTime, pomodoroSoundType, 'tada', pomodoroVolume);
+        }
 
         setPomodoroTimer(endTime, modeIdx, id);
         setRunning(true);
