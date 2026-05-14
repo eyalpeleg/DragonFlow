@@ -115,7 +115,7 @@ export default function PomodoroTimer({
                     </View>
 
                     <View style={styles.clockContainer}>
-                        {isCustomMode ? (
+                        {isCustomMode && customTimerSeconds === 0 ? (
                             <View style={styles.customTimerContainer}>
                                 <TextInput
                                     style={styles.customTimeInput}
@@ -131,10 +131,10 @@ export default function PomodoroTimer({
                             </View>
                         ) : (
                             <View style={[styles.ringOuter, { borderColor: '#eee' }]}>
-                                <View style={[styles.ringInner, { borderColor: mode?.color, opacity: progress }]} />
+                                <View style={[styles.ringInner, { borderColor: isCustomMode ? COLORS.primary : mode?.color, opacity: progress }]} />
                                 <View style={styles.clockFace}>
-                                    <Text style={[styles.clockTime, { color: mode?.color }]}>{mins}:{secs}</Text>
-                                    <Text style={styles.clockLabel}>{mode?.label}</Text>
+                                    <Text style={[styles.clockTime, { color: isCustomMode ? COLORS.primary : mode?.color }]}>{parseInt(hours) > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`}</Text>
+                                    <Text style={styles.clockLabel}>{isCustomMode ? 'Custom' : mode?.label}</Text>
                                 </View>
                             </View>
                         )}
