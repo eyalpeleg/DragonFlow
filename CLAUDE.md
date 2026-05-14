@@ -73,6 +73,32 @@ Uses **`@react-native-google-signin/google-signin`** (native, no browser popup) 
 
 **Secrets:** `GOOGLE_ANDROID_CLIENT_ID` in `.env` (unused at runtime, kept for reference). Do NOT add the `google-services` Gradle plugin — it requires Firebase and breaks the build without a full Firebase project.
 
+## Git Flow
+
+```
+main ← PR from develop only (never push directly, never check out in a worktree)
+  └── develop ← all feature branches merge here
+        └── feature/*, fix/*, claude/* ← cut from develop, pushed to develop
+```
+
+### Rules (enforced for every session)
+
+1. **Branch from develop** — always `git checkout -b <branch> origin/develop` or `git fetch origin develop && git checkout develop` before starting work.
+2. **Push to develop** — all commits go to `develop` (or a short-lived feature branch that merges to `develop`). Never push directly to `main`.
+3. **main is PR-only** — `main` only receives changes via a pull request from `develop`. Never `git push origin main`, never check out `main` in a worktree.
+4. **No worktrees on main** — if the agent isolation mode creates a worktree, it must be based on `develop`, not `main`.
+5. **Merge direction** — to sync `main` improvements into `develop`, merge `origin/main` → `develop` (not the other way around until a release PR is ready).
+
+### Typical session flow
+
+```bash
+git fetch origin
+git checkout develop          # or checkout an existing feature branch
+git pull origin develop       # make sure it's up to date
+# ... make changes ...
+git push -u origin develop    # or push to feature branch then merge to develop
+```
+
 ## Adding Features
 
 - New task property: update `src/types.ts` -> `src/store/taskStore.ts` -> components
