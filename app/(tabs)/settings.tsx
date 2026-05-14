@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { COLORS } from '@/src/styles/theme';
-import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
+import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';

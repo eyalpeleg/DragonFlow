@@ -12,7 +12,7 @@ import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx, getModeSeconds } from '@/src/components/PomodoroTimer';
 import TaskCard from '@/src/components/TaskCard';
 import { COLORS, PriorityLevel } from '@/src/styles/theme';
-import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/taskStore';
+import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { cancelPomodoroNotification, playAppSound, schedulePomodoroEnd } from '@/src/utils/notifications';
 import { Task, TaskStatus } from '@/src/types';

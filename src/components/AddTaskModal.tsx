@@ -3,7 +3,7 @@ import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/taskStore';
+import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/appStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
 import DatePickerField from './DatePickerField';
 import TimePickerField from './TimePickerField';

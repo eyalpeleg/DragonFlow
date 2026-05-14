@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { useTaskStore } from '../store/taskStore';
+import { useTaskStore } from '../store/appStore';
 import { Category, Task } from '../types';
 
 export interface ExportPayload {

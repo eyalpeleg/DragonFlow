@@ -1,4 +1,4 @@
-// Self-contained test — mirrors computeBubbleScore from src/store/taskStore.ts
+// Self-contained test — mirrors computeBubbleScore from src/store/appStore.ts
 
 type Priority = 'Critical' | 'High' | 'Medium' | 'Low';
 type Status = 'Ready' | 'In Progress' | 'Paused' | 'Done';

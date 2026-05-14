@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Alert, Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS, PRESET_PALETTE } from '../styles/theme';
-import { useTaskStore } from '../store/taskStore';
+import { useTaskStore } from '../store/appStore';
 
 interface Props {
     visible: boolean;

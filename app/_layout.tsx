@@ -4,7 +4,7 @@ import { Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
-import { useTaskStore, computeBubbleScore } from '@/src/store/taskStore';
+import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
 import { setAudioModeAsync } from 'expo-audio';
 

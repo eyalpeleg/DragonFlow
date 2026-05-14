@@ -107,7 +107,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     const dueMs = new Date(`${task.dueDate}T${time}:00`).getTime();
     if (isNaN(dueMs)) return;
 
-    const { useTaskStore } = await import('../store/taskStore');
+    const { useTaskStore } = await import('../store/appStore');
     const soundType = useTaskStore.getState().tasksSoundType;
 
     const reminders: { id: string; fireMs: number; label: string; isLastWarning?: boolean }[] = [
