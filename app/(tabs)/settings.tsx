@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('tada', pomodoroSoundType, pomodoroVolume)}
+                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -489,7 +489,7 @@ export default function SettingsScreen() {
                 volume={pomodoroVolume}
                 onVolumeChange={setPomodoroVolume}
                 onClose={() => setPomodoroVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('tada', pomodoroSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol)}
             />
 
             {/* Restore Picker Modal */}

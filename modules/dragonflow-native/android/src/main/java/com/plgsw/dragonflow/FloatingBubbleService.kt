@@ -169,7 +169,7 @@ class FloatingBubbleService : Service() {
     private fun playPomodoroSound() {
         if (pomodoroSoundType == "Disabled") return
         try {
-            val soundResId = R.raw.tada
+            val soundResId = R.raw.bell
             mediaPlayer?.release()
             mediaPlayer = MediaPlayer.create(this, soundResId)
             mediaPlayer?.setVolume(pomodoroVolume, pomodoroVolume)

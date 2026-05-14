@@ -26,7 +26,7 @@ const FloatingBubble = {
             return false;
         }
     },
-    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'tada', volume: number) {
+    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'bell', volume: number) {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
             try { NativeFloatingBubble.scheduleSound(alarmId, triggerAtMs, soundType, soundFile, volume); } catch {}
         }

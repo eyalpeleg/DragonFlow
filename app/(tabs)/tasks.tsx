@@ -111,7 +111,7 @@ export default function TasksScreen() {
         if (didComplete) {
             const { pomodoroSoundType } = useTaskStore.getState();
             console.log('[Pomodoro:stopTimer] didComplete=true, soundType=', pomodoroSoundType, ' — playing sound if AppSound');
-            if (pomodoroSoundType === 'AppSound') playAppSound('tada', 1.0);
+            if (pomodoroSoundType === 'AppSound') playAppSound('bell', 1.0);
         }
     }, [pausePomodoroTimer, clearPomodoroTimer, getFallbackBubble]);
 

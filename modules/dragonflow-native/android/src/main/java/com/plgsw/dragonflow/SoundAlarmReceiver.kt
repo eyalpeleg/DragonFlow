@@ -22,7 +22,7 @@ class SoundAlarmReceiver : BroadcastReceiver() {
     private fun playAppSound(context: Context, soundFile: String, volume: Float) {
         val formatter = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
         val now = formatter.format(java.util.Date(System.currentTimeMillis()))
-        val resId = if (soundFile == "tada") R.raw.tada else R.raw.ding
+        val resId = if (soundFile == "bell") R.raw.bell else R.raw.ding
         try {
             val player = MediaPlayer.create(context, resId) ?: return
             android.util.Log.d("SoundAlarmReceiver", "[$now] [playAppSound] MediaPlayer created, starting playback")
