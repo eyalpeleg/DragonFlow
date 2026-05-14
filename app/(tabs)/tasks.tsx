@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useCallback, useEffect, useRef, useState } from 'react';
-import { ActivityIndicator, AppState, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { ActivityIndicator, AppState, BackHandler, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
@@ -172,6 +172,18 @@ export default function TasksScreen() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
 
+    // Register hardware back button listener
+    useEffect(() => {
+        if (!showArchive) return; // Only active when viewing archive
+
+        const backHandler = BackHandler.addEventListener('hardwareBackPress', () => {
+            setShowArchive(false);
+            return true; // Prevent default behavior
+        });
+
+        return () => backHandler.remove(); // Cleanup on unmount or showArchive change
+    }, [showArchive]);
+
     // Show bubble countdown when app goes to background; stop it when app returns
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {
@@ -324,12 +336,11 @@ export default function TasksScreen() {
                         style={showArchive ? styles.archiveBtnActive : styles.archiveBtn}
                         onPress={() => setShowArchive((v) => !v)}
                     >
-                        <Ionicons name="archive-outline" size={20} color={showArchive ? COLORS.primary : 'white'} />
-                        {archivedTasks.length > 0 && (
-                            <View style={styles.archiveBadge}>
-                                <Text style={styles.archiveBadgeText}>{archivedTasks.length}</Text>
-                            </View>
-                        )}
+                        <Ionicons
+                            name={showArchive ? 'chevron-back' : 'archive-outline'}
+                            size={20}
+                            color={showArchive ? COLORS.primary : 'white'}
+                        />
                     </TouchableOpacity>
                     {!showArchive && (
                         <TouchableOpacity style={styles.pomodoroBtn} onPress={() => setPomodoroVisible(true)}>
@@ -462,12 +473,6 @@ const styles = StyleSheet.create({
         width: 38, height: 38, borderRadius: 19,
         backgroundColor: 'white', alignItems: 'center', justifyContent: 'center',
     },
-    archiveBadge: {
-        position: 'absolute', top: -2, right: -2,
-        backgroundColor: '#E53935', borderRadius: 8, minWidth: 16, height: 16,
-        alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
-    },
-    archiveBadgeText: { color: 'white', fontSize: 9, fontWeight: '700' },
     pomodoroBtn: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
     pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: 'white' },
     listContent: { paddingBottom: 100 },
