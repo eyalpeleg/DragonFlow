@@ -85,6 +85,31 @@ tasks.whenTaskAdded { task ->
     }
   }
 
+  // Patch MainApplication.kt to register FloatingBubblePackage
+  const mainAppKt = path.join(projectRoot, 'android/app/src/main/java/com/plgsw/dragonflow/MainApplication.kt');
+  if (fs.existsSync(mainAppKt)) {
+    let mainApp = fs.readFileSync(mainAppKt, 'utf8');
+
+    // Add import if not present
+    if (!mainApp.includes('import com.plgsw.dragonflow.FloatingBubblePackage')) {
+      mainApp = mainApp.replace(
+        /import expo\.modules\.ReactNativeHostWrapper/,
+        'import com.plgsw.dragonflow.FloatingBubblePackage\nimport expo.modules.ReactNativeHostWrapper'
+      );
+    }
+
+    // Add package registration if not present
+    if (!mainApp.includes('add(FloatingBubblePackage())')) {
+      mainApp = mainApp.replace(
+        /PackageList\(this\)\.packages\.apply \{(\s+\/\/ Packages that cannot be autolinked.*?\n.*?)\s*\}/s,
+        'PackageList(this).packages.apply {\n              add(FloatingBubblePackage())\n$1\n            }'
+      );
+    }
+
+    fs.writeFileSync(mainAppKt, mainApp);
+    console.log('  ✓ MainApplication.kt (FloatingBubblePackage registration)');
+  }
+
   // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default
   const localProps = path.join(projectRoot, 'android/local.properties');
   if (!fs.existsSync(localProps)) {
