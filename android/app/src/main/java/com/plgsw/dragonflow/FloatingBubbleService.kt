@@ -362,10 +362,13 @@ class FloatingBubbleService : Service() {
 
         companion object {
             val COLOR_NORMAL: Int = Color.parseColor("#346eeb")
+            val COLOR_PRIMARY: Int = Color.parseColor("#6200EE")
         }
 
-        private val iconBitmap: Bitmap?
-        private val iconRect = RectF()
+        private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = COLOR_PRIMARY
+            style = Paint.Style.FILL
+        }
         private val countStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
             textAlign = Paint.Align.CENTER
@@ -384,18 +387,6 @@ class FloatingBubbleService : Service() {
             typeface = Typeface.MONOSPACE
         }
 
-        init {
-            val drawable = ContextCompat.getDrawable(context, R.drawable.bubble_icon)
-            iconBitmap = if (drawable is BitmapDrawable) {
-                drawable.bitmap
-            } else if (drawable != null) {
-                val bmp = Bitmap.createBitmap(sizePx, sizePx, Bitmap.Config.ARGB_8888)
-                val canvas = Canvas(bmp)
-                drawable.setBounds(0, 0, sizePx, sizePx)
-                drawable.draw(canvas)
-                bmp
-            } else null
-        }
 
         private var timerText: String? = null
 
@@ -414,10 +405,9 @@ class FloatingBubbleService : Service() {
             val w = width.toFloat()
             val h = height.toFloat()
 
-            iconBitmap?.let {
-                iconRect.set(0f, 0f, w, h)
-                canvas.drawBitmap(it, null, iconRect, null)
-            }
+            // Draw purple rounded rectangle background
+            val cornerRadius = w * 0.2f
+            canvas.drawRoundRect(0f, 0f, w, h, cornerRadius, cornerRadius, backgroundPaint)
 
             val t = timerText
             if (t != null) {
