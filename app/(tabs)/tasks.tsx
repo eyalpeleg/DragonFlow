@@ -87,15 +87,16 @@ export default function TasksScreen() {
     // isPause=true saves remaining seconds; default clears the timer entirely
     const stopTimer = useCallback((isPause = false) => {
         const didComplete = completedRef.current;
+        console.log('[Pomodoro:stopTimer] called — isPause=', isPause, ' didComplete=', didComplete, ' endTimeRef=', endTimeRef.current);
         completedRef.current = false;
 
         if (isPause && endTimeRef.current) {
             const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
+            console.log('[Pomodoro:stopTimer] pausing, remaining=', remaining);
             pausePomodoroTimer(remaining, modeIdxRef.current);
         } else {
+            console.log('[Pomodoro:stopTimer] clearing store + cancelling notif');
             clearPomodoroTimer();
-            // Cancel the background sound alarm (in-foreground completion plays it below)
-            FloatingBubble.cancelSound('pomodoro-end');
             if (notifIdRef.current) { cancelPomodoroNotification(notifIdRef.current); notifIdRef.current = null; }
         }
 
@@ -108,42 +109,65 @@ export default function TasksScreen() {
         FloatingBubble.stopPomodoroTimer(score, message);
 
         if (didComplete) {
-            const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
-            if (pomodoroSoundType === 'AppSound') playAppSound('tada', pomodoroVolume);
+            const { pomodoroSoundType } = useTaskStore.getState();
+            console.log('[Pomodoro:stopTimer] didComplete=true, soundType=', pomodoroSoundType, ' — playing sound if AppSound');
+            if (pomodoroSoundType === 'AppSound') playAppSound('tada', 1.0);
         }
     }, [pausePomodoroTimer, clearPomodoroTimer, getFallbackBubble]);
 
     // Wall-clock based interval — correct even after backgrounding
     useEffect(() => {
+        console.log('[Pomodoro:interval-effect] running=', running);
         if (!running) return;
         intervalRef.current = setInterval(() => {
             if (!endTimeRef.current) return;
             const remaining = Math.max(0, Math.round((endTimeRef.current - Date.now()) / 1000));
-            if (remaining <= 1) { completedRef.current = true; stopTimer(); setSecondsLeft(0); return; }
+            if (remaining <= 1) {
+                console.log('[Pomodoro:interval] remaining<=1 — COMPLETING (completedRef=true → stopTimer)');
+                completedRef.current = true;
+                stopTimer();
+                setSecondsLeft(0);
+                return;
+            }
             setSecondsLeft(remaining);
         }, 1000);
         return () => { if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; } };
     }, [running, stopTimer]);
 
-    // Rehydrate timer from persisted store on mount
+    // Rehydrate timer from persisted store on mount (no sound playback at rehydration)
     useEffect(() => {
         const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft, pomodoroNotifId, customTimerSeconds: storedCustomTimerSeconds } = useTaskStore.getState();
+        console.log('[Pomodoro:rehydrate] state:', {
+            pomodoroEndTime,
+            pomodoroModeIdx,
+            pomodoroPausedSecondsLeft,
+            pomodoroNotifId,
+            now: Date.now(),
+        });
         if (pomodoroEndTime !== null && pomodoroModeIdx !== null) {
             const remaining = Math.round((pomodoroEndTime - Date.now()) / 1000);
+            console.log('[Pomodoro:rehydrate] remaining=', remaining, 's');
             setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             if (remaining > 0) {
+                // Timer still running — restore and resume
+                console.log('[Pomodoro:rehydrate] branch=RUNNING — restoring timer, setRunning(true)');
                 endTimeRef.current = pomodoroEndTime;
                 notifIdRef.current = pomodoroNotifId;
                 setSecondsLeft(remaining);
                 setRunning(true);
             } else {
-                // Timer completed while app was away — sound already played via AlarmManager
+                // Timer expired while app was away — native service already played sound
+                // Only clear store, don't set any state that would trigger effects
+                console.log('[Pomodoro:rehydrate] branch=EXPIRED — clearing store only (no sound)');
                 clearPomodoroTimer();
-                setSecondsLeft(getModeSeconds(pomodoroModeIdx as PomodoroModeIdx, storedCustomTimerSeconds));
             }
         } else if (pomodoroPausedSecondsLeft !== null && pomodoroModeIdx !== null) {
+            // Restore paused timer state
+            console.log('[Pomodoro:rehydrate] branch=PAUSED — restoring paused state, secondsLeft=', pomodoroPausedSecondsLeft);
             setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             setSecondsLeft(pomodoroPausedSecondsLeft);
+        } else {
+            console.log('[Pomodoro:rehydrate] branch=NONE — no persisted timer');
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -151,9 +175,11 @@ export default function TasksScreen() {
     // Show bubble countdown when app goes to background; stop it when app returns
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {
+            console.log('[Pomodoro:AppState]', nextState, ' running=', runningRef.current, ' endTimeRef=', endTimeRef.current, ' now=', Date.now());
             if (nextState === 'background' && runningRef.current && endTimeRef.current) {
                 const { score, message } = getFallbackBubble();
                 const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
+                console.log('[Pomodoro:AppState→background] starting native bubble timer, endTime=', endTimeRef.current, ' soundType=', pomodoroSoundType);
                 FloatingBubble.startPomodoroTimer(
                     endTimeRef.current,
                     getModeLabel(modeIdxRef.current as PomodoroModeIdx),
@@ -162,9 +188,21 @@ export default function TasksScreen() {
                     pomodoroSoundType,
                     pomodoroVolume,
                 );
-            } else if (nextState === 'active' && runningRef.current) {
-                const { score, message } = getFallbackBubble();
-                FloatingBubble.stopPomodoroTimer(score, message);
+            } else if (nextState === 'active' && runningRef.current && endTimeRef.current) {
+                if (endTimeRef.current > Date.now()) {
+                    const { score, message } = getFallbackBubble();
+                    console.log('[Pomodoro:AppState→active] timer still running, stopping native bubble countdown');
+                    FloatingBubble.stopPomodoroTimer(score, message);
+                } else {
+                    // Timer already expired in background — native bubble played sound
+                    // Suppress JS-side completion path to avoid duplicate sound
+                    console.log('[Pomodoro:AppState→active] timer EXPIRED in background — clearing without sound');
+                    completedRef.current = false;
+                    endTimeRef.current = null;
+                    clearPomodoroTimer();
+                    setRunning(false);
+                    if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
+                }
             }
         });
         return () => sub.remove();
@@ -186,16 +224,12 @@ export default function TasksScreen() {
         const durationMs = durationSecs * 1000;
         const endTime = Date.now() + durationMs;
         endTimeRef.current = endTime;
+        console.log('[Pomodoro:handleStart] modeIdx=', modeIdx, ' durationSecs=', durationSecs, ' endTime=', endTime, ' isPaused=', isPaused);
 
         const durationMinutes = Math.ceil(durationMs / 60000);
         const id = await schedulePomodoroEnd(durationMinutes);
         notifIdRef.current = id;
-
-        // Schedule background sound alarm (fires via AlarmManager even if app is killed)
-        const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
-        if (pomodoroSoundType !== 'Disabled') {
-            FloatingBubble.scheduleSound('pomodoro-end', endTime, pomodoroSoundType, 'tada', pomodoroVolume);
-        }
+        console.log('[Pomodoro:handleStart] notifId=', id, ' — setting store + running=true');
 
         setPomodoroTimer(endTime, modeIdx, id);
         setRunning(true);

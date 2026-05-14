@@ -14,7 +14,7 @@ let notificationsAvailable = false;
 try {
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldPlaySound: true,
+            shouldPlaySound: false,
             shouldSetBadge: false,
             shouldShowBanner: true,
             shouldShowList: true,

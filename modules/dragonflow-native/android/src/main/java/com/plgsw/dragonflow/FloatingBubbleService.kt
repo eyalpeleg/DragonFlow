@@ -41,10 +41,7 @@ class FloatingBubbleService : Service() {
         override fun run() {
             val remaining = pomodoroEndTimeMs - System.currentTimeMillis()
             if (remaining <= 0) {
-                if (!pomodoroCompletionPlayed) {
-                    pomodoroCompletionPlayed = true
-                    playPomodoroSound()
-                }
+                playPomodoroSound()
                 stopPomodoroCountdown(pomodoroFallbackCount, pomodoroFallbackMessage)
                 return
             }
