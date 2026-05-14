@@ -152,13 +152,20 @@ class FloatingBubbleService : Service() {
         timerHandler.removeCallbacks(timerRunnable)
         pomodoroEndTimeMs = 0L
         bubbleView?.setTimerText(null)
-        mediaPlayer?.release()
-        mediaPlayer = null
         if (fallbackCount > 0) {
+            // Service keeps running — release sound after it finishes
+            mediaPlayer?.setOnCompletionListener { it.release(); mediaPlayer = null }
             bubbleView?.updateCount(fallbackCount)
             updateNotification("Critical tasks active")
         } else {
-            stopSelf()
+            // Service will stop — wait for sound to finish, then stop
+            val mp = mediaPlayer
+            if (mp != null) {
+                mp.setOnCompletionListener { it.release(); mediaPlayer = null; stopSelf() }
+                timerHandler.postDelayed({ mp.release(); mediaPlayer = null; stopSelf() }, 5000)
+            } else {
+                stopSelf()
+            }
         }
     }
 
