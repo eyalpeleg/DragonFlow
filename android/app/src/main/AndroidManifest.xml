@@ -2,12 +2,8 @@
   <uses-permission android:name="android.permission.INTERNET"/>
   <uses-permission android:name="android.permission.READ_EXTERNAL_STORAGE"/>
   <uses-permission android:name="android.permission.SYSTEM_ALERT_WINDOW"/>
-  <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED"/>
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE"/>
-  <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
-  <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -37,17 +33,6 @@
         <data android:scheme="exp+dragonflow"/>
       </intent-filter>
     </activity>
-    <service android:name=".FloatingBubbleService"
-             android:exported="false"
-             android:foregroundServiceType="specialUse"/>
-    <receiver android:name=".SoundAlarmReceiver"
-             android:exported="false"/>
-    <receiver android:name=".BootReceiver"
-              android:exported="true"
-              android:enabled="true">
-      <intent-filter>
-        <action android:name="android.intent.action.BOOT_COMPLETED"/>
-      </intent-filter>
-    </receiver>
+    <service android:name=".FloatingBubbleService" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"/>
   </application>
 </manifest>

@@ -5,7 +5,6 @@ import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
-import android.content.ComponentCallbacks2
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
@@ -21,7 +20,7 @@ import android.view.*
 import android.view.animation.DecelerateInterpolator
 import androidx.core.content.ContextCompat
 
-class FloatingBubbleService : Service(), ComponentCallbacks2 {
+class FloatingBubbleService : Service() {
 
     private lateinit var windowManager: WindowManager
     private var bubbleView: BubbleView? = null
@@ -90,7 +89,6 @@ class FloatingBubbleService : Service(), ComponentCallbacks2 {
     override fun onCreate() {
         super.onCreate()
         windowManager = getSystemService(Context.WINDOW_SERVICE) as WindowManager
-        registerComponentCallbacks(this)
 
         updateScreenDimensions()
 
@@ -265,10 +263,6 @@ class FloatingBubbleService : Service(), ComponentCallbacks2 {
         updateScreenDimensions()
     }
 
-    override fun onTrimMemory(level: Int) {}
-
-    override fun onLowMemory() {}
-
     override fun onDestroy() {
         timerHandler.removeCallbacks(timerRunnable)
         bubbleView?.let {
@@ -276,7 +270,6 @@ class FloatingBubbleService : Service(), ComponentCallbacks2 {
         }
         bubbleView = null
         removeDismissView()
-        unregisterComponentCallbacks(this)
         super.onDestroy()
     }
 
