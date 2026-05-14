@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef, useState } from 'react';
+import React, { useEffect, useRef, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
@@ -39,6 +39,10 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
     const [dateExpanded, setDateExpanded] = useState(false);
+
+    useEffect(() => {
+        if (isVisible) setDueTime(defaultTaskTime);
+    }, [isVisible]);
 
     function addSubTask() {
         const t = subTaskInput.trim();
@@ -96,11 +100,16 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         setSubTasks([]); setSubTaskInput('');
     }
 
+    function handleClose() {
+        reset();
+        onClose();
+    }
+
     const priorities: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 
     return (
         <>
-            <Modal visible={isVisible} animationType="slide" transparent>
+            <Modal visible={isVisible} animationType="slide" transparent onRequestClose={handleClose}>
                 <View style={styles.overlay}>
                     <ScrollView
                         style={styles.content}

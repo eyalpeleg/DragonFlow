@@ -7,14 +7,38 @@ import { COLORS } from '@/src/styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
-import { Category } from '@/src/types';
+import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';
+import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
+import VolumeControl from '@/src/components/VolumeControl';
+import { Category, SoundType } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
+import { playPreviewSound } from '@/src/utils/notifications';
 import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
+const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
+
+function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
+    const [expanded, setExpanded] = useState(true);
+    return (
+        <View style={sectionStyles.wrapper}>
+            <TouchableOpacity style={sectionStyles.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
+                <Text style={sectionStyles.title}>{title}</Text>
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#999" />
+            </TouchableOpacity>
+            {expanded && children}
+        </View>
+    );
+}
+
+const sectionStyles = StyleSheet.create({
+    wrapper: { marginBottom: 24 },
+    header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
+    title: { fontSize: 14, fontWeight: '700', color: '#666', textTransform: 'uppercase' },
+});
 
 function formatRelativeTime(isoString: string | null): string {
     if (!isoString) return 'Never';
@@ -29,10 +53,15 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
+    const [statusOrderModalVisible, setStatusOrderModalVisible] = useState(false);
+    const [tasksDropdownOpen, setTasksDropdownOpen] = useState(false);
+    const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
+    const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
+    const [pomodoroVolumeVisible, setPomodoroVolumeVisible] = useState(false);
 
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
@@ -175,15 +204,13 @@ export default function SettingsScreen() {
             </View>
 
             <ScrollView contentContainerStyle={styles.content}>
-                {/* Bubble Settings */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Floating Bubble</Text>
+                <CollapsibleSection title="Floating Bubble">
                     <View style={styles.settingRow}>
                         <View style={styles.settingLabel}>
                             <Ionicons name="alert-circle" size={20} color={COLORS.primary} />
                             <View style={styles.ml12}>
-                                <Text style={styles.settingTitle}>Show in Background</Text>
-                                <Text style={styles.settingDesc}>Display critical task badge when app is closed</Text>
+                                <Text style={styles.settingTitle}>Show Bubble</Text>
+                                <Text style={styles.settingDesc}>Display urgent task badge when app is in the background</Text>
                             </View>
                         </View>
                         <Switch
@@ -193,11 +220,68 @@ export default function SettingsScreen() {
                             thumbColor="white"
                         />
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Task Defaults */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Task Defaults</Text>
+                <CollapsibleSection title="Audio">
+
+                    {/* Tasks Sound Section */}
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>Task Reminders Sound</Text>
+                        <Text style={styles.settingDesc}>Sound played for task notifications</Text>
+                        <View style={styles.soundSelectorRow}>
+                            <TouchableOpacity
+                                style={styles.soundDropdownButton}
+                                onPress={() => setTasksDropdownOpen(true)}
+                            >
+                                <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
+                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.volumeButton}
+                                onPress={() => setTasksVolumeVisible(true)}
+                            >
+                                <Ionicons name="volume-high" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
+                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume)}
+                                disabled={tasksSoundType === 'Disabled'}
+                            >
+                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+
+                    {/* Pomodoro Sound Section */}
+                    <View style={styles.settingBlock}>
+                        <Text style={styles.settingTitle}>Pomodoro Sound</Text>
+                        <Text style={styles.settingDesc}>Sound played when timer completes</Text>
+                        <View style={styles.soundSelectorRow}>
+                            <TouchableOpacity
+                                style={styles.soundDropdownButton}
+                                onPress={() => setPomodoroDropdownOpen(true)}
+                            >
+                                <Text style={styles.soundDropdownButtonText}>{pomodoroSoundType}</Text>
+                                <Ionicons name="chevron-down" size={18} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={styles.volumeButton}
+                                onPress={() => setPomodoroVolumeVisible(true)}
+                            >
+                                <Ionicons name="volume-high" size={20} color={COLORS.primary} />
+                            </TouchableOpacity>
+                            <TouchableOpacity
+                                style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
+                                onPress={() => playPreviewSound('tada', pomodoroSoundType, pomodoroVolume)}
+                                disabled={pomodoroSoundType === 'Disabled'}
+                            >
+                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                            </TouchableOpacity>
+                        </View>
+                    </View>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Task-List">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Default Task Time</Text>
                         <Text style={styles.settingDesc}>Time used when creating new tasks</Text>
@@ -213,12 +297,7 @@ export default function SettingsScreen() {
                             <Text style={styles.timeFormat}>24-hour format</Text>
                         </View>
                     </View>
-                </View>
-
-                {/* Week Start */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Weekly Report</Text>
-                    <View style={styles.settingBlock}>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         <Text style={styles.settingTitle}>First Day of Week</Text>
                         <Text style={styles.settingDesc}>Sets the start of the week in the weekly report</Text>
                         <View style={styles.weekDayRow}>
@@ -235,11 +314,55 @@ export default function SettingsScreen() {
                             ))}
                         </View>
                     </View>
-                </View>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
+                        <TouchableOpacity style={styles.statusOrderRow} onPress={() => setStatusOrderModalVisible(true)}>
+                            <View style={styles.statusOrderContent}>
+                                <Text style={styles.settingTitle}>Status Order</Text>
+                                <Text style={styles.settingDesc}>Customize how tasks are sorted by status</Text>
+                                <View style={styles.statusOrderPreview}>
+                                    {(['Ready', 'In Progress', 'Paused', 'Done'] as const).slice().sort(
+                                        (a: string, b: string) => statusOrderConfig[a as keyof typeof statusOrderConfig] - statusOrderConfig[b as keyof typeof statusOrderConfig]
+                                    ).map((status: string) => (
+                                        <Text key={status} style={styles.statusOrderTag}>
+                                            {status}
+                                        </Text>
+                                    ))}
+                                </View>
+                            </View>
+                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                        </TouchableOpacity>
+                    </View>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
+                        {categories.map((cat) => {
+                            const isDefault = cat.id === DEFAULT_CATEGORY_ID;
+                            return (
+                                <View key={cat.id} style={styles.catRow}>
+                                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
+                                    <Text style={styles.catName}>{cat.name}</Text>
+                                    {isDefault && (
+                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
+                                    )}
+                                    {!isDefault && (
+                                        <View style={styles.catActions}>
+                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="pencil" size={16} color={COLORS.primary} />
+                                            </TouchableOpacity>
+                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
+                                                <Ionicons name="trash" size={16} color="#E53935" />
+                                            </TouchableOpacity>
+                                        </View>
+                                    )}
+                                </View>
+                            );
+                        })}
+                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
+                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
+                            <Text style={styles.addCatText}>Add Category</Text>
+                        </TouchableOpacity>
+                    </View>
+                </CollapsibleSection>
 
-                {/* Data */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Data</Text>
+                <CollapsibleSection title="Data">
                     <View style={styles.settingBlock}>
                         <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
                             <Ionicons name="download-outline" size={20} color={COLORS.primary} />
@@ -259,12 +382,7 @@ export default function SettingsScreen() {
                             <Ionicons name="chevron-forward" size={18} color="#ccc" />
                         </TouchableOpacity>
                     </View>
-                </View>
-
-                {/* Cloud Backup */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Cloud Backup</Text>
-                    <View style={styles.settingBlock}>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         {!isSignedIn ? (
                             <View style={styles.cloudSignInWrapper}>
                                 <Ionicons name="cloud-outline" size={32} color={COLORS.primary} />
@@ -329,54 +447,50 @@ export default function SettingsScreen() {
                             </>
                         )}
                     </View>
-                </View>
+                </CollapsibleSection>
 
-                {/* Categories */}
-                <View style={styles.section}>
-                    <Text style={styles.sectionTitle}>Categories</Text>
-                    <View style={styles.settingBlock}>
-                        {categories.map((cat) => {
-                            const isDefault = cat.id === DEFAULT_CATEGORY_ID;
-                            return (
-                                <View key={cat.id} style={styles.catRow}>
-                                    <View style={[styles.catDot, { backgroundColor: cat.color }]} />
-                                    <Text style={styles.catName}>{cat.name}</Text>
-                                    {isDefault && (
-                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
-                                    )}
-                                    {!isDefault && (
-                                        <View style={styles.catActions}>
-                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="pencil" size={16} color={COLORS.primary} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="trash" size={16} color="#E53935" />
-                                            </TouchableOpacity>
-                                        </View>
-                                    )}
-                                </View>
-                            );
-                        })}
-                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
-                            <Ionicons name="add-circle-outline" size={20} color={COLORS.primary} />
-                            <Text style={styles.addCatText}>Add Category</Text>
-                        </TouchableOpacity>
-                    </View>
-                </View>
-
-                {/* About */}
-                <View style={styles.aboutSection}>
-                    <Text style={styles.sectionTitle}>About</Text>
+                <CollapsibleSection title="About">
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
                         <Text style={styles.infoSubtext}>Build: {BUILD_TIMESTAMP}</Text>
                     </View>
-                </View>
+                </CollapsibleSection>
             </ScrollView>
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
+            <EditStatusOrderModal visible={statusOrderModalVisible} onClose={() => setStatusOrderModalVisible(false)} />
+
+            <SoundSelectorDropdown
+                visible={tasksDropdownOpen}
+                options={SOUND_TYPE_OPTIONS}
+                selectedValue={tasksSoundType}
+                onSelect={setTasksSoundType}
+                onClose={() => setTasksDropdownOpen(false)}
+            />
+            <SoundSelectorDropdown
+                visible={pomodoroDropdownOpen}
+                options={SOUND_TYPE_OPTIONS}
+                selectedValue={pomodoroSoundType}
+                onSelect={setPomodoroSoundType}
+                onClose={() => setPomodoroDropdownOpen(false)}
+            />
+
+            <VolumeControl
+                visible={tasksVolumeVisible}
+                volume={tasksVolume}
+                onVolumeChange={setTasksVolume}
+                onClose={() => setTasksVolumeVisible(false)}
+                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol)}
+            />
+            <VolumeControl
+                visible={pomodoroVolumeVisible}
+                volume={pomodoroVolume}
+                onVolumeChange={setPomodoroVolume}
+                onClose={() => setPomodoroVolumeVisible(false)}
+                onPlayPreview={(vol) => playPreviewSound('tada', pomodoroSoundType, vol)}
+            />
 
             {/* Restore Picker Modal */}
             <Modal visible={restorePickerVisible} animationType="slide" transparent>
@@ -444,9 +558,6 @@ const styles = StyleSheet.create({
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
-    section: { marginBottom: 24 },
-    aboutSection: { marginBottom: 24, marginTop: 16 },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: '#666', marginBottom: 12, textTransform: 'uppercase' },
     settingRow: {
         backgroundColor: 'white',
         borderRadius: 12,
@@ -474,6 +585,9 @@ const styles = StyleSheet.create({
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
+    },
+    settingBlockGap: {
+        marginTop: 12,
     },
     timeInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 10 },
     timeInput: {
@@ -603,7 +717,73 @@ const styles = StyleSheet.create({
     weekDayBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     weekDayText: { fontSize: 14, fontWeight: '600', color: '#666' },
     weekDayTextActive: { color: 'white' },
+    statusOrderRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        paddingVertical: 12,
+    },
+    statusOrderContent: { flex: 1 },
+    statusOrderPreview: {
+        flexDirection: 'row',
+        flexWrap: 'wrap',
+        gap: 6,
+        marginTop: 10,
+    },
+    statusOrderTag: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#fff',
+        backgroundColor: COLORS.primary,
+        paddingHorizontal: 8,
+        paddingVertical: 4,
+        borderRadius: 6,
+        overflow: 'hidden',
+    },
     ml12: { marginLeft: 12 },
     ml12flex: { marginLeft: 12, flex: 1 },
     mr8: { marginRight: 8 },
+    soundSelectorRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        marginTop: 12,
+        gap: 12,
+    },
+    soundDropdownButton: {
+        flex: 1,
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        backgroundColor: '#fafafa',
+    },
+    soundDropdownButtonText: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: COLORS.primary,
+    },
+    volumeButton: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+        borderWidth: 1,
+        borderColor: COLORS.primary,
+    },
+    playButton: {
+        backgroundColor: COLORS.primary,
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    playButtonDisabled: {
+        backgroundColor: '#e0e0e0',
+    },
 });

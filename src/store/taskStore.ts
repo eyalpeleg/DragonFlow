@@ -5,9 +5,13 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
+import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
+
+// Re-export for backward compatibility
+export { getCategoryColor, getCategoryName };
 
 export const DEFAULT_CATEGORY_ID = 'default';
 
@@ -18,14 +22,6 @@ const BUILTIN_CATEGORIES: Category[] = [
     { id: 'fitness',  name: 'Fitness',  color: 'rgba(239, 119, 13, 0.95)' },
     { id: 'study',    name: 'Study',    color: 'rgba(34, 218, 166, 0.69)' },
 ];
-
-export function getCategoryColor(categories: Category[], id: string): string {
-    return categories.find((c) => c.id === id)?.color ?? COLORS.primary;
-}
-
-export function getCategoryName(categories: Category[], id: string): string {
-    return categories.find((c) => c.id === id)?.name ?? 'Unknown';
-}
 
 export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr: string): number {
     return tasks.filter((t) => {
@@ -114,6 +110,11 @@ interface TaskStore {
     setShowBubbleInBackground: (show: boolean) => void;
     setDefaultTaskTime: (time: string) => void;
     setFirstDayOfWeek: (day: 'sunday' | 'monday') => void;
+    setNotificationSoundEnabled: (enabled: boolean) => void;
+    setPomodoroSoundType: (type: SoundType) => void;
+    setTasksSoundType: (type: SoundType) => void;
+    setPomodoroVolume: (volume: number) => void;
+    setTasksVolume: (volume: number) => void;
     setStatusFilters: (filters: Set<TaskStatus>) => void;
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
@@ -123,7 +124,7 @@ interface TaskStore {
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
     exportData: () => object;
-    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean } }) => { tasksImported: number };
+    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
 
 const priorityOrder: Record<PriorityLevel, number> = {
@@ -136,7 +137,7 @@ const priorityOrder: Record<PriorityLevel, number> = {
 const statusOrder: Record<TaskStatus, number> = {
     'In Progress': 0,
     'Paused': 1,
-    'Ready': 2,
+    'Ready': 1,
     'Done': 3,
 };
 
@@ -336,6 +337,16 @@ export const useTaskStore = create<TaskStore>()(
 
             setFirstDayOfWeek: (day) => set({ firstDayOfWeek: day }),
 
+            setNotificationSoundEnabled: (enabled) => set({ notificationSoundEnabled: enabled }),
+
+            setPomodoroSoundType: (type) => set({ pomodoroSoundType: type }),
+
+            setTasksSoundType: (type) => set({ tasksSoundType: type }),
+
+            setPomodoroVolume: (volume) => set({ pomodoroVolume: volume }),
+
+            setTasksVolume: (volume) => set({ tasksVolume: volume }),
+
             setStatusFilters: (filters) => set({ statusFilters: filters }),
 
             setCategoryFilters: (filters) => set({ categoryFilters: filters }),
@@ -377,6 +388,9 @@ export const useTaskStore = create<TaskStore>()(
                     settings: {
                         defaultTaskTime: s.defaultTaskTime,
                         showBubbleInBackground: s.showBubbleInBackground,
+                        notificationSoundEnabled: s.notificationSoundEnabled,
+                        pomodoroSoundType: s.pomodoroSoundType,
+                        tasksSoundType: s.tasksSoundType,
                     },
                 };
             },
@@ -399,6 +413,9 @@ export const useTaskStore = create<TaskStore>()(
                     categories,
                     ...(data.settings?.defaultTaskTime && { defaultTaskTime: data.settings.defaultTaskTime }),
                     ...(data.settings?.showBubbleInBackground !== undefined && { showBubbleInBackground: data.settings.showBubbleInBackground }),
+                    ...(data.settings?.notificationSoundEnabled !== undefined && { notificationSoundEnabled: data.settings.notificationSoundEnabled }),
+                    ...(data.settings?.pomodoroSoundType && { pomodoroSoundType: data.settings.pomodoroSoundType }),
+                    ...(data.settings?.tasksSoundType && { tasksSoundType: data.settings.tasksSoundType }),
                 });
 
                 return { tasksImported: tasks.length };
@@ -459,6 +476,10 @@ export const useTaskStore = create<TaskStore>()(
                     });
                 }
 
+                // Coerce removed SoundType values ('SystemSound', 'Custom') → 'AppSound'
+                if (p.pomodoroSoundType !== 'AppSound' && p.pomodoroSoundType !== 'Disabled') p.pomodoroSoundType = 'AppSound';
+                if (p.tasksSoundType !== 'AppSound' && p.tasksSoundType !== 'Disabled') p.tasksSoundType = 'AppSound';
+
                 // Ensure all built-in categories exist
                 const existingIds = new Set(categories.map((c) => c.id));
                 for (const bc of BUILTIN_CATEGORIES) {
@@ -509,6 +530,7 @@ export const useTaskStore = create<TaskStore>()(
 
 export function useSortedFilteredTasks(): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
+    const statusOrderConfig = useTaskStore((s) => s.statusOrderConfig);
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
@@ -537,16 +559,23 @@ export function useSortedFilteredTasks(): Task[] {
         });
 
         return [...filtered].sort((a, b) => {
-            const statusDiff = statusOrder[a.status] - statusOrder[b.status];
+            const statusDiff = statusOrderConfig[a.status] - statusOrderConfig[b.status];
             if (statusDiff !== 0) return statusDiff;
+
             const dateA = a.dueDate || '9999-12-31';
             const dateB = b.dueDate || '9999-12-31';
-            if (dateA !== dateB) return dateA < dateB ? -1 : 1;
-            const priorityDiff = priorityOrder[a.priority] - priorityOrder[b.priority];
-            if (priorityDiff !== 0) return priorityDiff;
+            const timeA = a.dueTime || '23:59';
+            const timeB = b.dueTime || '23:59';
+            const dateTimeA = `${dateA}T${timeA}`;
+            const dateTimeB = `${dateB}T${timeB}`;
+            if (dateTimeA !== dateTimeB) return dateTimeA < dateTimeB ? -1 : 1;
+
+            const nameCompare = a.title.localeCompare(b.title);
+            if (nameCompare !== 0) return nameCompare;
+
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
+    }, [tasks, statusOrderConfig, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
 }
 
 export function useArchivedTasks(): Task[] {

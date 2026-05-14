@@ -1,10 +1,12 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { Task } from '../types';
-import { getCategoryName, useTaskStore } from '../store/taskStore';
+import { createAudioPlayer } from 'expo-audio';
+import { Task, SoundType } from '../types';
+import { getCategoryName } from './categories';
+import FloatingBubble from '../modules/FloatingBubble';
 
-const POMODORO_CHANNEL = 'pomodoro';
-const REMINDERS_CHANNEL = 'task-reminders';
+const POMODORO_CHANNEL = 'pomodoro-3';
+const REMINDERS_CHANNEL = 'reminders-3';
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -35,23 +37,22 @@ export async function requestNotificationPermission(): Promise<boolean> {
     }
 }
 
+const CHANNEL_DEFS = [
+    { id: POMODORO_CHANNEL,  name: 'Pomodoro Timer',  vibe: [0, 500, 200, 500] },
+    { id: REMINDERS_CHANNEL, name: 'Task Reminders',  vibe: [0, 300, 200, 300] },
+];
+
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
-        await Notifications.setNotificationChannelAsync(POMODORO_CHANNEL, {
-            name: 'Pomodoro Timer',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 500, 200, 500],
-            lightColor: '#6200EE',
-        });
-        await Notifications.setNotificationChannelAsync(REMINDERS_CHANNEL, {
-            name: 'Task Reminders',
-            importance: Notifications.AndroidImportance.HIGH,
-            sound: 'default',
-            vibrationPattern: [0, 300, 200, 300],
-            lightColor: '#6200EE',
-        });
+        for (const ch of CHANNEL_DEFS) {
+            await Notifications.setNotificationChannelAsync(ch.id, {
+                name: ch.name,
+                importance: Notifications.AndroidImportance.HIGH,
+                vibrationPattern: ch.vibe as unknown as number[],
+                lightColor: '#6200EE',
+            });
+        }
     } catch {
         // ignore — Expo Go
     }
@@ -63,16 +64,17 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
     try {
         const labels: Record<number, string> = { 25: 'Focus session', 5: 'Short break', 15: 'Long break' };
         const label = labels[minutes] ?? `${minutes}min timer`;
-        return await Notifications.scheduleNotificationAsync({
+        const notifId = await Notifications.scheduleNotificationAsync({
             content: {
                 title: `⏱ ${label} complete!`,
                 body: minutes === 25 ? 'Great work! Take a break.' : 'Break over — time to focus.',
-                sound: 'default',
+                sound: undefined,
                 data: { type: 'pomodoro' },
                 ...(Platform.OS === 'android' && { channelId: POMODORO_CHANNEL }),
             },
             trigger: { type: Notifications.SchedulableTriggerInputTypes.TIME_INTERVAL, seconds: minutes * 60 },
         });
+        return notifId;
     } catch {
         return '';
     }
@@ -105,7 +107,10 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     const dueMs = new Date(`${task.dueDate}T${time}:00`).getTime();
     if (isNaN(dueMs)) return;
 
-    const reminders: { id: string; fireMs: number; label: string }[] = [
+    const { useTaskStore } = await import('../store/taskStore');
+    const soundType = useTaskStore.getState().tasksSoundType;
+
+    const reminders: { id: string; fireMs: number; label: string; isLastWarning?: boolean }[] = [
         ...(dueHour < 12
             ? [
                 { id: `${task.id}-ra`, fireMs: dayBefore(task.dueDate, 8),  label: '⏰ Due Tomorrow' },
@@ -117,14 +122,17 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                 { id: `${task.id}-rb`, fireMs: dayBefore(task.dueDate, 18), label: '⏰ Due Tomorrow' },
                 { id: `${task.id}-rc`, fireMs: sameDay(task.dueDate, 8),    label: '⏰ Due Today' },
                 { id: `${task.id}-rd`, fireMs: sameDay(task.dueDate, 12),   label: '⏰ Due Today' },
-                { id: `${task.id}-re`, fireMs: dueMs - 3600 * 1000,         label: '⏰ Due in 1 hour' },
+                { id: `${task.id}-re`, fireMs: dueMs - 3600 * 1000,         label: '⏰ Due in 1 hour', isLastWarning: true },
             ]),
-        { id: `${task.id}-r5m`, fireMs: dueMs - 5 * 60 * 1000, label: '🔔 Due in 5 minutes' },
+        { id: `${task.id}-r5m`, fireMs: dueMs - 5 * 60 * 1000, label: '🔔 Due in 5 minutes', isLastWarning: true },
+        { id: `${task.id}-rdt`, fireMs: dueMs, label: '🔔 Due now', isLastWarning: true },
     ];
 
+    const volume = useTaskStore.getState().tasksVolume;
     const now = Date.now();
     for (const r of reminders) {
         await Notifications.cancelScheduledNotificationAsync(r.id).catch(() => {});
+        FloatingBubble.cancelSound(r.id);
         if (r.fireMs <= now) continue;
         try {
             await Notifications.scheduleNotificationAsync({
@@ -132,7 +140,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
                 content: {
                     title: `${r.label}: ${task.title}`,
                     body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
-                    sound: 'default',
+                    sound: undefined,
                     data: { type: 'reminder', taskId: task.id },
                     ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
                 },
@@ -144,12 +152,36 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
         } catch {
             // ignore
         }
+        if (r.isLastWarning && soundType !== 'Disabled') {
+            FloatingBubble.scheduleSound(r.id, r.fireMs, soundType, 'ding', volume);
+        }
     }
 }
 
 export async function cancelTaskReminders(taskId: string): Promise<void> {
     if (!notificationsAvailable) return;
-    for (const suffix of ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m']) {
+    for (const suffix of ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m', '-rdt']) {
         await Notifications.cancelScheduledNotificationAsync(taskId + suffix).catch(() => {});
+        FloatingBubble.cancelSound(taskId + suffix);
+    }
+}
+
+export async function playAppSound(soundFile: 'ding' | 'tada', volume: number = 1.0): Promise<void> {
+    try {
+        const soundAsset = soundFile === 'tada'
+            ? require('../../assets/audio/tada.mp3')
+            : require('../../assets/audio/ding.mp3');
+        const player = createAudioPlayer(soundAsset);
+        player.volume = Math.max(0, Math.min(1, volume));
+        player.play();
+    } catch (error) {
+        console.error('Audio playback error:', error);
+    }
+}
+
+export async function playPreviewSound(soundType: 'ding' | 'tada', preference: SoundType, volume: number = 1.0): Promise<void> {
+    if (preference === 'Disabled') return;
+    if (preference === 'AppSound') {
+        await playAppSound(soundType, volume);
     }
 }

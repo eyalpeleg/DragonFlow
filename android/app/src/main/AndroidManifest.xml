@@ -7,6 +7,7 @@
   <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE"/>
   <uses-permission android:name="android.permission.VIBRATE"/>
   <uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+  <uses-permission android:name="android.permission.USE_EXACT_ALARM"/>
   <queries>
     <intent>
       <action android:name="android.intent.action.VIEW"/>
@@ -39,6 +40,8 @@
     <service android:name=".FloatingBubbleService"
              android:exported="false"
              android:foregroundServiceType="specialUse"/>
+    <receiver android:name=".SoundAlarmReceiver"
+             android:exported="false"/>
     <receiver android:name=".BootReceiver"
               android:exported="true"
               android:enabled="true">
