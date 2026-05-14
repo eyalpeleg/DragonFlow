@@ -1,5 +1,8 @@
 package com.plgsw.dragonflow
 
+import android.app.AlarmManager
+import android.app.PendingIntent
+import android.content.Context
 import android.content.Intent
 import android.net.Uri
 import android.os.Build
@@ -62,6 +65,75 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             promise.resolve(Settings.canDrawOverlays(reactApplicationContext))
         } else {
             promise.resolve(true)
+        }
+    }
+
+    @ReactMethod
+    fun scheduleSound(alarmId: String, triggerAtMs: Double, soundType: String, soundFile: String, volume: Float) {
+        val context = reactApplicationContext
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, SoundAlarmReceiver::class.java).apply {
+            putExtra("soundType", soundType)
+            putExtra("soundFile", soundFile)
+            putExtra("volume", volume)
+        }
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            alarmId.hashCode(),
+            intent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+    }
+
+    @ReactMethod
+    fun cancelSound(alarmId: String) {
+        val context = reactApplicationContext
+        val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
+        val intent = Intent(context, SoundAlarmReceiver::class.java)
+        val pendingIntent = PendingIntent.getBroadcast(
+            context,
+            alarmId.hashCode(),
+            intent,
+            PendingIntent.FLAG_NO_CREATE or PendingIntent.FLAG_IMMUTABLE
+        ) ?: return
+        alarmManager.cancel(pendingIntent)
+        pendingIntent.cancel()
+    }
+
+    @ReactMethod
+    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            !Settings.canDrawOverlays(reactApplicationContext)) {
+            return
+        }
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "startPomodoro")
+            putExtra("pomodoroEndTimeMs", endTimeMs.toLong())
+            putExtra("pomodoroLabel", label)
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
+        }
+    }
+
+    @ReactMethod
+    fun stopPomodoroTimer(fallbackCount: Int, fallbackMessage: String) {
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "stopPomodoro")
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            context.startForegroundService(intent)
+        } else {
+            context.startService(intent)
         }
     }
 

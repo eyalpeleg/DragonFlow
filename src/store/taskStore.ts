@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { Category, RecurrenceConfig, SubTask, Task, TaskStatus } from '../types';
+import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
@@ -38,7 +38,10 @@ export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr:
     }).length;
 }
 
-function syncNotifications(tasks: Task[], showBubbleInBackground: boolean) {
+function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomodoroEndTime: number | null) {
+    // While a pomodoro is active the native service owns the bubble — don't interfere
+    if (pomodoroEndTime !== null && pomodoroEndTime > Date.now()) return;
+
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -78,6 +81,16 @@ interface TaskStore {
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
     firstDayOfWeek: 'sunday' | 'monday';
+    statusOrderConfig: StatusOrderConfig;
+    notificationSoundEnabled: boolean;
+    pomodoroSoundType: SoundType;
+    tasksSoundType: SoundType;
+    pomodoroVolume: number;
+    tasksVolume: number;
+    pomodoroEndTime: number | null;
+    pomodoroModeIdx: number | null;
+    pomodoroPausedSecondsLeft: number | null;
+    pomodoroNotifId: string | null;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -105,6 +118,10 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    setStatusOrderConfig: (config: StatusOrderConfig) => void;
+    setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
+    pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
+    clearPomodoroTimer: () => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean } }) => { tasksImported: number };
 }
@@ -133,6 +150,21 @@ export const useTaskStore = create<TaskStore>()(
             showBubbleInBackground: true,
             defaultTaskTime: '08:00',
             firstDayOfWeek: 'sunday',
+            notificationSoundEnabled: true,
+            pomodoroSoundType: 'AppSound',
+            tasksSoundType: 'AppSound',
+            pomodoroVolume: 1.0,
+            tasksVolume: 1.0,
+            pomodoroEndTime: null,
+            pomodoroModeIdx: null,
+            pomodoroPausedSecondsLeft: null,
+            pomodoroNotifId: null,
+            statusOrderConfig: {
+                'In Progress': 0,
+                'Paused': 1,
+                'Ready': 1,
+                'Done': 3,
+            },
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -153,14 +185,14 @@ export const useTaskStore = create<TaskStore>()(
                     recurrence: input.recurrence,
                 };
                 const tasks = [task, ...s.tasks];
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 scheduleTaskReminders(task).catch(() => {});
                 return { tasks };
             }),
 
             updateTask: (id, updates) => set((s) => {
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, ...updates } : t);
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 const updated = tasks.find((t) => t.id === id);
                 if (updated) {
                     cancelTaskReminders(id).catch(() => {});
@@ -172,14 +204,14 @@ export const useTaskStore = create<TaskStore>()(
             deleteTask: (id) => set((s) => {
                 cancelTaskReminders(id).catch(() => {});
                 const tasks = s.tasks.filter((t) => t.id !== id);
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 return { tasks };
             }),
 
             archiveTask: (id) => set((s) => {
                 cancelTaskReminders(id).catch(() => {});
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, archivedAt: Date.now() } : t);
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 return { tasks };
             }),
 
@@ -189,7 +221,7 @@ export const useTaskStore = create<TaskStore>()(
                     const { archivedAt: _, ...rest } = t;
                     return rest as Task;
                 });
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 return { tasks };
             }),
 
@@ -211,7 +243,7 @@ export const useTaskStore = create<TaskStore>()(
                     scheduleTaskReminders(next).catch(() => {});
                 }
 
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 if (status === 'Done') {
                     cancelTaskReminders(id).catch(() => {});
                 } else if (status === 'In Progress') {
@@ -312,6 +344,29 @@ export const useTaskStore = create<TaskStore>()(
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
 
+            setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
+
+            setPomodoroTimer: (endTime, modeIdx, notifId) => set({
+                pomodoroEndTime: endTime,
+                pomodoroModeIdx: modeIdx,
+                pomodoroPausedSecondsLeft: null,
+                pomodoroNotifId: notifId,
+            }),
+
+            pausePomodoroTimer: (secondsLeft, modeIdx) => set({
+                pomodoroEndTime: null,
+                pomodoroModeIdx: modeIdx,
+                pomodoroPausedSecondsLeft: secondsLeft,
+                pomodoroNotifId: null,
+            }),
+
+            clearPomodoroTimer: () => set({
+                pomodoroEndTime: null,
+                pomodoroModeIdx: null,
+                pomodoroPausedSecondsLeft: null,
+                pomodoroNotifId: null,
+            }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -337,7 +392,7 @@ export const useTaskStore = create<TaskStore>()(
                 const categories = [...s.categories, ...newUserCategories];
 
                 const tasks = data.tasks ?? [];
-                syncNotifications(tasks, s.showBubbleInBackground);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
 
                 set({
                     tasks,
@@ -358,6 +413,15 @@ export const useTaskStore = create<TaskStore>()(
                 defaultTaskTime: state.defaultTaskTime,
                 showBubbleInBackground: state.showBubbleInBackground,
                 firstDayOfWeek: state.firstDayOfWeek,
+                notificationSoundEnabled: state.notificationSoundEnabled,
+                pomodoroSoundType: state.pomodoroSoundType,
+                tasksSoundType: state.tasksSoundType,
+                pomodoroVolume: state.pomodoroVolume,
+                tasksVolume: state.tasksVolume,
+                pomodoroEndTime: state.pomodoroEndTime,
+                pomodoroModeIdx: state.pomodoroModeIdx,
+                pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
+                pomodoroNotifId: state.pomodoroNotifId,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

@@ -26,6 +26,26 @@ const FloatingBubble = {
             return false;
         }
     },
+    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'tada', volume: number) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.scheduleSound(alarmId, triggerAtMs, soundType, soundFile, volume); } catch {}
+        }
+    },
+    cancelSound(alarmId: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.cancelSound(alarmId); } catch {}
+        }
+    },
+    startPomodoroTimer(endTimeMs: number, label: string, fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.startPomodoroTimer(endTimeMs, label, fallbackCount, fallbackMessage); } catch {}
+        }
+    },
+    stopPomodoroTimer(fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.stopPomodoroTimer(fallbackCount, fallbackMessage); } catch {}
+        }
+    },
     onDismissed(callback: () => void) {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
         try {
