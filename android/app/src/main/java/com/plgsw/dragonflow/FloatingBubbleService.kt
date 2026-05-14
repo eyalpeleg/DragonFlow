@@ -361,23 +361,21 @@ class FloatingBubbleService : Service() {
         View(context) {
 
         companion object {
-            val COLOR_NORMAL: Int = Color.parseColor("#346eeb")
             val COLOR_PRIMARY: Int = Color.parseColor("#6200EE")
+            val COLOR_ALERT_BORDER: Int = Color.parseColor("#FF9800")
         }
 
         private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = COLOR_PRIMARY
             style = Paint.Style.FILL
         }
-        private val countStrokePaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = Color.WHITE
-            textAlign = Paint.Align.CENTER
-            typeface = Typeface.DEFAULT_BOLD
+        private val alertBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = COLOR_ALERT_BORDER
             style = Paint.Style.STROKE
-            strokeWidth = 6f
+            strokeWidth = 4f
         }
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = if (count <= 3) COLOR_NORMAL else Color.RED
+            color = Color.WHITE
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
@@ -405,9 +403,8 @@ class FloatingBubbleService : Service() {
             val w = width.toFloat()
             val h = height.toFloat()
 
-            // Draw purple rounded rectangle background
-            val cornerRadius = w * 0.2f
-            canvas.drawRoundRect(0f, 0f, w, h, cornerRadius, cornerRadius, backgroundPaint)
+            // Draw purple ellipse background
+            canvas.drawOval(0f, 0f, w, h, backgroundPaint)
 
             val t = timerText
             if (t != null) {
@@ -416,12 +413,13 @@ class FloatingBubbleService : Service() {
                 val textY = h / 2f - (timerTextPaint.descent() + timerTextPaint.ascent()) / 2f
                 canvas.drawText(t, w / 2f, textY, timerTextPaint)
             } else if (count > 0) {
-                countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
+                // Draw orange alert border if count > 3
+                if (count > 3) {
+                    canvas.drawOval(0f, 0f, w, h, alertBorderPaint)
+                }
                 val text = if (count > 9) "9+" else count.toString()
                 countTextPaint.textSize = w * 0.35f
-                countStrokePaint.textSize = w * 0.35f
                 val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
-                canvas.drawText(text, w / 2f, textY, countStrokePaint)
                 canvas.drawText(text, w / 2f, textY, countTextPaint)
             }
         }
