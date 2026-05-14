@@ -2,7 +2,7 @@ import { ExpoConfig, ConfigContext } from 'expo/config';
 import appJson from './app.json';
 
 export default ({ config }: ConfigContext): ExpoConfig => ({
-  ...appJson.expo,
+  ...(appJson.expo as ExpoConfig),
   ...config,
   extra: {
     ...appJson.expo.extra,

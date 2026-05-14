@@ -92,7 +92,6 @@ interface TaskStore {
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
     customTimerSeconds: number;
-    customTimerSeconds: number;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
