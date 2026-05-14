@@ -14,7 +14,7 @@ let notificationsAvailable = false;
 try {
     Notifications.setNotificationHandler({
         handleNotification: async () => ({
-            shouldPlaySound: true,
+            shouldPlaySound: false,
             shouldSetBadge: false,
             shouldShowBanner: true,
             shouldShowList: true,
@@ -107,7 +107,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     const dueMs = new Date(`${task.dueDate}T${time}:00`).getTime();
     if (isNaN(dueMs)) return;
 
-    const { useTaskStore } = await import('../store/taskStore');
+    const { useTaskStore } = await import('../store/appStore');
     const soundType = useTaskStore.getState().tasksSoundType;
 
     const reminders: { id: string; fireMs: number; label: string; isLastWarning?: boolean }[] = [
@@ -166,10 +166,10 @@ export async function cancelTaskReminders(taskId: string): Promise<void> {
     }
 }
 
-export async function playAppSound(soundFile: 'ding' | 'tada', volume: number = 1.0): Promise<void> {
+export async function playAppSound(soundFile: 'ding' | 'bell', volume: number = 1.0): Promise<void> {
     try {
-        const soundAsset = soundFile === 'tada'
-            ? require('../../assets/audio/tada.mp3')
+        const soundAsset = soundFile === 'bell'
+            ? require('../../assets/audio/bell.mp3')
             : require('../../assets/audio/ding.mp3');
         const player = createAudioPlayer(soundAsset);
         player.volume = Math.max(0, Math.min(1, volume));
@@ -179,7 +179,7 @@ export async function playAppSound(soundFile: 'ding' | 'tada', volume: number = 
     }
 }
 
-export async function playPreviewSound(soundType: 'ding' | 'tada', preference: SoundType, volume: number = 1.0): Promise<void> {
+export async function playPreviewSound(soundType: 'ding' | 'bell', preference: SoundType, volume: number = 1.0): Promise<void> {
     if (preference === 'Disabled') return;
     if (preference === 'AppSound') {
         await playAppSound(soundType, volume);

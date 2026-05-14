@@ -83,7 +83,24 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+
+        val now = System.currentTimeMillis()
+        val delayMs = triggerAtMs.toLong() - now
+        val formatter = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+        val nowStr = formatter.format(java.util.Date(now))
+        val triggerStr = formatter.format(java.util.Date(triggerAtMs.toLong()))
+        android.util.Log.d("FloatingBubbleModule", "[$nowStr] [scheduleSound] $alarmId: trigger=$triggerStr, delay=${delayMs}ms, soundFile=$soundFile")
+
+        // Use exact alarm if permission is granted, otherwise fall back to inexact
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(android.Manifest.permission.SCHEDULE_EXACT_ALARM) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+        }
     }
 
     @ReactMethod
@@ -102,7 +119,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String) {
+    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String, soundType: String, volume: Float) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             !Settings.canDrawOverlays(reactApplicationContext)) {
             return
@@ -114,6 +131,8 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("pomodoroLabel", label)
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
+            putExtra("soundType", soundType)
+            putExtra("volume", volume)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)

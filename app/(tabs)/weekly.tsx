@@ -3,7 +3,7 @@ import React, { useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
-import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/appStore';
 import { formatDuration, getDailySummary, getWeeklyTimeSpent, getWeeklyCategoryStats } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
 

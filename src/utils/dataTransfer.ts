@@ -1,7 +1,7 @@
 import { File, Paths } from 'expo-file-system';
 import * as Sharing from 'expo-sharing';
 import * as DocumentPicker from 'expo-document-picker';
-import { useTaskStore } from '../store/taskStore';
+import { useTaskStore } from '../store/appStore';
 import { Category, Task } from '../types';
 
 export interface ExportPayload {
@@ -15,13 +15,47 @@ export interface ExportPayload {
     };
 }
 
+function isValidTask(obj: unknown): obj is Task {
+    if (typeof obj !== 'object' || obj === null) return false;
+    const t = obj as Record<string, unknown>;
+    return (
+        typeof t.id === 'string' &&
+        typeof t.title === 'string' &&
+        typeof t.description === 'string' &&
+        ['Critical', 'High', 'Medium', 'Low'].includes(t.priority as string) &&
+        typeof t.categoryId === 'string' &&
+        typeof t.dueDate === 'string' &&
+        typeof t.dueTime === 'string' &&
+        ['Ready', 'In Progress', 'Paused', 'Done'].includes(t.status as string) &&
+        Array.isArray(t.subTasks)
+    );
+}
+
+function isValidCategory(obj: unknown): obj is Category {
+    if (typeof obj !== 'object' || obj === null) return false;
+    const c = obj as Record<string, unknown>;
+    return (
+        typeof c.id === 'string' &&
+        typeof c.name === 'string' &&
+        typeof c.color === 'string' &&
+        c.name.trim().length > 0
+    );
+}
+
 export function validateExportData(data: unknown): data is ExportPayload {
     if (typeof data !== 'object' || data === null) return false;
     const d = data as Record<string, unknown>;
+
+    if (typeof d.version !== 'number') return false;
+    if (!Array.isArray(d.tasks)) return false;
+    if (!Array.isArray(d.categories)) return false;
+
+    if (d.tasks.length > 50000) return false;
+    if (d.categories.length > 1000) return false;
+
     return (
-        typeof d.version === 'number' &&
-        Array.isArray(d.tasks) &&
-        Array.isArray(d.categories)
+        d.tasks.every(isValidTask) &&
+        d.categories.every(isValidCategory)
     );
 }
 

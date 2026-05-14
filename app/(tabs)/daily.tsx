@@ -2,7 +2,7 @@ import React from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { COLORS } from '@/src/styles/theme';
-import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/taskStore';
+import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/appStore';
 import { getDailySummary, getTasksCompletedToday } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
 

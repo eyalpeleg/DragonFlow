@@ -4,7 +4,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
 import { COLORS } from '@/src/styles/theme';
-import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/taskStore';
+import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('tada', pomodoroSoundType, pomodoroVolume)}
+                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -489,7 +489,7 @@ export default function SettingsScreen() {
                 volume={pomodoroVolume}
                 onVolumeChange={setPomodoroVolume}
                 onClose={() => setPomodoroVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('tada', pomodoroSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol)}
             />
 
             {/* Restore Picker Modal */}

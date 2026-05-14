@@ -56,6 +56,68 @@ try {
     }
   });
 
+  // Patch build.gradle to fix autolinking package name mismatch
+  const buildGradle = path.join(projectRoot, 'android/app/build.gradle');
+  if (fs.existsSync(buildGradle)) {
+    let gradle = fs.readFileSync(buildGradle, 'utf8');
+    const patch = `
+tasks.register('fixPackageNameInAutolinking') {
+    doLast {
+        def entryPointFile = file("\${buildDir}/generated/autolinking/src/main/java/com/facebook/react/ReactNativeApplicationEntryPoint.java")
+        if (entryPointFile.exists()) {
+            def content = entryPointFile.text
+            content = content.replace('com.dragonflow.BuildConfig', 'com.plgsw.dragonflow.BuildConfig')
+            entryPointFile.text = content
+        }
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'compileDebugJavaWithJavac' || task.name == 'compileReleaseJavaWithJavac') {
+        task.dependsOn(fixPackageNameInAutolinking)
+    }
+}
+`;
+    if (!gradle.includes('fixPackageNameInAutolinking')) {
+      gradle = gradle.replace(/^dependencies \{/m, patch + '\ndependencies {');
+      fs.writeFileSync(buildGradle, gradle);
+      console.log('  ✓ build.gradle (autolinking package fix)');
+    }
+  }
+
+  // Patch MainApplication.kt to register FloatingBubblePackage
+  const mainAppKt = path.join(projectRoot, 'android/app/src/main/java/com/plgsw/dragonflow/MainApplication.kt');
+  if (fs.existsSync(mainAppKt)) {
+    let mainApp = fs.readFileSync(mainAppKt, 'utf8');
+
+    // Add import if not present
+    if (!mainApp.includes('import com.plgsw.dragonflow.FloatingBubblePackage')) {
+      mainApp = mainApp.replace(
+        /import expo\.modules\.ReactNativeHostWrapper/,
+        'import com.plgsw.dragonflow.FloatingBubblePackage\nimport expo.modules.ReactNativeHostWrapper'
+      );
+    }
+
+    // Add package registration if not present
+    if (!mainApp.includes('add(FloatingBubblePackage())')) {
+      mainApp = mainApp.replace(
+        /PackageList\(this\)\.packages\.apply \{(\s+\/\/ Packages that cannot be autolinked.*?\n.*?)\s*\}/s,
+        'PackageList(this).packages.apply {\n              add(FloatingBubblePackage())\n$1\n            }'
+      );
+    }
+
+    fs.writeFileSync(mainAppKt, mainApp);
+    console.log('  ✓ MainApplication.kt (FloatingBubblePackage registration)');
+  }
+
+  // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default
+  const localProps = path.join(projectRoot, 'android/local.properties');
+  if (!fs.existsSync(localProps)) {
+    const sdkDir = process.env.ANDROID_HOME || process.env.ANDROID_SDK_ROOT || `${process.env.HOME}/Library/Android/sdk`;
+    fs.writeFileSync(localProps, `sdk.dir=${sdkDir}\n`);
+    console.log(`  ✓ local.properties (sdk.dir=${sdkDir})`);
+  }
+
   console.log('[copy-native-files] Native files copied successfully');
   process.exit(0);
 } catch (error) {

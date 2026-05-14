@@ -4,7 +4,7 @@ import { Slot } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
-import { useTaskStore, computeBubbleScore } from '@/src/store/taskStore';
+import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
 import { setAudioModeAsync } from 'expo-audio';
 
@@ -36,15 +36,19 @@ export default function RootLayout() {
                     setFloatingBubbleDismissed(false);
                 }
             } else if (nextState === 'background') {
-                const pad = (n: number) => String(n).padStart(2, '0');
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                const tom = new Date(now);
-                tom.setDate(tom.getDate() + 1);
-                const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
-                const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
-                if (score > 0 && !dismissedFloatingBubble && showBubble) {
-                    FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
+                // Don't show task bubble if Pomodoro is running — timer component handles it
+                const { pomodoroEndTime } = useTaskStore.getState();
+                if (pomodoroEndTime === null || pomodoroEndTime <= Date.now()) {
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const tom = new Date(now);
+                    tom.setDate(tom.getDate() + 1);
+                    const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+                    const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+                    if (score > 0 && !dismissedFloatingBubble && showBubble) {
+                        FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
+                    }
                 }
                 backupService.onAppBackground();
             }

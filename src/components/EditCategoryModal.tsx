@@ -2,7 +2,7 @@ import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { COLORS, PRESET_PALETTE } from '../styles/theme';
-import { useTaskStore } from '../store/taskStore';
+import { useTaskStore } from '../store/appStore';
 import { Category } from '../types';
 
 interface Props {

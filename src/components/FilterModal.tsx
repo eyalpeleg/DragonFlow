@@ -3,7 +3,7 @@ import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View 
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
-import { useTaskStore, getCategoryColor, getCategoryName } from '../store/taskStore';
+import { useTaskStore, getCategoryColor, getCategoryName } from '../store/appStore';
 import { TaskStatus } from '../types';
 import { PriorityLevel } from '../styles/theme';
 

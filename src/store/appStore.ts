@@ -91,6 +91,7 @@ interface TaskStore {
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
+    customTimerSeconds: number;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -124,6 +125,7 @@ interface TaskStore {
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
+    setCustomTimerSeconds: (seconds: number) => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
@@ -171,6 +173,7 @@ export const useTaskStore = create<TaskStore>()(
             categoryFilters: new Set(),
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
+            customTimerSeconds: 0,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -395,6 +398,10 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: null,
             }),
 
+            setCustomTimerSeconds: (seconds) => set({
+                customTimerSeconds: seconds,
+            }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -456,6 +463,7 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroModeIdx: state.pomodoroModeIdx,
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
+                customTimerSeconds: state.customTimerSeconds,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

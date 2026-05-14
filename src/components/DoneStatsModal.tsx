@@ -2,7 +2,7 @@ import React, { useEffect, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS } from '../styles/theme';
-import { useTaskStore } from '../store/taskStore';
+import { useTaskStore } from '../store/appStore';
 import { Task } from '../types';
 
 interface Props {

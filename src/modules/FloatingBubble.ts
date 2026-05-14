@@ -26,7 +26,7 @@ const FloatingBubble = {
             return false;
         }
     },
-    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'tada', volume: number) {
+    scheduleSound(alarmId: string, triggerAtMs: number, soundType: string, soundFile: 'ding' | 'bell', volume: number) {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
             try { NativeFloatingBubble.scheduleSound(alarmId, triggerAtMs, soundType, soundFile, volume); } catch {}
         }
@@ -36,9 +36,9 @@ const FloatingBubble = {
             try { NativeFloatingBubble.cancelSound(alarmId); } catch {}
         }
     },
-    startPomodoroTimer(endTimeMs: number, label: string, fallbackCount: number, fallbackMessage: string) {
+    startPomodoroTimer(endTimeMs: number, label: string, fallbackCount: number, fallbackMessage: string, soundType: string, volume: number) {
         if (Platform.OS === 'android' && NativeFloatingBubble) {
-            try { NativeFloatingBubble.startPomodoroTimer(endTimeMs, label, fallbackCount, fallbackMessage); } catch {}
+            try { NativeFloatingBubble.startPomodoroTimer(endTimeMs, label, fallbackCount, fallbackMessage, soundType, volume); } catch {}
         }
     },
     stopPomodoroTimer(fallbackCount: number, fallbackMessage: string) {

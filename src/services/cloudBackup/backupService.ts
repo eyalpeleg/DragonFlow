@@ -1,5 +1,5 @@
 import { AppState, AppStateStatus } from 'react-native';
-import { useTaskStore } from '../../store/taskStore';
+import { useTaskStore } from '../../store/appStore';
 import { useBackupStore } from './backupStore';
 import * as googleAuth from './googleAuth';
 import * as googleDrive from './googleDrive';

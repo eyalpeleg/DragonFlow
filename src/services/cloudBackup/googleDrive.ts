@@ -3,6 +3,7 @@ import { AuthError, BackupMetadata, NetworkError, QuotaError } from './types';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
+const MAX_BACKUP_SIZE = 50 * 1024 * 1024;
 
 async function handleResponse(response: Response): Promise<any> {
     if (response.ok) {
@@ -120,6 +121,14 @@ export async function downloadBackup(token: string, fileId: string): Promise<Exp
 
     if (!response.ok) {
         await handleResponse(response); // throws typed error
+    }
+
+    const contentLength = response.headers.get('content-length');
+    if (contentLength) {
+        const size = parseInt(contentLength, 10);
+        if (size > MAX_BACKUP_SIZE) {
+            throw new Error(`Backup file too large (${size} bytes, max ${MAX_BACKUP_SIZE} bytes)`);
+        }
     }
 
     const text = await response.text();
