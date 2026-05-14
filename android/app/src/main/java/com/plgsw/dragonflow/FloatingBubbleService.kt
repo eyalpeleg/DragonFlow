@@ -378,6 +378,11 @@ class FloatingBubbleService : Service() {
             textAlign = Paint.Align.CENTER
             typeface = Typeface.DEFAULT_BOLD
         }
+        private val timerTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = Color.WHITE
+            textAlign = Paint.Align.CENTER
+            typeface = Typeface.MONOSPACE
+        }
 
         init {
             val drawable = ContextCompat.getDrawable(context, R.drawable.bubble_icon)
@@ -416,11 +421,10 @@ class FloatingBubbleService : Service() {
 
             val t = timerText
             if (t != null) {
-                // Timer mode: plain white text, no stroke/shadow
-                countTextPaint.color = Color.WHITE
-                countTextPaint.textSize = w * 0.28f
-                val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
-                canvas.drawText(t, w / 2f, textY, countTextPaint)
+                // Timer mode: clean white monospace text for sharp, readable MM:SS
+                timerTextPaint.textSize = w * 0.28f
+                val textY = h / 2f - (timerTextPaint.descent() + timerTextPaint.ascent()) / 2f
+                canvas.drawText(t, w / 2f, textY, timerTextPaint)
             } else if (count > 0) {
                 countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
                 val text = if (count > 9) "9+" else count.toString()
