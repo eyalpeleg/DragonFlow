@@ -38,6 +38,8 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     const [interval, setInterval] = useState('1');
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
+    const [editingSubId, setEditingSubId] = useState<string | null>(null);
+    const [editingSubTitle, setEditingSubTitle] = useState('');
 
     useEffect(() => {
         if (task) {
@@ -57,6 +59,8 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
             setInterval(String(task.recurrence?.interval ?? 1));
             setSubTasks(task.subTasks ?? []);
             setSubTaskInput('');
+            setEditingSubId(null);
+            setEditingSubTitle('');
         }
     }, [task]);
 
@@ -69,6 +73,25 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
     function removeSubTask(id: string) {
         setSubTasks((prev) => prev.filter((s) => s.id !== id));
+    }
+
+    function startEditSub(sub: SubTask) {
+        setEditingSubId(sub.id);
+        setEditingSubTitle(sub.title);
+    }
+
+    function cancelEditSub() {
+        setEditingSubId(null);
+        setEditingSubTitle('');
+    }
+
+    function commitEditSub() {
+        if (!editingSubId) return;
+        const trimmed = editingSubTitle.trim();
+        if (trimmed) {
+            setSubTasks((prev) => prev.map((s) => (s.id === editingSubId ? { ...s, title: trimmed } : s)));
+        }
+        cancelEditSub();
     }
 
     const handleSave = () => {
@@ -209,10 +232,24 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                     size={14}
                                     color={s.completed ? COLORS.status['Done'] : '#ccc'}
                                 />
-                                <Text style={[styles.subTaskTitle, s.completed && styles.subTaskDone]} numberOfLines={1}>
-                                    {s.title}
-                                </Text>
-                                <TouchableOpacity onPress={() => removeSubTask(s.id)}>
+                                {editingSubId === s.id ? (
+                                    <TextInput
+                                        style={[styles.subTaskTitle, styles.subTaskEditInput, s.completed && styles.subTaskDone]}
+                                        value={editingSubTitle}
+                                        onChangeText={setEditingSubTitle}
+                                        autoFocus
+                                        selectTextOnFocus
+                                        onSubmitEditing={commitEditSub}
+                                        returnKeyType="done"
+                                    />
+                                ) : (
+                                    <TouchableOpacity style={{ flex: 1 }} onPress={() => startEditSub(s)} activeOpacity={0.6}>
+                                        <Text style={[styles.subTaskTitle, s.completed && styles.subTaskDone]} numberOfLines={1}>
+                                            {s.title}
+                                        </Text>
+                                    </TouchableOpacity>
+                                )}
+                                <TouchableOpacity onPress={() => (editingSubId === s.id ? cancelEditSub() : removeSubTask(s.id))}>
                                     <Ionicons name="close" size={14} color="#ccc" />
                                 </TouchableOpacity>
                             </View>
@@ -262,6 +299,7 @@ const styles = StyleSheet.create({
     addSubBtn: { backgroundColor: COLORS.primary, borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
     subTaskRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
     subTaskTitle: { flex: 1, fontSize: 13, color: '#555' },
+    subTaskEditInput: { borderBottomWidth: 1, borderBottomColor: '#ddd', paddingVertical: 2 },
     subTaskDone: { textDecorationLine: 'line-through', color: '#bbb' },
     buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15 },
     cancelBtn: { padding: 12 },

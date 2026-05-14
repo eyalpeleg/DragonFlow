@@ -1,0 +1,14 @@
+{
+  "name": "dragonflow-native",
+  "version": "1.0.0",
+  "description": "Native Android module for DragonFlow - provides floating bubble overlay, audio scheduling, and boot receiver",
+  "main": "app.plugin.js",
+  "expo": {
+    "plugins": [
+      "./app.plugin.js"
+    ]
+  },
+  "peerDependencies": {
+    "expo": ">=54.0.0"
+  }
+}

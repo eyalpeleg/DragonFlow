@@ -16,6 +16,7 @@ interface Props {
     modeIdx: PomodoroModeIdx;
     secondsLeft: number;
     running: boolean;
+    isPaused: boolean;
     onSelectMode: (idx: PomodoroModeIdx) => void;
     onStart: () => void;
     onPause: () => void;
@@ -24,7 +25,7 @@ interface Props {
 
 export default function PomodoroTimer({
     isVisible, onClose,
-    modeIdx, secondsLeft, running,
+    modeIdx, secondsLeft, running, isPaused,
     onSelectMode, onStart, onPause, onReset,
 }: Props) {
     const mode = POMODORO_MODES[modeIdx];
@@ -35,9 +36,9 @@ export default function PomodoroTimer({
     const secs = String(secondsLeft % 60).padStart(2, '0');
 
     return (
-        <Modal visible={isVisible} animationType="slide" transparent>
-            <View style={styles.overlay}>
-                <View style={styles.sheet}>
+        <Modal visible={isVisible} animationType="slide" transparent onRequestClose={onClose}>
+            <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
+                <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={() => {}}>
                     <View style={styles.handle} />
                     <Text style={styles.title}>Pomodoro Timer</Text>
 
@@ -72,13 +73,17 @@ export default function PomodoroTimer({
                         <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
                             <Text style={styles.resetBtnText}>↺ Reset</Text>
                         </TouchableOpacity>
-                        {!running ? (
-                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: mode.color }]} onPress={onStart}>
-                                <Text style={styles.startBtnText}>▶ Start</Text>
-                            </TouchableOpacity>
-                        ) : (
+                        {running ? (
                             <TouchableOpacity style={[styles.startBtn, { backgroundColor: '#999' }]} onPress={onPause}>
                                 <Text style={styles.startBtnText}>⏸ Pause</Text>
+                            </TouchableOpacity>
+                        ) : isPaused ? (
+                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: mode.color }]} onPress={onStart}>
+                                <Text style={styles.startBtnText}>▶ Resume</Text>
+                            </TouchableOpacity>
+                        ) : (
+                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: mode.color }]} onPress={onStart}>
+                                <Text style={styles.startBtnText}>▶ Start</Text>
                             </TouchableOpacity>
                         )}
                     </View>
@@ -90,8 +95,8 @@ export default function PomodoroTimer({
                     <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
                         <Text style={styles.closeBtnText}>Close</Text>
                     </TouchableOpacity>
-                </View>
-            </View>
+                </TouchableOpacity>
+            </TouchableOpacity>
         </Modal>
     );
 }
