@@ -33,6 +33,5 @@
         <data android:scheme="exp+dragonflow"/>
       </intent-filter>
     </activity>
-    <service android:name=".FloatingBubbleService" android:configChanges="orientation|screenSize|screenLayout|smallestScreenSize"/>
   </application>
 </manifest>
