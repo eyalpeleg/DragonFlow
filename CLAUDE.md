@@ -50,9 +50,55 @@ npx expo start              # Dev server
 npx expo run:android        # Run on Android
 npx expo run:ios            # Run on iOS
 npx tsc --noEmit            # Type check
-npx expo prebuild --clean   # Regenerate native projects
+npm run prebuild:clean      # Regenerate native projects (preferred)
+npx expo prebuild --clean   # Direct prebuild (use npm script above instead)
 npm run lint                # ESLint
 ```
+
+## Native Android Module
+
+Custom native code (FloatingBubble overlay, sound playback, boot receiver) is preserved via `modules/dragonflow-native/` to survive `npx expo prebuild --clean`. This structure is general-purpose and supports future native features (camera, sensors, custom Android APIs) without modification.
+
+**Always use `npm run prebuild:clean` instead of `npx expo prebuild --clean` directly.** This ensures custom files are copied to the build after prebuild regenerates the android directory.
+
+### How it works
+
+1. **Plugin phase** (`modules/dragonflow-native/app.plugin.js`): Runs when Expo reads `app.json`. Validates files are available.
+2. **Prebuild phase** (`npx expo prebuild`): Regenerates android directory from templates, deleting any custom files.
+3. **Copy phase** (`npm run copy-native-files`): Node script copies native files from module to android build directory.
+4. **Build phase** (`gradle`): Compiles with all custom files in place.
+
+The npm scripts chain these steps automatically:
+- `npm run prebuild:clean` = `expo prebuild --clean --platform android && npm run copy-native-files`
+- `npm run prebuild` = `expo prebuild --platform android && npm run copy-native-files`
+
+### Module structure
+
+```
+modules/dragonflow-native/
+├── android/src/main/
+│   ├── java/com/plgsw/dragonflow/
+│   │   ├── FloatingBubbleModule.kt      (JNI bridge to JS)
+│   │   ├── FloatingBubblePackage.kt     (module registration)
+│   │   ├── FloatingBubbleService.kt     (draggable overlay + dismiss zone)
+│   │   ├── SoundAlarmReceiver.kt        (task/Pomodoro completion sounds)
+│   │   └── BootReceiver.kt              (restore bubble on device boot)
+│   └── res/
+│       ├── drawable/bubble_icon.png     (notification icon)
+│       └── raw/{ding.mp3, tada.mp3}     (audio files)
+├── app.plugin.js                        (Expo Config Plugin)
+├── package.json
+└── README.md
+```
+
+### Adding new native code
+
+1. Add Kotlin files to `modules/dragonflow-native/android/src/main/java/com/plgsw/dragonflow/`
+2. Add resources (drawables, raw files, etc.) to `modules/dragonflow-native/android/src/main/res/`
+3. Register in `android/app/src/main/AndroidManifest.xml` or `MainActivity.kt` as needed
+4. Rebuild with `npm run prebuild:clean`
+
+Files are automatically copied during the copy phase — no code changes to the plugin or scripts required.
 
 ## Google Sign-In & Cloud Backup
 
