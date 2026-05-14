@@ -93,6 +93,7 @@ interface TaskStore {
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
+    debugModeEnabled: boolean;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -122,6 +123,7 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    setDebugModeEnabled: (enabled: boolean) => void;
     setStatusOrderConfig: (config: StatusOrderConfig) => void;
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
@@ -173,6 +175,7 @@ export const useTaskStore = create<TaskStore>()(
             categoryFilters: new Set(),
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
+            debugModeEnabled: false,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -374,6 +377,8 @@ export const useTaskStore = create<TaskStore>()(
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
 
+            setDebugModeEnabled: (enabled) => set({ debugModeEnabled: enabled }),
+
             setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
 
             setPomodoroTimer: (endTime, modeIdx, notifId) => set({
@@ -463,6 +468,7 @@ export const useTaskStore = create<TaskStore>()(
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
                 dueDateFilters: Array.from(state.dueDateFilters),
+                debugModeEnabled: state.debugModeEnabled,
             }),
             merge: (persisted: unknown, current: TaskStore) => {
                 if (!persisted) return current;
