@@ -126,9 +126,7 @@ export default function TasksScreen() {
                 setSecondsLeft(remaining);
                 setRunning(true);
             } else {
-                // Timer completed while app was away — handle as completion
-                const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
-                if (pomodoroSoundType === 'AppSound') playAppSound('tada', pomodoroVolume);
+                // Timer completed while app was away — sound already played via AlarmManager
                 clearPomodoroTimer();
                 setSecondsLeft(POMODORO_MODES[pomodoroModeIdx].minutes * 60);
             }
