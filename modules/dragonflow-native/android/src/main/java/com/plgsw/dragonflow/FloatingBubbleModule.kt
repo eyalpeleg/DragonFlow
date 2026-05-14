@@ -83,7 +83,17 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             intent,
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
-        alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+
+        // Use exact alarm if permission is granted, otherwise fall back to inexact
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
+            if (context.checkSelfPermission(android.Manifest.permission.SCHEDULE_EXACT_ALARM) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
+                alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+            } else {
+                alarmManager.setAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+            }
+        } else {
+            alarmManager.setExactAndAllowWhileIdle(AlarmManager.RTC_WAKEUP, triggerAtMs.toLong(), pendingIntent)
+        }
     }
 
     @ReactMethod
