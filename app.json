@@ -38,6 +38,7 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+      "./modules/dragonflow-native/app.plugin.js",
       "expo-router",
       [
         "expo-splash-screen",
