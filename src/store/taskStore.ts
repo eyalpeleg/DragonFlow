@@ -105,6 +105,7 @@ interface TaskStore {
     toggleSubTask: (taskId: string, subTaskId: string) => void;
     addSubTask: (taskId: string, title: string) => void;
     removeSubTask: (taskId: string, subTaskId: string) => void;
+    renameSubTask: (taskId: string, subTaskId: string, title: string) => void;
     updateCompletionComment: (taskId: string, comment: string) => void;
     setFloatingBubbleDismissed: (dismissed: boolean) => void;
     setShowBubbleInBackground: (show: boolean) => void;
@@ -324,6 +325,22 @@ export const useTaskStore = create<TaskStore>()(
                     return { ...t, subTasks: (t.subTasks ?? []).filter((st) => st.id !== subTaskId) };
                 }),
             })),
+
+            renameSubTask: (taskId, subTaskId, title) => {
+                const trimmed = title.trim();
+                if (!trimmed) return;
+                set((s) => ({
+                    tasks: s.tasks.map((t) => {
+                        if (t.id !== taskId) return t;
+                        return {
+                            ...t,
+                            subTasks: (t.subTasks ?? []).map((st) =>
+                                st.id === subTaskId ? { ...st, title: trimmed } : st
+                            ),
+                        };
+                    }),
+                }));
+            },
 
             updateCompletionComment: (taskId, comment) => set((s) => ({
                 tasks: s.tasks.map((t) => t.id === taskId ? { ...t, completionComment: comment } : t),
