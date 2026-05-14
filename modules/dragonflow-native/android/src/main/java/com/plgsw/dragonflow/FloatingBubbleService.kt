@@ -10,6 +10,7 @@ import android.content.Intent
 import android.content.res.Configuration
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
+import android.media.MediaPlayer
 import android.os.Build
 import android.os.Handler
 import android.os.IBinder
@@ -31,11 +32,19 @@ class FloatingBubbleService : Service() {
     private var pomodoroEndTimeMs: Long = 0L
     private var pomodoroFallbackCount: Int = 0
     private var pomodoroFallbackMessage: String = ""
+    private var pomodoroSoundType: String = "AppSound"
+    private var pomodoroVolume: Float = 1.0f
+    private var pomodoroCompletionPlayed = false
+    private var mediaPlayer: MediaPlayer? = null
     private val timerHandler = Handler(Looper.getMainLooper())
     private val timerRunnable: Runnable = object : Runnable {
         override fun run() {
             val remaining = pomodoroEndTimeMs - System.currentTimeMillis()
             if (remaining <= 0) {
+                if (!pomodoroCompletionPlayed) {
+                    pomodoroCompletionPlayed = true
+                    playPomodoroSound()
+                }
                 stopPomodoroCountdown(pomodoroFallbackCount, pomodoroFallbackMessage)
                 return
             }
@@ -103,6 +112,11 @@ class FloatingBubbleService : Service() {
                 val label = intent?.getStringExtra("pomodoroLabel") ?: ""
                 val fallbackCount = intent?.getIntExtra("fallbackCount", 0) ?: 0
                 val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
+                val soundType = intent?.getStringExtra("soundType") ?: "AppSound"
+                val volume = intent?.getFloatExtra("volume", 1.0f) ?: 1.0f
+                pomodoroSoundType = soundType
+                pomodoroVolume = volume
+                pomodoroCompletionPlayed = false
                 if (bubbleView == null) createBubbleView(0)
                 startPomodoroCountdown(endTimeMs, label, fallbackCount, fallbackMessage)
             }
@@ -138,11 +152,26 @@ class FloatingBubbleService : Service() {
         timerHandler.removeCallbacks(timerRunnable)
         pomodoroEndTimeMs = 0L
         bubbleView?.setTimerText(null)
+        mediaPlayer?.release()
+        mediaPlayer = null
         if (fallbackCount > 0) {
             bubbleView?.updateCount(fallbackCount)
             updateNotification("Critical tasks active")
         } else {
             stopSelf()
+        }
+    }
+
+    private fun playPomodoroSound() {
+        if (pomodoroSoundType == "Disabled") return
+        try {
+            val soundResId = R.raw.tada
+            mediaPlayer?.release()
+            mediaPlayer = MediaPlayer.create(this, soundResId)
+            mediaPlayer?.setVolume(pomodoroVolume, pomodoroVolume)
+            mediaPlayer?.start()
+        } catch (e: Exception) {
+            android.util.Log.e("FloatingBubbleService", "Error playing sound: ${e.message}")
         }
     }
 
@@ -265,6 +294,8 @@ class FloatingBubbleService : Service() {
 
     override fun onDestroy() {
         timerHandler.removeCallbacks(timerRunnable)
+        mediaPlayer?.release()
+        mediaPlayer = null
         bubbleView?.let {
             try { windowManager.removeView(it) } catch (_: Exception) {}
         }

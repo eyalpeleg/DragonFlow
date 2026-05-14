@@ -119,7 +119,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String) {
+    fun startPomodoroTimer(endTimeMs: Double, label: String, fallbackCount: Int, fallbackMessage: String, soundType: String, volume: Float) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
             !Settings.canDrawOverlays(reactApplicationContext)) {
             return
@@ -131,6 +131,8 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("pomodoroLabel", label)
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
+            putExtra("soundType", soundType)
+            putExtra("volume", volume)
         }
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             context.startForegroundService(intent)

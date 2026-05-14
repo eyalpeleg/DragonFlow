@@ -170,11 +170,14 @@ export default function TasksScreen() {
                 const remaining = Math.round((endTimeRef.current - Date.now()) / 1000);
                 console.log(`[${now()}] [Pomodoro] app going to background, ${remaining}s remaining, starting bubble countdown`);
                 const { score, message } = getFallbackBubble();
+                const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
                 FloatingBubble.startPomodoroTimer(
                     endTimeRef.current,
                     POMODORO_MODES[modeIdxRef.current].label,
                     score,
                     message,
+                    pomodoroSoundType,
+                    pomodoroVolume,
                 );
             } else if (nextState === 'active' && runningRef.current) {
                 // Only stop the bubble if timer is still running (hasn't expired yet)
@@ -185,8 +188,10 @@ export default function TasksScreen() {
                 } else if (endTimeRef.current) {
                     console.log(`[${now()}] [Pomodoro] app came to foreground, timer already expired, clearing without sound`);
                     completedRef.current = false;
+                    endTimeRef.current = null;
                     clearPomodoroTimer();
                     setRunning(false);
+                    setSecondsLeft(getModeSeconds(POMODORO_MODES[modeIdxRef.current]));
                     if (intervalRef.current) { clearInterval(intervalRef.current); intervalRef.current = null; }
                 }
             }

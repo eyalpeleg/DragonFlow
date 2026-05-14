@@ -3,12 +3,13 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 export const POMODORO_MODES = [
-    { label: 'Focus', minutes: 25, seconds: 20, color: COLORS.primary },
-    { label: 'Short Break', minutes: 5, seconds: 20, color: COLORS.status['Done'] },
+    { label: 'Focus', minutes: 25, color: COLORS.primary },
+    { label: 'Short Break', minutes: 5, color: COLORS.status['Done'] },
     { label: 'Long Break', minutes: 15, seconds: 20, color: COLORS.status['In Progress'] },
 ] as const;
 
-export const getModeSeconds = (mode: typeof POMODORO_MODES[0]) => mode.seconds || mode.minutes * 60;
+export const getModeSeconds = (mode: (typeof POMODORO_MODES)[number]) =>
+    ('seconds' in mode ? mode.seconds : mode.minutes * 60);
 
 export type PomodoroModeIdx = 0 | 1 | 2;
 
