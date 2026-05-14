@@ -416,12 +416,10 @@ class FloatingBubbleService : Service() {
 
             val t = timerText
             if (t != null) {
-                // Timer mode: show MM:SS in white
+                // Timer mode: plain white text, no stroke/shadow
                 countTextPaint.color = Color.WHITE
                 countTextPaint.textSize = w * 0.28f
-                countStrokePaint.textSize = w * 0.28f
                 val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f
-                canvas.drawText(t, w / 2f, textY, countStrokePaint)
                 canvas.drawText(t, w / 2f, textY, countTextPaint)
             } else if (count > 0) {
                 countTextPaint.color = if (count <= 3) COLOR_NORMAL else Color.RED
