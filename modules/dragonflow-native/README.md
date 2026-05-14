@@ -1,6 +1,6 @@
 # DragonFlow Native Module
 
-This Expo Config Plugin provides DragonFlow's native Android functionality that survives `npx expo prebuild --clean`.
+This module stores DragonFlow's native Android code and resources that survive `npx expo prebuild --clean`. Custom files are copied to the build directory via hooks/scripts, not by the plugin itself.
 
 ## What's Included
 
@@ -10,12 +10,15 @@ This Expo Config Plugin provides DragonFlow's native Android functionality that 
 - **BootReceiver.kt** - Restores floating bubble on device boot if urgent tasks exist
 - **Resources** - bubble_icon.png (notification icon), ding.mp3 and tada.mp3 (sound files)
 
-## How It Works
+## How Files Get Copied
 
-When `npx expo prebuild` runs:
-1. This plugin loads from `app.json`
-2. The `app.plugin.js` copies all native files from `android/src/` to `android/app/src/main/`
-3. The native module is automatically discovered and registered by Expo's autolinking system
+Native files are copied via three independent mechanisms (see CLAUDE.md for full details):
+
+1. **Local dev**: `npm run prebuild:clean` or `npm run prebuild` (chains expo + copy script)
+2. **EAS Cloud**: `eas-build-post-install.sh` hook runs automatically
+3. **Other CI**: Manually run `node ./scripts/copy-native-files.js` after prebuild
+
+The `app.plugin.js` plugin is registered in `app.json` but does NOT copy files (it runs too early, before android directory is cleared). File copying is handled by `scripts/copy-native-files.js` invoked after prebuild completes.
 
 ## File Structure
 

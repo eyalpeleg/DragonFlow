@@ -59,20 +59,43 @@ npm run lint                # ESLint
 
 Custom native code (FloatingBubble overlay, sound playback, boot receiver) is preserved via `modules/dragonflow-native/` to survive `npx expo prebuild --clean`. This structure is general-purpose and supports future native features (camera, sensors, custom Android APIs) without modification.
 
-**Always use `npm run prebuild:clean` instead of `npx expo prebuild --clean` directly.** This ensures custom files are copied to the build after prebuild regenerates the android directory.
+### Problem
 
-### How it works
+Expo's prebuild clears and regenerates the `android/` directory from templates. Any custom native code in `android/app/src/main/java/` is deleted, making native code unmaintainable. Solution: Store source in `modules/dragonflow-native/` and copy to build directory via hooks/scripts.
 
-1. **Plugin phase** (`modules/dragonflow-native/app.plugin.js`): Runs when Expo reads `app.json`. Validates files are available.
-2. **Prebuild phase** (`npx expo prebuild`): Regenerates android directory from templates, deleting any custom files.
-3. **Copy phase** (`npm run copy-native-files`): Node script copies native files from module to android build directory.
-4. **Build phase** (`gradle`): Compiles with all custom files in place.
+### Three-Layer Architecture
 
-The npm scripts chain these steps automatically:
-- `npm run prebuild:clean` = `expo prebuild --clean --platform android && npm run copy-native-files`
-- `npm run prebuild` = `expo prebuild --platform android && npm run copy-native-files`
+Native files are copied via three independent mechanisms so it works regardless of how/where the build runs:
 
-### Module structure
+#### Layer 1: Local Development (npm scripts)
+Use `npm run prebuild:clean` or `npm run prebuild` instead of calling expo directly.
+
+```bash
+npm run prebuild:clean  # expo prebuild --clean --platform android && npm run copy-native-files
+npm run prebuild        # expo prebuild --platform android && npm run copy-native-files
+```
+
+These scripts automatically chain `expo prebuild` → `npm run copy-native-files` so custom files are copied after the android directory is regenerated. Works with any IDE/terminal as long as you use the npm command.
+
+#### Layer 2: EAS Cloud Build (eas-build-post-install.sh hook)
+EAS Build automatically runs `eas-build-post-install.sh` after installing dependencies and before gradle compilation. This hook runs the copy script without any manual configuration needed.
+
+```bash
+# EAS automatically runs this when building in the cloud
+eas-build-post-install.sh → node ./scripts/copy-native-files.js
+```
+
+Deploy with `eas build` and custom native files are copied automatically.
+
+#### Layer 3: Other CI/CD (manual)
+For GitHub Actions, GitLab CI, or other build systems, manually run the copy script after prebuild:
+
+```bash
+npx expo prebuild --platform android
+node ./scripts/copy-native-files.js
+```
+
+### Module Structure
 
 ```
 modules/dragonflow-native/
@@ -86,19 +109,29 @@ modules/dragonflow-native/
 │   └── res/
 │       ├── drawable/bubble_icon.png     (notification icon)
 │       └── raw/{ding.mp3, tada.mp3}     (audio files)
-├── app.plugin.js                        (Expo Config Plugin)
+├── app.plugin.js                        (plugin registration, no file copying)
 ├── package.json
 └── README.md
+
+scripts/
+└── copy-native-files.js                 (runs after prebuild to copy all files)
+
+eas-build-post-install.sh                (EAS hook, runs copy script automatically)
 ```
 
-### Adding new native code
+### Adding New Native Code
 
 1. Add Kotlin files to `modules/dragonflow-native/android/src/main/java/com/plgsw/dragonflow/`
-2. Add resources (drawables, raw files, etc.) to `modules/dragonflow-native/android/src/main/res/`
+2. Add resources to `modules/dragonflow-native/android/src/main/res/{drawable,raw,etc}/`
 3. Register in `android/app/src/main/AndroidManifest.xml` or `MainActivity.kt` as needed
-4. Rebuild with `npm run prebuild:clean`
+4. Update `scripts/copy-native-files.js` if you add new directories or file types
+5. Rebuild: `npm run prebuild:clean` (local) or `eas build` (cloud)
 
-Files are automatically copied during the copy phase — no code changes to the plugin or scripts required.
+### Files Are Copied Regardless Of
+
+- How prebuild is invoked (npm script, IDE, CLI, Expo web dashboard)
+- Where build runs (local dev, EAS cloud, GitHub Actions, etc.)
+- Who invokes it (developer, CI system, build server)
 
 ## Google Sign-In & Cloud Backup
 
