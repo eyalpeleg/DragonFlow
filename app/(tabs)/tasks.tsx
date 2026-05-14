@@ -153,11 +153,14 @@ export default function TasksScreen() {
         const sub = AppState.addEventListener('change', (nextState: string) => {
             if (nextState === 'background' && runningRef.current && endTimeRef.current) {
                 const { score, message } = getFallbackBubble();
+                const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
                 FloatingBubble.startPomodoroTimer(
                     endTimeRef.current,
                     getModeLabel(modeIdxRef.current as PomodoroModeIdx),
                     score,
                     message,
+                    pomodoroSoundType,
+                    pomodoroVolume,
                 );
             } else if (nextState === 'active' && runningRef.current) {
                 const { score, message } = getFallbackBubble();

@@ -36,15 +36,19 @@ export default function RootLayout() {
                     setFloatingBubbleDismissed(false);
                 }
             } else if (nextState === 'background') {
-                const pad = (n: number) => String(n).padStart(2, '0');
-                const now = new Date();
-                const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-                const tom = new Date(now);
-                tom.setDate(tom.getDate() + 1);
-                const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
-                const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
-                if (score > 0 && !dismissedFloatingBubble && showBubble) {
-                    FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
+                // Don't show task bubble if Pomodoro is running — timer component handles it
+                const { pomodoroEndTime } = useTaskStore.getState();
+                if (pomodoroEndTime === null || pomodoroEndTime <= Date.now()) {
+                    const pad = (n: number) => String(n).padStart(2, '0');
+                    const now = new Date();
+                    const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
+                    const tom = new Date(now);
+                    tom.setDate(tom.getDate() + 1);
+                    const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+                    const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+                    if (score > 0 && !dismissedFloatingBubble && showBubble) {
+                        FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
+                    }
                 }
                 backupService.onAppBackground();
             }
