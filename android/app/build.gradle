@@ -180,3 +180,20 @@ dependencies {
         implementation jscFlavor
     }
 }
+
+tasks.register('fixPackageNameInAutolinking') {
+    doLast {
+        def entryPointFile = file("${buildDir}/generated/autolinking/src/main/java/com/facebook/react/ReactNativeApplicationEntryPoint.java")
+        if (entryPointFile.exists()) {
+            def content = entryPointFile.text
+            content = content.replace('com.dragonflow.BuildConfig', 'com.plgsw.dragonflow.BuildConfig')
+            entryPointFile.text = content
+        }
+    }
+}
+
+tasks.whenTaskAdded { task ->
+    if (task.name == 'compileDebugJavaWithJavac' || task.name == 'compileReleaseJavaWithJavac') {
+        task.dependsOn(fixPackageNameInAutolinking)
+    }
+}
