@@ -3,9 +3,9 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 export const POMODORO_MODES = [
-    { label: 'Focus', minutes: 25, color: COLORS.primary },
-    { label: 'Short Break', minutes: 5, color: COLORS.status['Done'] },
-    { label: 'Long Break', minutes: 15, color: COLORS.status['In Progress'] },
+    { label: 'Focus', minutes: 1, color: COLORS.primary },
+    { label: 'Short Break', minutes: 1, color: COLORS.status['Done'] },
+    { label: 'Long Break', minutes: 1, color: COLORS.status['In Progress'] },
 ] as const;
 
 export type PomodoroModeIdx = 0 | 1 | 2;

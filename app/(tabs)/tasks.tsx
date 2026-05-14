@@ -160,7 +160,7 @@ export default function TasksScreen() {
                     score,
                     message,
                 );
-            } else if (nextState === 'active' && runningRef.current) {
+            } else if (nextState === 'active' && runningRef.current && endTimeRef.current && endTimeRef.current > Date.now()) {
                 const { score, message } = getFallbackBubble();
                 FloatingBubble.stopPomodoroTimer(score, message);
             }
