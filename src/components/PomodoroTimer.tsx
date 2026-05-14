@@ -3,10 +3,12 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { COLORS } from '../styles/theme';
 
 export const POMODORO_MODES = [
-    { label: 'Focus', minutes: 1, color: COLORS.primary },
-    { label: 'Short Break', minutes: 1, color: COLORS.status['Done'] },
-    { label: 'Long Break', minutes: 1, color: COLORS.status['In Progress'] },
+    { label: 'Focus', minutes: 25, seconds: 20, color: COLORS.primary },
+    { label: 'Short Break', minutes: 5, seconds: 20, color: COLORS.status['Done'] },
+    { label: 'Long Break', minutes: 15, seconds: 20, color: COLORS.status['In Progress'] },
 ] as const;
+
+export const getModeSeconds = (mode: typeof POMODORO_MODES[0]) => mode.seconds || mode.minutes * 60;
 
 export type PomodoroModeIdx = 0 | 1 | 2;
 
@@ -29,7 +31,7 @@ export default function PomodoroTimer({
     onSelectMode, onStart, onPause, onReset,
 }: Props) {
     const mode = POMODORO_MODES[modeIdx];
-    const totalSeconds = mode.minutes * 60;
+    const totalSeconds = getModeSeconds(mode);
     const progress = secondsLeft / totalSeconds;
 
     const mins = String(Math.floor(secondsLeft / 60)).padStart(2, '0');

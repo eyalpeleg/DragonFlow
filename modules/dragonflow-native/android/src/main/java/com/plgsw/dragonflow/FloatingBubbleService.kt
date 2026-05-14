@@ -99,16 +99,16 @@ class FloatingBubbleService : Service() {
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
         when (intent?.getStringExtra("action")) {
             "startPomodoro" -> {
-                val endTimeMs = intent.getLongExtra("pomodoroEndTimeMs", 0L)
-                val label = intent.getStringExtra("pomodoroLabel") ?: ""
-                val fallbackCount = intent.getIntExtra("fallbackCount", 0)
-                val fallbackMessage = intent.getStringExtra("fallbackMessage") ?: ""
+                val endTimeMs = intent?.getLongExtra("pomodoroEndTimeMs", 0L) ?: 0L
+                val label = intent?.getStringExtra("pomodoroLabel") ?: ""
+                val fallbackCount = intent?.getIntExtra("fallbackCount", 0) ?: 0
+                val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
                 if (bubbleView == null) createBubbleView(0)
                 startPomodoroCountdown(endTimeMs, label, fallbackCount, fallbackMessage)
             }
             "stopPomodoro" -> {
-                val fallbackCount = intent.getIntExtra("fallbackCount", 0)
-                val fallbackMessage = intent.getStringExtra("fallbackMessage") ?: ""
+                val fallbackCount = intent?.getIntExtra("fallbackCount", 0) ?: 0
+                val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
                 stopPomodoroCountdown(fallbackCount, fallbackMessage)
             }
             else -> {

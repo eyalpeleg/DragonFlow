@@ -84,6 +84,13 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
+        val now = System.currentTimeMillis()
+        val delayMs = triggerAtMs.toLong() - now
+        val formatter = java.text.SimpleDateFormat("HH:mm:ss.SSS", java.util.Locale.US)
+        val nowStr = formatter.format(java.util.Date(now))
+        val triggerStr = formatter.format(java.util.Date(triggerAtMs.toLong()))
+        android.util.Log.d("FloatingBubbleModule", "[$nowStr] [scheduleSound] $alarmId: trigger=$triggerStr, delay=${delayMs}ms, soundFile=$soundFile")
+
         // Use exact alarm if permission is granted, otherwise fall back to inexact
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.S) {
             if (context.checkSelfPermission(android.Manifest.permission.SCHEDULE_EXACT_ALARM) == android.content.pm.PackageManager.PERMISSION_GRANTED) {
