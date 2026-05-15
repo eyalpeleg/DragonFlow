@@ -28,7 +28,9 @@ export default function DoneStatsModal({ task, onClose }: Props) {
     const [comment, setComment] = useState('');
 
     useEffect(() => {
+        // Reload only when switching tasks; not on every parent re-render that hands us a new task object.
         if (task) setComment(task.completionComment ?? '');
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [task?.id]);
 
     if (!task || task.status !== 'Done') return null;

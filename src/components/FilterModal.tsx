@@ -2,10 +2,9 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { COLORS, PriorityLevel } from '../styles/theme';
 import { useTaskStore, getCategoryColor, getCategoryName } from '../store/appStore';
 import { TaskStatus } from '../types';
-import { PriorityLevel } from '../styles/theme';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
 
@@ -24,7 +23,7 @@ const PRIORITY_COLORS: Record<PriorityLevel, string> = {
     Medium: '#FFC107',
     Low: '#4CAF50',
 };
-const DUE_DATE_OPTIONS: Array<'overdue' | 'today' | 'upcoming'> = ['overdue', 'today', 'upcoming'];
+const DUE_DATE_OPTIONS: ('overdue' | 'today' | 'upcoming')[] = ['overdue', 'today', 'upcoming'];
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };
 
 export default function FilterModal({ isOpen, filterType, onClose, onSave }: Props) {

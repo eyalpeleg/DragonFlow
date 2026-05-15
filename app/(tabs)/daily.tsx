@@ -57,8 +57,6 @@ export default function DailyScreen() {
         }))
         .filter((c) => c.count > 0);
 
-    const today = new Date().toLocaleDateString('en-US', { weekday: 'long', month: 'long', day: 'numeric' });
-
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>

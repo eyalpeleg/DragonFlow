@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
@@ -41,7 +41,9 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [dateExpanded, setDateExpanded] = useState(false);
 
     useEffect(() => {
+        // Initialize on open only; ignore later changes to defaultTaskTime so we don't overwrite the user's edits.
         if (isVisible) setDueTime(defaultTaskTime);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isVisible]);
 
     function addSubTask() {
