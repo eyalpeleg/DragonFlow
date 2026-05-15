@@ -503,27 +503,43 @@ export default function SettingsScreen() {
                             <Text style={styles.noBackupsText}>No backups found on Google Drive.</Text>
                         ) : (
                             <ScrollView style={styles.backupScrollView}>
-                                {availableBackups.map((backup) => {
-                                    const isSelected = selectedBackupId === backup.fileId;
-                                    const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
-                                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                                    });
-                                    const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+                                {(['weekly', 'daily', 'ongoing'] as const).map((bucket) => {
+                                    const inBucket = availableBackups
+                                        .filter((b) => b.bucket === bucket)
+                                        .sort(
+                                            (a, b) =>
+                                                new Date(b.modifiedTime).getTime() -
+                                                new Date(a.modifiedTime).getTime(),
+                                        );
+                                    if (inBucket.length === 0) return null;
+                                    const headerLabel = bucket === 'ongoing' ? 'Ongoing' : bucket === 'daily' ? 'Daily' : 'Weekly';
                                     return (
-                                        <TouchableOpacity
-                                            key={backup.fileId}
-                                            style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
-                                            onPress={() => setSelectedBackupId(backup.fileId)}
-                                        >
-                                            <Ionicons
-                                                name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                                                size={20}
-                                                color={isSelected ? COLORS.primary : '#ccc'}
-                                            />
-                                            <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
-                                                {date}{taskLabel}
-                                            </Text>
-                                        </TouchableOpacity>
+                                        <View key={bucket}>
+                                            <Text style={styles.bucketHeader}>{headerLabel}</Text>
+                                            {inBucket.map((backup) => {
+                                                const isSelected = selectedBackupId === backup.fileId;
+                                                const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
+                                                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                                                });
+                                                const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={backup.fileId}
+                                                        style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
+                                                        onPress={() => setSelectedBackupId(backup.fileId)}
+                                                    >
+                                                        <Ionicons
+                                                            name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                                                            size={20}
+                                                            color={isSelected ? COLORS.primary : '#ccc'}
+                                                        />
+                                                        <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
+                                                            {date}{taskLabel}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
                                     );
                                 })}
                             </ScrollView>
@@ -679,7 +695,17 @@ const styles = StyleSheet.create({
     restoreTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', textAlign: 'center' },
     restoreLoader: { marginVertical: 30 },
     noBackupsText: { fontSize: 12, color: '#999', textAlign: 'center', marginVertical: 30 },
-    backupScrollView: { maxHeight: 300, marginVertical: 12 },
+    backupScrollView: { maxHeight: 360, marginVertical: 12 },
+    bucketHeader: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#888',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 8,
+        marginBottom: 4,
+        paddingHorizontal: 4,
+    },
     restoreRow: {
         flexDirection: 'row',
         alignItems: 'center',
