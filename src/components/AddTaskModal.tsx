@@ -40,8 +40,13 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [subTaskInput, setSubTaskInput] = useState('');
     const [dateExpanded, setDateExpanded] = useState(false);
 
+    const titleInputRef = useRef<TextInput>(null);
+
     useEffect(() => {
-        if (isVisible) setDueTime(defaultTaskTime);
+        if (isVisible) {
+            setDueTime(defaultTaskTime);
+            setTimeout(() => titleInputRef.current?.focus(), 300);
+        }
     }, [isVisible]);
 
     function addSubTask() {
@@ -120,11 +125,11 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <Text style={styles.modalTitle}>{title.trim() || 'New Task'}</Text>
 
                         <TextInput
+                            ref={titleInputRef}
                             placeholder="Task title"
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
-                            autoFocus
                             returnKeyType="done"
                             onSubmitEditing={handleTitleSubmit}
                         />
