@@ -14,6 +14,13 @@ interface Props {
     onOpenStats: (task: Task) => void;
 }
 
+const STATUS_BAR_COLORS: Record<TaskStatus, string> = {
+    'Ready': '#B0BEC5',
+    'In Progress': '#64B5F6',
+    'Paused': '#FFB74D',
+    'Done': '#81C784',
+};
+
 export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
     const categories = useTaskStore((s) => s.categories);
     const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
@@ -46,7 +53,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
             activeOpacity={status === 'Done' ? 0.7 : 1}
             onPress={status === 'Done' ? () => onOpenStats(task) : undefined}
         >
-            <View style={[styles.card, status === 'Done' && styles.cardDone]}>
+            <View style={[styles.card, { borderLeftColor: STATUS_BAR_COLORS[status] }, status === 'Done' && styles.cardDone]}>
                 <View style={styles.topRow}>
                     <Text style={[styles.title, status === 'Done' && styles.titleDone]} numberOfLines={2}>{title}</Text>
                     <View style={styles.actions}>
@@ -59,7 +66,11 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                             <Ionicons name="pencil-sharp" size={15} color="#666" />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
-                            <Ionicons name={status === 'Done' ? 'archive' : 'trash'} size={15} color="#aaa" />
+                            <Ionicons
+                                name={status === 'Done' ? 'archive' : 'trash'}
+                                size={15}
+                                color={status === 'Done' ? '#aaa' : '#F44336'}
+                            />
                         </TouchableOpacity>
                     </View>
                 </View>
@@ -72,14 +83,18 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                             <Text style={styles.meta}>{categoryName}</Text>
                         </View>
                         <Text style={[styles.meta, isUrgent && styles.metaUrgent]}>{priority}</Text>
+                        {isOverdue && (
+                            <View style={styles.overdueBadge}>
+                                <Text style={styles.overdueBadgeText}>Overdue</Text>
+                            </View>
+                        )}
                         {displayDate && (
                             <View style={styles.metaItem}>
                                 <Text style={[
                                     styles.meta,
-                                    isOverdue && styles.metaAlert,
                                     isDueToday && styles.metaAlertBold,
                                 ]}>
-                                    {isOverdue ? '⚠ ' : ''}{isDueToday ? 'Today' : displayDate}
+                                    {isDueToday ? 'Today' : displayDate}
                                 </Text>
                                 {isRecurring && (
                                     <Ionicons name="repeat" size={12} color="#aaa" style={styles.recurIcon} />
@@ -152,7 +167,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
 const styles = StyleSheet.create({
     card: {
         backgroundColor: '#fff', padding: 14, marginVertical: 5, marginHorizontal: 12,
-        borderRadius: 12, borderLeftWidth: 2, borderLeftColor: '#E0E0E0', elevation: 1,
+        borderRadius: 12, borderLeftWidth: 4, elevation: 1,
         shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
     },
     cardDone: { opacity: 0.6 },
@@ -168,8 +183,9 @@ const styles = StyleSheet.create({
     catDot: { width: 7, height: 7, borderRadius: 4 },
     meta: { fontSize: 12, color: '#888' },
     metaUrgent: { color: '#D32F2F', fontWeight: '600' },
-    metaAlert: { color: '#D32F2F', fontWeight: '600' },
     metaAlertBold: { color: '#D32F2F', fontWeight: '700' },
+    overdueBadge: { backgroundColor: '#E53935', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+    overdueBadgeText: { color: 'white', fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
     recurIcon: { marginLeft: 2 },
     statusBtnGroup: { flexDirection: 'row', gap: 6 },
     statusIconBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
