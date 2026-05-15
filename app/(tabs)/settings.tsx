@@ -244,7 +244,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume)}
+                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume).catch(console.error)}
                                 disabled={tasksSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume)}
+                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume).catch(console.error)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -482,14 +482,14 @@ export default function SettingsScreen() {
                 volume={tasksVolume}
                 onVolumeChange={setTasksVolume}
                 onClose={() => setTasksVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol).catch(console.error)}
             />
             <VolumeControl
                 visible={pomodoroVolumeVisible}
                 volume={pomodoroVolume}
                 onVolumeChange={setPomodoroVolume}
                 onClose={() => setPomodoroVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol).catch(console.error)}
             />
 
             {/* Restore Picker Modal */}

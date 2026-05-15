@@ -1,9 +1,9 @@
 import * as Notifications from 'expo-notifications';
 import { Platform } from 'react-native';
-import { createAudioPlayer } from 'expo-audio';
 import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
 import FloatingBubble from '../modules/FloatingBubble';
+import { audioService } from '../services/audioService';
 
 const POMODORO_CHANNEL = 'pomodoro-3';
 const REMINDERS_CHANNEL = 'reminders-3';
@@ -167,16 +167,7 @@ export async function cancelTaskReminders(taskId: string): Promise<void> {
 }
 
 export async function playAppSound(soundFile: 'ding' | 'bell', volume: number = 1.0): Promise<void> {
-    try {
-        const soundAsset = soundFile === 'bell'
-            ? require('../../assets/audio/bell.mp3')
-            : require('../../assets/audio/ding.mp3');
-        const player = createAudioPlayer(soundAsset);
-        player.volume = Math.max(0, Math.min(1, volume));
-        player.play();
-    } catch (error) {
-        console.error('Audio playback error:', error);
-    }
+    await audioService.play(soundFile, volume);
 }
 
 export async function playPreviewSound(soundType: 'ding' | 'bell', preference: SoundType, volume: number = 1.0): Promise<void> {

@@ -85,7 +85,7 @@ export default function TasksScreen() {
     }, []);
 
     // isPause=true saves remaining seconds; default clears the timer entirely
-    const stopTimer = useCallback((isPause = false) => {
+    const stopTimer = useCallback(async (isPause = false) => {
         const didComplete = completedRef.current;
         console.log('[Pomodoro:stopTimer] called — isPause=', isPause, ' didComplete=', didComplete, ' endTimeRef=', endTimeRef.current);
         completedRef.current = false;
@@ -111,7 +111,7 @@ export default function TasksScreen() {
         if (didComplete) {
             const { pomodoroSoundType } = useTaskStore.getState();
             console.log('[Pomodoro:stopTimer] didComplete=true, soundType=', pomodoroSoundType, ' — playing sound if AppSound');
-            if (pomodoroSoundType === 'AppSound') playAppSound('bell', 1.0);
+            if (pomodoroSoundType === 'AppSound') await playAppSound('bell', 1.0);
         }
     }, [pausePomodoroTimer, clearPomodoroTimer, getFallbackBubble]);
 
