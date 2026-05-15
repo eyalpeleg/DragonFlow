@@ -6,11 +6,19 @@ import * as googleDrive from './googleDrive';
 import { AuthError, BackupMetadata } from './types';
 
 const DEBOUNCE_MS = 30_000;
+const MIN_BACKUP_INTERVAL_MS = 15 * 60 * 1000;
 const MAX_CONSECUTIVE_FAILURES = 3;
 const MAX_BACKUPS = 5;
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let hasPendingChanges = false;
+
+function msUntilNextAllowedBackup(): number {
+    const { lastBackupTime } = useBackupStore.getState();
+    if (!lastBackupTime) return 0;
+    const elapsed = Date.now() - new Date(lastBackupTime).getTime();
+    return Math.max(0, MIN_BACKUP_INTERVAL_MS - elapsed);
+}
 
 export async function initializeBackup(): Promise<void> {
     const tokens = await googleAuth.loadStoredAuth();
@@ -105,11 +113,13 @@ export function setupAutoBackup(): () => void {
 
         hasPendingChanges = true;
 
+        const delay = Math.max(DEBOUNCE_MS, msUntilNextAllowedBackup());
+
         if (debounceTimer) clearTimeout(debounceTimer);
         debounceTimer = setTimeout(() => {
             debounceTimer = null;
             performBackup().catch(() => {});
-        }, DEBOUNCE_MS);
+        }, delay);
     });
 
     return () => {
@@ -125,6 +135,19 @@ export function onAppBackground(): void {
     if (!hasPendingChanges) return;
     const { isSignedIn, autoBackupEnabled } = useBackupStore.getState();
     if (!isSignedIn || !autoBackupEnabled) return;
+
+    const waitMs = msUntilNextAllowedBackup();
+    if (waitMs > 0) {
+        // Too soon since last backup — keep pending changes and let the
+        // scheduled debounce timer fire when the minimum interval has elapsed.
+        if (!debounceTimer) {
+            debounceTimer = setTimeout(() => {
+                debounceTimer = null;
+                performBackup().catch(() => {});
+            }, waitMs);
+        }
+        return;
+    }
 
     if (debounceTimer) {
         clearTimeout(debounceTimer);
