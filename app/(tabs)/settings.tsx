@@ -53,7 +53,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -446,6 +446,24 @@ export default function SettingsScreen() {
                                 </TouchableOpacity>
                             </>
                         )}
+                    </View>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Troubleshooting">
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLabel}>
+                            <Ionicons name="bug" size={20} color={COLORS.primary} />
+                            <View style={styles.ml12}>
+                                <Text style={styles.settingTitle}>Debug Mode</Text>
+                                <Text style={styles.settingDesc}>Show new task list design (preview)</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={debugModeEnabled}
+                            onValueChange={setDebugModeEnabled}
+                            trackColor={SWITCH_TRACK_COLOR}
+                            thumbColor="white"
+                        />
                     </View>
                 </CollapsibleSection>
 

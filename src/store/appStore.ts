@@ -89,6 +89,7 @@ interface TaskStore {
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
     customTimerSeconds: number;
+    debugModeEnabled: boolean;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -123,6 +124,7 @@ interface TaskStore {
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
     setCustomTimerSeconds: (seconds: number) => void;
+    setDebugModeEnabled: (enabled: boolean) => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
@@ -157,6 +159,7 @@ export const useTaskStore = create<TaskStore>()(
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
             customTimerSeconds: 0,
+            debugModeEnabled: false,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -385,6 +388,10 @@ export const useTaskStore = create<TaskStore>()(
                 customTimerSeconds: seconds,
             }),
 
+            setDebugModeEnabled: (enabled) => set({
+                debugModeEnabled: enabled,
+            }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -447,6 +454,7 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
                 customTimerSeconds: state.customTimerSeconds,
+                debugModeEnabled: state.debugModeEnabled,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

@@ -163,7 +163,7 @@ const styles = StyleSheet.create({
     container: { marginTop: 8, borderTopWidth: 1, borderTopColor: '#f0f0f0', paddingTop: 8 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: '#eee', overflow: 'hidden' },
-    progressFill: { height: 4, borderRadius: 2, backgroundColor: COLORS.status['Done'] },
+    progressFill: { height: 4, borderRadius: 2, backgroundColor: COLORS.primary },
     progressLabel: { fontSize: 11, color: '#999', minWidth: 28, textAlign: 'right' },
     list: { marginTop: 8, gap: 6 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
