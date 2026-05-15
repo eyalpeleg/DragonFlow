@@ -9,6 +9,7 @@ import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
+import { makeId } from '../utils/id';
 
 // Re-export for backward compatibility
 export { getCategoryColor, getCategoryName };
@@ -52,10 +53,6 @@ function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomod
     } else {
         FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
     }
-}
-
-function makeId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
 export interface AddTaskInput {
