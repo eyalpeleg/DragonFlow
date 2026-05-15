@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import { PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
@@ -129,20 +129,6 @@ interface TaskStore {
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
-
-const priorityOrder: Record<PriorityLevel, number> = {
-    Critical: 0,
-    High: 1,
-    Medium: 2,
-    Low: 3,
-};
-
-const statusOrder: Record<TaskStatus, number> = {
-    'In Progress': 0,
-    'Paused': 1,
-    'Ready': 1,
-    'Done': 3,
-};
 
 export const useTaskStore = create<TaskStore>()(
     persist(

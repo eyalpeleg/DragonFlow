@@ -9,7 +9,7 @@ import { backupService } from '@/src/services/cloudBackup';
 import { setAudioModeAsync } from 'expo-audio';
 
 export default function RootLayout() {
-    const { setFloatingBubbleDismissed, dismissedFloatingBubble } = useTaskStore();
+    const { setFloatingBubbleDismissed } = useTaskStore();
 
     useEffect(() => {
         setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});

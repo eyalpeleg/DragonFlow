@@ -3,8 +3,6 @@ import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-nati
 import { Ionicons } from '@expo/vector-icons';
 import { COLORS } from '../styles/theme';
 import { useTaskStore, getCategoryName } from '../store/appStore';
-import { TaskStatus } from '../types';
-import { PriorityLevel } from '../styles/theme';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
 
@@ -18,13 +16,6 @@ const FILTER_CONFIG: Record<FilterType, { icon: string; label: string; color: st
     category: { icon: 'folder', label: 'Category', color: COLORS.primary },
     priority: { icon: 'alert-circle', label: 'Priority', color: '#FF9800' },
     dueDate: { icon: 'calendar', label: 'Due', color: '#666' },
-};
-
-const PRIORITY_COLORS: Record<PriorityLevel, string> = {
-    Critical: '#F44336',
-    High: '#FF9800',
-    Medium: '#FFC107',
-    Low: '#4CAF50',
 };
 
 export default function FilterBar({ onFilterPress, onAddFilter }: Props) {

@@ -103,7 +103,7 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
     if (!task.dueDate || task.status === 'Done') return;
 
     const time = task.dueTime ?? '08:00';
-    const [dueHour, dueMin] = time.split(':').map(Number);
+    const [dueHour] = time.split(':').map(Number);
     const dueMs = new Date(`${task.dueDate}T${time}:00`).getTime();
     if (isNaN(dueMs)) return;
 

@@ -1,5 +1,5 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useState } from 'react';
 import { Keyboard, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
@@ -43,10 +43,12 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const titleInputRef = useRef<TextInput>(null);
 
     useEffect(() => {
+
         if (isVisible) {
             setDueTime(defaultTaskTime);
             setTimeout(() => titleInputRef.current?.focus(), 300);
         }
+
     }, [isVisible]);
 
     function addSubTask() {

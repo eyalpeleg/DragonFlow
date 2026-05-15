@@ -136,7 +136,7 @@ export default function TasksScreen() {
 
     // Rehydrate timer from persisted store on mount (no sound playback at rehydration)
     useEffect(() => {
-        const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft, pomodoroNotifId, customTimerSeconds: storedCustomTimerSeconds } = useTaskStore.getState();
+        const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft, pomodoroNotifId } = useTaskStore.getState();
         console.log('[Pomodoro:rehydrate] state:', {
             pomodoroEndTime,
             pomodoroModeIdx,
@@ -218,7 +218,7 @@ export default function TasksScreen() {
             }
         });
         return () => sub.remove();
-    }, [getFallbackBubble]);
+    }, [getFallbackBubble, clearPomodoroTimer]);
 
     const handleSelectMode = useCallback((idx: PomodoroModeIdx) => {
         stopTimer();

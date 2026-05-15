@@ -3,14 +3,33 @@ import { useTaskStore } from '../../store/appStore';
 import { useBackupStore } from './backupStore';
 import * as googleAuth from './googleAuth';
 import * as googleDrive from './googleDrive';
-import { AuthError, BackupMetadata } from './types';
+import { AuthError, BackupBucket, BackupMetadata } from './types';
 
-const DEBOUNCE_MS = 30_000;
+const DEBOUNCE_MS = 5 * 60 * 1000;
 const MAX_CONSECUTIVE_FAILURES = 3;
-const MAX_BACKUPS = 5;
+const RETENTION: Record<BackupBucket, number> = { ongoing: 20, daily: 7, weekly: 4 };
 
 let debounceTimer: ReturnType<typeof setTimeout> | null = null;
 let hasPendingChanges = false;
+
+function localDateKey(d: Date): string {
+    const pad = (n: number) => String(n).padStart(2, '0');
+    return `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`;
+}
+
+function startOfWeekKey(d: Date, firstDayOfWeek: 'sunday' | 'monday'): string {
+    const firstDay = firstDayOfWeek === 'sunday' ? 0 : 1;
+    const day = d.getDay();
+    const daysBack = (day - firstDay + 7) % 7;
+    const start = new Date(d.getFullYear(), d.getMonth(), d.getDate() - daysBack);
+    return localDateKey(start);
+}
+
+function newestInBucket(backups: BackupMetadata[], bucket: BackupBucket): BackupMetadata | undefined {
+    return backups
+        .filter((b) => b.bucket === bucket)
+        .sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime())[0];
+}
 
 export async function initializeBackup(): Promise<void> {
     const tokens = await googleAuth.loadStoredAuth();
@@ -37,13 +56,29 @@ export async function performBackup(): Promise<void> {
         const token = await googleAuth.getValidToken();
         const payload = useTaskStore.getState().exportData();
 
-        const uploaded = await googleDrive.uploadBackup(token, payload);
+        const existing = await googleDrive.listBackupFiles(token);
 
-        // Cleanup old backups
-        const allBackups = await googleDrive.listBackupFiles(token);
-        await googleDrive.cleanupOldBackups(token, allBackups, MAX_BACKUPS);
+        const ongoing = await googleDrive.uploadBackup(token, payload, 'ongoing');
+        const uploaded: BackupMetadata[] = [ongoing];
 
-        backupState.setLastBackup(new Date().toISOString(), uploaded.fileId);
+        const now = new Date();
+        const firstDayOfWeek = useTaskStore.getState().firstDayOfWeek;
+
+        const newestDaily = newestInBucket(existing, 'daily');
+        const todayKey = localDateKey(now);
+        if (!newestDaily || localDateKey(new Date(newestDaily.modifiedTime)) !== todayKey) {
+            uploaded.push(await googleDrive.uploadBackup(token, payload, 'daily'));
+        }
+
+        const newestWeekly = newestInBucket(existing, 'weekly');
+        const thisWeekKey = startOfWeekKey(now, firstDayOfWeek);
+        if (!newestWeekly || startOfWeekKey(new Date(newestWeekly.modifiedTime), firstDayOfWeek) !== thisWeekKey) {
+            uploaded.push(await googleDrive.uploadBackup(token, payload, 'weekly'));
+        }
+
+        await googleDrive.cleanupOldBackups(token, [...existing, ...uploaded], RETENTION);
+
+        backupState.setLastBackup(new Date().toISOString(), ongoing.fileId);
         backupState.setStatus('idle');
         backupState.resetFailures();
         hasPendingChanges = false;

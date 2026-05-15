@@ -13,7 +13,10 @@ export interface BackupMetadata {
     modifiedTime: string; // ISO
     size: number;
     taskCount?: number;
+    bucket: BackupBucket;
 }
+
+export type BackupBucket = 'ongoing' | 'daily' | 'weekly';
 
 export type BackupStatus = 'idle' | 'backing-up' | 'restoring' | 'error';
 
