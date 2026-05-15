@@ -40,10 +40,15 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [subTaskInput, setSubTaskInput] = useState('');
     const [dateExpanded, setDateExpanded] = useState(false);
 
+    const titleInputRef = useRef<TextInput>(null);
+
     useEffect(() => {
-        // Initialize on open only; ignore later changes to defaultTaskTime so we don't overwrite the user's edits.
-        if (isVisible) setDueTime(defaultTaskTime);
-        // eslint-disable-next-line react-hooks/exhaustive-deps
+
+        if (isVisible) {
+            setDueTime(defaultTaskTime);
+            setTimeout(() => titleInputRef.current?.focus(), 300);
+        }
+
     }, [isVisible]);
 
     function addSubTask() {
@@ -122,11 +127,11 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <Text style={styles.modalTitle}>{title.trim() || 'New Task'}</Text>
 
                         <TextInput
+                            ref={titleInputRef}
                             placeholder="Task title"
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
-                            autoFocus
                             returnKeyType="done"
                             onSubmitEditing={handleTitleSubmit}
                         />
