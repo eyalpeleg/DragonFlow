@@ -50,7 +50,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
             setTimeout(() => titleInputRef.current?.focus(), 300);
         }
 
-    }, [isVisible]);
+    }, [isVisible, defaultTaskTime]);
 
     function addSubTask() {
         const t = subTaskInput.trim();
