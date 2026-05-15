@@ -30,7 +30,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
     const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
     const [dueDate, setDueDate] = useState<Date | null>(null);
-    const [autoOpenTime, setAutoOpenTime] = useState(false);
+    const [autoOpenTime, setAutoOpenTime] = useState(0);
     const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [isRecurring, setIsRecurring] = useState(false);
@@ -71,12 +71,24 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function handleDateChange(date: Date) {
         setDueDate(date);
-        setAutoOpenTime(true);
+        setAutoOpenTime((n) => n + 1);
+
+        const now = new Date();
+        const isToday = date.getFullYear() === now.getFullYear()
+            && date.getMonth() === now.getMonth()
+            && date.getDate() === now.getDate();
+        if (isToday) {
+            const pad = (n: number) => String(n).padStart(2, '0');
+            const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
+            setDueTime(nowTime > defaultTaskTime ? nowTime : defaultTaskTime);
+        } else {
+            setDueTime(defaultTaskTime);
+        }
     }
 
     function handleDateClear() {
         setDueDate(null);
-        setAutoOpenTime(false);
+        setAutoOpenTime(0);
     }
 
     const handleSubmit = () => {
@@ -102,7 +114,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function reset() {
         setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
-        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(false); setDateExpanded(false);
+        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(0); setDateExpanded(false);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
     }
