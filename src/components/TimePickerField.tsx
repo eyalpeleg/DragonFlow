@@ -6,7 +6,7 @@ import { COLORS } from '../styles/theme';
 interface Props {
     value: string; // "HH:MM"
     onChange: (time: string) => void;
-    autoOpen?: boolean;
+    autoOpen?: number; // trigger token — bump to open picker
 }
 
 function timeToDate(time: string): Date {
@@ -25,7 +25,7 @@ export default function TimePickerField({ value, onChange, autoOpen }: Props) {
     const date = timeToDate(value);
 
     useEffect(() => {
-        if (autoOpen && Platform.OS !== 'ios') {
+        if (autoOpen && autoOpen > 0 && Platform.OS !== 'ios') {
             setShowPicker(true);
         }
     }, [autoOpen]);

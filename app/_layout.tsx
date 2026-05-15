@@ -6,13 +6,13 @@ import { requestNotificationPermission, setupNotificationChannels } from '@/src/
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
-import { setAudioModeAsync } from 'expo-audio';
+import { audioService } from '@/src/services/audioService';
 
 export default function RootLayout() {
-    const { setFloatingBubbleDismissed, dismissedFloatingBubble } = useTaskStore();
+    const { setFloatingBubbleDismissed } = useTaskStore();
 
     useEffect(() => {
-        setAudioModeAsync({ playsInSilentMode: true }).catch(() => {});
+        audioService.initialize().catch(() => {});
         setupNotificationChannels();
         requestNotificationPermission();
         FloatingBubble.canDrawOverlays().then((ok) => {

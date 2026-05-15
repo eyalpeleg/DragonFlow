@@ -1,9 +1,15 @@
 import { validateExportData, ExportPayload } from '../../utils/dataTransfer';
-import { AuthError, BackupMetadata, NetworkError, QuotaError } from './types';
+import { AuthError, BackupBucket, BackupMetadata, NetworkError, QuotaError } from './types';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
 const UPLOAD_API = 'https://www.googleapis.com/upload/drive/v3';
 const MAX_BACKUP_SIZE = 50 * 1024 * 1024;
+
+function classifyBackup(name: string): BackupBucket {
+    if (name.includes('-weekly-')) return 'weekly';
+    if (name.includes('-daily-')) return 'daily';
+    return 'ongoing';
+}
 
 async function handleResponse(response: Response): Promise<any> {
     if (response.ok) {
@@ -27,7 +33,7 @@ async function handleResponse(response: Response): Promise<any> {
 export async function listBackupFiles(token: string): Promise<BackupMetadata[]> {
     const query = encodeURIComponent("name contains 'dragonflow-backup-'");
     const fields = encodeURIComponent('files(id,name,modifiedTime,size)');
-    const url = `${DRIVE_API}/files?spaces=appDataFolder&q=${query}&fields=${fields}&orderBy=modifiedTime desc&pageSize=10`;
+    const url = `${DRIVE_API}/files?spaces=appDataFolder&q=${query}&fields=${fields}&orderBy=modifiedTime desc&pageSize=100`;
 
     let response: Response;
     try {
@@ -44,12 +50,17 @@ export async function listBackupFiles(token: string): Promise<BackupMetadata[]> 
         name: f.name,
         modifiedTime: f.modifiedTime,
         size: parseInt(f.size ?? '0', 10),
+        bucket: classifyBackup(f.name),
     }));
 }
 
-export async function uploadBackup(token: string, payload: object): Promise<BackupMetadata> {
+export async function uploadBackup(
+    token: string,
+    payload: object,
+    bucket: BackupBucket = 'ongoing',
+): Promise<BackupMetadata> {
     const timestamp = new Date().toISOString().replace(/[:.]/g, '-');
-    const fileName = `dragonflow-backup-${timestamp}.json`;
+    const fileName = `dragonflow-backup-${bucket}-${timestamp}.json`;
 
     const metadata = {
         name: fileName,
@@ -87,13 +98,28 @@ export async function uploadBackup(token: string, payload: object): Promise<Back
         name: data.name,
         modifiedTime: data.modifiedTime,
         size: parseInt(data.size ?? '0', 10),
+        bucket: classifyBackup(data.name),
     };
 }
 
-export async function cleanupOldBackups(token: string, backups: BackupMetadata[], keepCount: number = 5): Promise<void> {
-    if (backups.length <= keepCount) return;
+export async function cleanupOldBackups(
+    token: string,
+    backups: BackupMetadata[],
+    retention: Record<BackupBucket, number>,
+): Promise<void> {
+    const byBucket: Record<BackupBucket, BackupMetadata[]> = { ongoing: [], daily: [], weekly: [] };
+    for (const b of backups) byBucket[b.bucket].push(b);
 
-    const toDelete = backups.slice(keepCount);
+    const toDelete: BackupMetadata[] = [];
+    (Object.keys(byBucket) as BackupBucket[]).forEach((bucket) => {
+        const sorted = byBucket[bucket].sort(
+            (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
+        );
+        toDelete.push(...sorted.slice(retention[bucket]));
+    });
+
+    if (toDelete.length === 0) return;
+
     await Promise.all(
         toDelete.map(async (backup) => {
             try {

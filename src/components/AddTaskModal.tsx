@@ -8,6 +8,7 @@ import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
 import DatePickerField from './DatePickerField';
 import TimePickerField from './TimePickerField';
 import AddCategoryModal from './AddCategoryModal';
+import { suggestDueTime } from '../utils/dueTime';
 
 function makeId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -30,7 +31,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [priority, setPriority] = useState<PriorityLevel>('Medium');
     const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
     const [dueDate, setDueDate] = useState<Date | null>(null);
-    const [autoOpenTime, setAutoOpenTime] = useState(false);
+    const [autoOpenTime, setAutoOpenTime] = useState(0);
     const [dueTime, setDueTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [isRecurring, setIsRecurring] = useState(false);
@@ -40,9 +41,16 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [subTaskInput, setSubTaskInput] = useState('');
     const [dateExpanded, setDateExpanded] = useState(false);
 
+    const titleInputRef = useRef<TextInput>(null);
+
     useEffect(() => {
-        if (isVisible) setDueTime(defaultTaskTime);
-    }, [isVisible]);
+
+        if (isVisible) {
+            setDueTime(defaultTaskTime);
+            setTimeout(() => titleInputRef.current?.focus(), 300);
+        }
+
+    }, [isVisible, defaultTaskTime]);
 
     function addSubTask() {
         const t = subTaskInput.trim();
@@ -64,12 +72,13 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function handleDateChange(date: Date) {
         setDueDate(date);
-        setAutoOpenTime(true);
+        setAutoOpenTime((n) => n + 1);
+        setDueTime(suggestDueTime(date, defaultTaskTime));
     }
 
     function handleDateClear() {
         setDueDate(null);
-        setAutoOpenTime(false);
+        setAutoOpenTime(0);
     }
 
     const handleSubmit = () => {
@@ -95,7 +104,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
     function reset() {
         setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
-        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(false); setDateExpanded(false);
+        setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(0); setDateExpanded(false);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
     }
@@ -120,11 +129,11 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <Text style={styles.modalTitle}>{title.trim() || 'New Task'}</Text>
 
                         <TextInput
+                            ref={titleInputRef}
                             placeholder="Task title"
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
-                            autoFocus
                             returnKeyType="done"
                             onSubmitEditing={handleTitleSubmit}
                         />

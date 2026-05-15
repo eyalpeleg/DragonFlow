@@ -11,7 +11,7 @@ interface Props {
     onSelect: (filterType: FilterType) => void;
 }
 
-const FILTER_TYPES: Array<{ type: FilterType; label: string; icon: string; description: string }> = [
+const FILTER_TYPES: { type: FilterType; label: string; icon: string; description: string }[] = [
     { type: 'status', label: 'Status', icon: 'radio-button-on', description: 'Ready, In Progress, Done' },
     { type: 'category', label: 'Category', icon: 'folder', description: 'Friends, Personal, etc.' },
     { type: 'priority', label: 'Priority', icon: 'alert-circle', description: 'Critical, High, Medium, Low' },

@@ -53,7 +53,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -244,7 +244,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume)}
+                                onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume).catch(console.error)}
                                 disabled={tasksSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -272,7 +272,7 @@ export default function SettingsScreen() {
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
-                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume)}
+                                onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume).catch(console.error)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
@@ -449,6 +449,24 @@ export default function SettingsScreen() {
                     </View>
                 </CollapsibleSection>
 
+                <CollapsibleSection title="Troubleshooting">
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLabel}>
+                            <Ionicons name="bug" size={20} color={COLORS.primary} />
+                            <View style={styles.ml12}>
+                                <Text style={styles.settingTitle}>Debug Mode</Text>
+                                <Text style={styles.settingDesc}>Show new task list design (preview)</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={debugModeEnabled}
+                            onValueChange={setDebugModeEnabled}
+                            trackColor={SWITCH_TRACK_COLOR}
+                            thumbColor="white"
+                        />
+                    </View>
+                </CollapsibleSection>
+
                 <CollapsibleSection title="About">
                     <View style={styles.infoBox}>
                         <Text style={styles.infoText}>DragonFlow v1.0</Text>
@@ -482,14 +500,14 @@ export default function SettingsScreen() {
                 volume={tasksVolume}
                 onVolumeChange={setTasksVolume}
                 onClose={() => setTasksVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('ding', tasksSoundType, vol).catch(console.error)}
             />
             <VolumeControl
                 visible={pomodoroVolumeVisible}
                 volume={pomodoroVolume}
                 onVolumeChange={setPomodoroVolume}
                 onClose={() => setPomodoroVolumeVisible(false)}
-                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol)}
+                onPlayPreview={(vol) => playPreviewSound('bell', pomodoroSoundType, vol).catch(console.error)}
             />
 
             {/* Restore Picker Modal */}
@@ -503,27 +521,43 @@ export default function SettingsScreen() {
                             <Text style={styles.noBackupsText}>No backups found on Google Drive.</Text>
                         ) : (
                             <ScrollView style={styles.backupScrollView}>
-                                {availableBackups.map((backup) => {
-                                    const isSelected = selectedBackupId === backup.fileId;
-                                    const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
-                                        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                                    });
-                                    const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+                                {(['weekly', 'daily', 'ongoing'] as const).map((bucket) => {
+                                    const inBucket = availableBackups
+                                        .filter((b) => b.bucket === bucket)
+                                        .sort(
+                                            (a, b) =>
+                                                new Date(b.modifiedTime).getTime() -
+                                                new Date(a.modifiedTime).getTime(),
+                                        );
+                                    if (inBucket.length === 0) return null;
+                                    const headerLabel = bucket === 'ongoing' ? 'Ongoing' : bucket === 'daily' ? 'Daily' : 'Weekly';
                                     return (
-                                        <TouchableOpacity
-                                            key={backup.fileId}
-                                            style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
-                                            onPress={() => setSelectedBackupId(backup.fileId)}
-                                        >
-                                            <Ionicons
-                                                name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                                                size={20}
-                                                color={isSelected ? COLORS.primary : '#ccc'}
-                                            />
-                                            <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
-                                                {date}{taskLabel}
-                                            </Text>
-                                        </TouchableOpacity>
+                                        <View key={bucket}>
+                                            <Text style={styles.bucketHeader}>{headerLabel}</Text>
+                                            {inBucket.map((backup) => {
+                                                const isSelected = selectedBackupId === backup.fileId;
+                                                const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
+                                                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+                                                });
+                                                const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+                                                return (
+                                                    <TouchableOpacity
+                                                        key={backup.fileId}
+                                                        style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
+                                                        onPress={() => setSelectedBackupId(backup.fileId)}
+                                                    >
+                                                        <Ionicons
+                                                            name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                                                            size={20}
+                                                            color={isSelected ? COLORS.primary : '#ccc'}
+                                                        />
+                                                        <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
+                                                            {date}{taskLabel}
+                                                        </Text>
+                                                    </TouchableOpacity>
+                                                );
+                                            })}
+                                        </View>
                                     );
                                 })}
                             </ScrollView>
@@ -679,7 +713,17 @@ const styles = StyleSheet.create({
     restoreTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', textAlign: 'center' },
     restoreLoader: { marginVertical: 30 },
     noBackupsText: { fontSize: 12, color: '#999', textAlign: 'center', marginVertical: 30 },
-    backupScrollView: { maxHeight: 300, marginVertical: 12 },
+    backupScrollView: { maxHeight: 360, marginVertical: 12 },
+    bucketHeader: {
+        fontSize: 12,
+        fontWeight: '700',
+        color: '#888',
+        textTransform: 'uppercase',
+        letterSpacing: 0.5,
+        marginTop: 8,
+        marginBottom: 4,
+        paddingHorizontal: 4,
+    },
     restoreRow: {
         flexDirection: 'row',
         alignItems: 'center',

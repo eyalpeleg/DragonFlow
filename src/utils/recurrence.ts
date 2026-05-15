@@ -1,4 +1,5 @@
 import { Task } from '../types';
+import { makeId } from './id';
 
 function addDays(date: Date, n: number): Date {
     const d = new Date(date);
@@ -34,7 +35,7 @@ export function computeNextDueDate(task: Task): string {
 }
 
 export function buildNextOccurrence(completed: Task): Task {
-    const id = Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+    const id = makeId();
     return {
         ...completed,
         id,

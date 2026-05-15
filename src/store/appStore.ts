@@ -2,13 +2,14 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import { PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
+import { makeId } from '../utils/id';
 
 // Re-export for backward compatibility
 export { getCategoryColor, getCategoryName };
@@ -54,10 +55,6 @@ function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomod
     }
 }
 
-function makeId(): string {
-    return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
-}
-
 export interface AddTaskInput {
     title: string;
     description: string;
@@ -92,6 +89,7 @@ interface TaskStore {
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
     customTimerSeconds: number;
+    debugModeEnabled: boolean;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -126,23 +124,10 @@ interface TaskStore {
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
     setCustomTimerSeconds: (seconds: number) => void;
+    setDebugModeEnabled: (enabled: boolean) => void;
     exportData: () => object;
     importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
 }
-
-const priorityOrder: Record<PriorityLevel, number> = {
-    Critical: 0,
-    High: 1,
-    Medium: 2,
-    Low: 3,
-};
-
-const statusOrder: Record<TaskStatus, number> = {
-    'In Progress': 0,
-    'Paused': 1,
-    'Ready': 1,
-    'Done': 3,
-};
 
 export const useTaskStore = create<TaskStore>()(
     persist(
@@ -174,6 +159,7 @@ export const useTaskStore = create<TaskStore>()(
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
             customTimerSeconds: 0,
+            debugModeEnabled: false,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -402,6 +388,10 @@ export const useTaskStore = create<TaskStore>()(
                 customTimerSeconds: seconds,
             }),
 
+            setDebugModeEnabled: (enabled) => set({
+                debugModeEnabled: enabled,
+            }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -464,6 +454,7 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
                 customTimerSeconds: state.customTimerSeconds,
+                debugModeEnabled: state.debugModeEnabled,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
