@@ -8,6 +8,7 @@ import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
 import DatePickerField from './DatePickerField';
 import TimePickerField from './TimePickerField';
 import AddCategoryModal from './AddCategoryModal';
+import { suggestDueTime } from '../utils/dueTime';
 
 function makeId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
@@ -72,18 +73,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     function handleDateChange(date: Date) {
         setDueDate(date);
         setAutoOpenTime((n) => n + 1);
-
-        const now = new Date();
-        const isToday = date.getFullYear() === now.getFullYear()
-            && date.getMonth() === now.getMonth()
-            && date.getDate() === now.getDate();
-        if (isToday) {
-            const pad = (n: number) => String(n).padStart(2, '0');
-            const nowTime = `${pad(now.getHours())}:${pad(now.getMinutes())}`;
-            setDueTime(nowTime > defaultTaskTime ? nowTime : defaultTaskTime);
-        } else {
-            setDueTime(defaultTaskTime);
-        }
+        setDueTime(suggestDueTime(date, defaultTaskTime));
     }
 
     function handleDateClear() {
