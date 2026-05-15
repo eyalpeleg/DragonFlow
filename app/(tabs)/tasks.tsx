@@ -11,6 +11,7 @@ import FilterModal from '@/src/components/FilterModal';
 import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx } from '@/src/components/PomodoroTimer';
 import TaskCard from '@/src/components/TaskCard';
+import TaskCardLegacy from '@/src/components/TaskCardLegacy';
 import { COLORS, PriorityLevel } from '@/src/styles/theme';
 import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
@@ -38,6 +39,7 @@ export default function TasksScreen() {
 
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
+    const debugModeEnabled = useTaskStore((s) => s.debugModeEnabled);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
     const customTimerSeconds = useTaskStore((s) => s.customTimerSeconds);
@@ -252,15 +254,18 @@ export default function TasksScreen() {
         setSecondsLeft(getModeSeconds(modeIdx, customTimerSeconds));
     }, [stopTimer, modeIdx, customTimerSeconds]);
 
-    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <TaskCard
-            task={item}
-            onStatusChange={setStatus}
-            onEdit={setEditTask}
-            onArchive={archiveTask}
-            onOpenStats={setStatsTask}
-        />
-    ), [setStatus, archiveTask]);
+    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => {
+        const CardComponent = debugModeEnabled ? TaskCard : TaskCardLegacy;
+        return (
+            <CardComponent
+                task={item}
+                onStatusChange={setStatus}
+                onEdit={setEditTask}
+                onArchive={archiveTask}
+                onOpenStats={setStatsTask}
+            />
+        );
+    }, [setStatus, archiveTask, debugModeEnabled]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
         <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={setEditTask} />
