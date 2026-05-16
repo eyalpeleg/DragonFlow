@@ -2,7 +2,8 @@ import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import { AppColors, PriorityLevel } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { useTaskStore, getCategoryColor, getCategoryName } from '../store/appStore';
 import { TaskStatus } from '../types';
 
@@ -17,11 +18,13 @@ interface Props {
 
 const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Paused', 'Done'];
 const PRIORITY_OPTIONS: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
-const PRIORITY_COLORS: Record<PriorityLevel, string> = COLORS.priority;
 const DUE_DATE_OPTIONS: ('overdue' | 'today' | 'upcoming')[] = ['overdue', 'today', 'upcoming'];
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };
 
 export default function FilterModal({ isOpen, filterType, onClose, onSave }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const priorityColors = useMemo<Record<PriorityLevel, string>>(() => colors.priority, [colors]);
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const statusFilters = useTaskStore((s) => s.statusFilters);
@@ -59,9 +62,9 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
     };
 
     const getColor = (value: string): string => {
-        if (filterType === 'priority') return PRIORITY_COLORS[value as PriorityLevel];
+        if (filterType === 'priority') return priorityColors[value as PriorityLevel];
         if (filterType === 'category') return getCategoryColor(categories, value);
-        return COLORS.primary;
+        return colors.primary;
     };
 
     const handleToggle = (value: string) => {
@@ -90,7 +93,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                     <View style={styles.header}>
                         <Text style={styles.title}>Filter by {filterType?.charAt(0).toUpperCase()}{filterType?.slice(1)}</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                            <Ionicons name="close" size={24} color={colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
@@ -159,14 +162,14 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: COLORS.overlay.scrim,
+        backgroundColor: c.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: COLORS.white,
+        backgroundColor: c.white,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',
@@ -178,9 +181,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border.light,
+        borderBottomColor: c.border.light,
     },
-    title: { fontSize: 16, fontWeight: '700', color: COLORS.text.secondary },
+    title: { fontSize: 16, fontWeight: '700', color: c.text.secondary },
     content: { paddingHorizontal: 12, paddingVertical: 8 },
     option: {
         flexDirection: 'row',
@@ -193,30 +196,30 @@ const styles = StyleSheet.create({
     placeholder: { width: 20, marginRight: 10 },
     priorityDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
     categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-    optionText: { fontSize: 14, color: COLORS.text.muted, fontWeight: '500' },
+    optionText: { fontSize: 14, color: c.text.muted, fontWeight: '500' },
     footer: {
         flexDirection: 'row',
         gap: 10,
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderTopWidth: 1,
-        borderTopColor: COLORS.border.light,
+        borderTopColor: c.border.light,
     },
     clearBtn: {
         flex: 1,
         paddingVertical: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: COLORS.text.disabled,
+        borderColor: c.text.disabled,
         alignItems: 'center',
     },
-    clearBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text.subtle },
+    clearBtnText: { fontSize: 14, fontWeight: '600', color: c.text.subtle },
     doneBtn: {
         flex: 1,
         paddingVertical: 10,
         borderRadius: 8,
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
         alignItems: 'center',
     },
-    doneBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.white },
+    doneBtnText: { fontSize: 14, fontWeight: '600', color: c.white },
 });

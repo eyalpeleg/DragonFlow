@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ActivityIndicator, FlatList, Image, StyleSheet, Text, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '@/src/styles/theme';
+import { AppColors } from '@/src/styles/theme';
+import { useColors } from '@/src/styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/appStore';
 import { getDailySummary, getTasksCompletedToday } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
@@ -10,6 +11,8 @@ const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     return (
         <View style={[styles.statCard, color ? { borderTopColor: color, borderTopWidth: 3 } : {}]}>
             <Text style={styles.statValue}>{value}</Text>
@@ -19,6 +22,8 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
 }
 
 function CategoryBar({ category, count, total, color }: { category: string; count: number; total: number; color: string }) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
     return (
         <View style={styles.catRow}>
@@ -33,6 +38,8 @@ function CategoryBar({ category, count, total, color }: { category: string; coun
 }
 
 export default function DailyScreen() {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const tasks = useTaskStore((s) => s.tasks);
     const categories = useTaskStore((s) => s.categories);
     const hasHydrated = useTaskStore((s) => s.hasHydrated);
@@ -40,7 +47,7 @@ export default function DailyScreen() {
     if (!hasHydrated) {
         return (
             <SafeAreaView style={[styles.container, styles.centered]}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
             </SafeAreaView>
         );
     }
@@ -68,9 +75,9 @@ export default function DailyScreen() {
 
             <View style={styles.statsRow}>
                 <StatCard label="Total" value={summary.total} />
-                <StatCard label="Done" value={summary.done} color={COLORS.status['Done']} />
-                <StatCard label="Active" value={summary.inProgress} color={COLORS.status['In Progress']} />
-                <StatCard label="Done %" value={`${summary.completionRate}%`} color={COLORS.primary} />
+                <StatCard label="Done" value={summary.done} color={colors.status['Done']} />
+                <StatCard label="Active" value={summary.inProgress} color={colors.status['In Progress']} />
+                <StatCard label="Done %" value={`${summary.completionRate}%`} color={colors.primary} />
             </View>
 
             <Text style={styles.sectionTitle}>Completed Today</Text>
@@ -113,31 +120,31 @@ export default function DailyScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    header: { backgroundColor: COLORS.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+    header: { backgroundColor: c.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: c.white, fontSize: 20, fontWeight: 'bold' },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-    statCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: COLORS.shadow, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-    statValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.text.primary },
-    statLabel: { fontSize: 10, color: COLORS.text.weak, marginTop: 2 },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.text.muted, paddingHorizontal: 16, marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statCard: { flex: 1, backgroundColor: c.white, borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+    statValue: { fontSize: 20, fontWeight: 'bold', color: c.text.primary },
+    statLabel: { fontSize: 10, color: c.text.weak, marginTop: 2 },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: c.text.muted, paddingHorizontal: 16, marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },
     list: { maxHeight: 220 },
-    taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.white, marginHorizontal: 12, marginBottom: 6, borderRadius: 8 },
+    taskRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: c.white, marginHorizontal: 12, marginBottom: 6, borderRadius: 8 },
     taskDot: { width: 8, height: 8, borderRadius: 4, marginRight: 10 },
-    taskTitle: { flex: 1, fontSize: 14, color: COLORS.text.secondary },
+    taskTitle: { flex: 1, fontSize: 14, color: c.text.secondary },
     catChip: { paddingHorizontal: 8, paddingVertical: 3, borderRadius: 10 },
-    catChipText: { fontSize: 10, color: COLORS.white, fontWeight: '600' },
+    catChipText: { fontSize: 10, color: c.white, fontWeight: '600' },
     emptySection: { paddingHorizontal: 16, paddingVertical: 20, alignItems: 'center' },
-    emptyText: { color: COLORS.text.light, fontSize: 14 },
+    emptyText: { color: c.text.light, fontSize: 14 },
     catSection: { paddingHorizontal: 16, paddingBottom: 16 },
     catRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 10 },
     catDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-    catName: { width: 70, fontSize: 13, color: COLORS.text.body },
-    barContainer: { flex: 1, height: 8, backgroundColor: COLORS.border.light, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
+    catName: { width: 70, fontSize: 13, color: c.text.body },
+    barContainer: { flex: 1, height: 8, backgroundColor: c.border.light, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
     barFill: { height: '100%', borderRadius: 4 },
-    catCount: { width: 24, fontSize: 13, fontWeight: '600', color: COLORS.text.muted, textAlign: 'right' },
+    catCount: { width: 24, fontSize: 13, fontWeight: '600', color: c.text.muted, textAlign: 'right' },
 });

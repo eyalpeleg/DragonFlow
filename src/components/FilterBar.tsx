@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { useTaskStore, getCategoryName } from '../store/appStore';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
@@ -11,14 +12,16 @@ interface Props {
     onAddFilter: () => void;
 }
 
-const FILTER_CONFIG: Record<FilterType, { icon: string; label: string; color: string }> = {
-    status: { icon: 'radio-button-on', label: 'Status', color: COLORS.primary },
-    category: { icon: 'folder', label: 'Category', color: COLORS.primary },
-    priority: { icon: 'alert-circle', label: 'Priority', color: COLORS.accent.warning },
-    dueDate: { icon: 'calendar', label: 'Due', color: COLORS.text.subtle },
-};
-
 export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const filterConfig = useMemo<Record<FilterType, { icon: string; label: string; color: string }>>(() => ({
+        status: { icon: 'radio-button-on', label: 'Status', color: colors.primary },
+        category: { icon: 'folder', label: 'Category', color: colors.primary },
+        priority: { icon: 'alert-circle', label: 'Priority', color: colors.accent.warning },
+        dueDate: { icon: 'calendar', label: 'Due', color: colors.text.subtle },
+    }), [colors]);
+
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
@@ -36,7 +39,7 @@ export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
         getDisplayValue: (val: string) => string
     ) => {
         if (values.size === 0) return null;
-        const config = FILTER_CONFIG[filterType];
+        const config = filterConfig[filterType];
         const displayValues = Array.from(values).map(getDisplayValue).join(', ');
 
         return (
@@ -88,7 +91,7 @@ export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
 
                 {activeFilters.some((f) => f.size > 0) && activeFilters.some((f) => f.size === 0) && (
                     <TouchableOpacity style={styles.addBtn} onPress={onAddFilter}>
-                        <Ionicons name="add" size={16} color={COLORS.primary} />
+                        <Ionicons name="add" size={16} color={colors.primary} />
                         <Text style={styles.addBtnText}>Add Filter</Text>
                     </TouchableOpacity>
                 )}
@@ -97,11 +100,11 @@ export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     container: {
-        backgroundColor: COLORS.surfaceAlt.light,
+        backgroundColor: c.surfaceAlt.light,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border.light,
+        borderBottomColor: c.border.light,
     },
     content: {
         paddingHorizontal: 12,
@@ -116,15 +119,15 @@ const styles = StyleSheet.create({
         gap: 6,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: COLORS.white,
+        backgroundColor: c.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: COLORS.border.muted,
+        borderColor: c.border.muted,
     },
     pillText: {
         fontSize: 12,
         fontWeight: '600',
-        color: COLORS.text.secondary,
+        color: c.text.secondary,
     },
     addBtn: {
         flexDirection: 'row',
@@ -132,14 +135,14 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingHorizontal: 10,
         paddingVertical: 6,
-        backgroundColor: COLORS.white,
+        backgroundColor: c.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: COLORS.primary,
+        borderColor: c.primary,
     },
     addBtnText: {
         fontSize: 12,
         fontWeight: '600',
-        color: COLORS.primary,
+        color: c.primary,
     },
 });

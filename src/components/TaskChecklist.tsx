@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { useTaskStore } from '../store/appStore';
 import { SubTask } from '../types';
 
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const { toggleSubTask, addSubTask, removeSubTask, renameSubTask } = useTaskStore();
     const [expanded, setExpanded] = useState(false);
     const [adding, setAdding] = useState(false);
@@ -77,7 +80,7 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                     <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />
                 </View>
                 <Text style={styles.progressLabel}>{done}/{total}</Text>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={COLORS.text.light} style={{ marginLeft: 4 }} />
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.text.light} style={{ marginLeft: 4 }} />
             </TouchableOpacity>
 
             {expanded && (
@@ -88,7 +91,7 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                                 <Ionicons
                                     name={sub.completed ? 'checkmark-circle' : 'ellipse-outline'}
                                     size={20}
-                                    color={sub.completed ? COLORS.status['Done'] : COLORS.text.disabled}
+                                    color={sub.completed ? colors.status['Done'] : colors.text.disabled}
                                 />
                             </TouchableOpacity>
                             {editingId === sub.id ? (
@@ -116,11 +119,11 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                             {taskStatus !== 'Done' && (
                                 editingId === sub.id ? (
                                     <TouchableOpacity onPress={cancelEdit} style={styles.removeBtn}>
-                                        <Ionicons name="close" size={14} color={COLORS.text.disabled} />
+                                        <Ionicons name="close" size={14} color={colors.text.disabled} />
                                     </TouchableOpacity>
                                 ) : (
                                     <TouchableOpacity onPress={() => handleRemove(sub)} style={styles.removeBtn}>
-                                        <Ionicons name="close" size={14} color={COLORS.text.disabled} />
+                                        <Ionicons name="close" size={14} color={colors.text.disabled} />
                                     </TouchableOpacity>
                                 )
                             )}
@@ -140,15 +143,15 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                                     returnKeyType="done"
                                 />
                                 <TouchableOpacity onPress={handleAdd} style={styles.addConfirmBtn}>
-                                    <Ionicons name="checkmark" size={16} color={COLORS.white} />
+                                    <Ionicons name="checkmark" size={16} color={colors.white} />
                                 </TouchableOpacity>
                                 <TouchableOpacity onPress={() => { setAdding(false); setNewTitle(''); }}>
-                                    <Ionicons name="close" size={16} color={COLORS.text.light} style={{ padding: 4 }} />
+                                    <Ionicons name="close" size={16} color={colors.text.light} style={{ padding: 4 }} />
                                 </TouchableOpacity>
                             </View>
                         ) : (
                             <TouchableOpacity style={styles.addTrigger} onPress={() => setAdding(true)}>
-                                <Ionicons name="add" size={14} color={COLORS.primary} />
+                                <Ionicons name="add" size={14} color={colors.primary} />
                                 <Text style={styles.addTriggerText}>Add sub-task</Text>
                             </TouchableOpacity>
                         )
@@ -159,23 +162,23 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
     );
 }
 
-const styles = StyleSheet.create({
-    container: { marginTop: 8, borderTopWidth: 1, borderTopColor: COLORS.border.subtle, paddingTop: 8 },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    container: { marginTop: 8, borderTopWidth: 1, borderTopColor: c.border.subtle, paddingTop: 8 },
     header: { flexDirection: 'row', alignItems: 'center', gap: 8 },
-    progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: COLORS.border.light, overflow: 'hidden' },
-    progressFill: { height: 4, borderRadius: 2, backgroundColor: COLORS.primary },
-    progressLabel: { fontSize: 11, color: COLORS.text.placeholder, minWidth: 28, textAlign: 'right' },
+    progressTrack: { flex: 1, height: 4, borderRadius: 2, backgroundColor: c.border.light, overflow: 'hidden' },
+    progressFill: { height: 4, borderRadius: 2, backgroundColor: c.primary },
+    progressLabel: { fontSize: 11, color: c.text.placeholder, minWidth: 28, textAlign: 'right' },
     list: { marginTop: 8, gap: 6 },
     row: { flexDirection: 'row', alignItems: 'center', gap: 8 },
     check: { padding: 2 },
-    subTitle: { flex: 1, fontSize: 13, color: COLORS.text.body },
+    subTitle: { flex: 1, fontSize: 13, color: c.text.body },
     subTitleTouch: { flex: 1 },
-    subTitleDone: { textDecorationLine: 'line-through', color: COLORS.text.veryLight },
-    editInput: { borderBottomWidth: 1, borderBottomColor: COLORS.border.medium, paddingVertical: 2 },
+    subTitleDone: { textDecorationLine: 'line-through', color: c.text.veryLight },
+    editInput: { borderBottomWidth: 1, borderBottomColor: c.border.medium, paddingVertical: 2 },
     removeBtn: { padding: 4 },
     addRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: COLORS.border.medium, fontSize: 13, paddingVertical: 4 },
-    addConfirmBtn: { backgroundColor: COLORS.primary, borderRadius: 12, padding: 4 },
+    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: c.border.medium, fontSize: 13, paddingVertical: 4 },
+    addConfirmBtn: { backgroundColor: c.primary, borderRadius: 12, padding: 4 },
     addTrigger: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
-    addTriggerText: { fontSize: 12, color: COLORS.primary },
+    addTriggerText: { fontSize: 12, color: c.primary },
 });

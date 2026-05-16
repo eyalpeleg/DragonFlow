@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useRef, useState } from 'react';
+import React, { useEffect, useMemo, useRef, useState } from 'react';
 import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import { AppColors, PriorityLevel } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/appStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
 import DatePickerField from './DatePickerField';
@@ -23,6 +24,9 @@ interface Props {
 }
 
 export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const recurringTrackColor = useMemo(() => ({ true: colors.primary }), [colors]);
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
@@ -139,6 +143,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <TextInput
                             ref={titleInputRef}
                             placeholder="Task title"
+                            placeholderTextColor={colors.text.placeholder}
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
@@ -148,6 +153,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
                         <TextInput
                             placeholder="Add a description"
+                            placeholderTextColor={colors.text.placeholder}
                             style={[styles.input, styles.textArea]}
                             multiline
                             value={description}
@@ -174,7 +180,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             <Switch
                                 value={isRecurring}
                                 onValueChange={setIsRecurring}
-                                trackColor={{ true: COLORS.primary }}
+                                trackColor={recurringTrackColor}
                             />
                         </View>
                         {isRecurring && (
@@ -183,8 +189,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                                 <View style={styles.row}>
                                     {FREQUENCIES.map((f) => (
                                         <TouchableOpacity key={f} onPress={() => setFrequency(f)}
-                                            style={[styles.chip, frequency === f && { backgroundColor: COLORS.primary }]}>
-                                            <Text style={[styles.chipText, frequency === f && { color: COLORS.white }]}>
+                                            style={[styles.chip, frequency === f && { backgroundColor: colors.primary }]}>
+                                            <Text style={[styles.chipText, frequency === f && { color: colors.white }]}>
                                                 {f.charAt(0).toUpperCase() + f.slice(1)}
                                             </Text>
                                         </TouchableOpacity>
@@ -204,8 +210,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         <View style={styles.row}>
                             {priorities.map((p) => (
                                 <TouchableOpacity key={p} onPress={() => setPriority(p)}
-                                    style={[styles.chip, priority === p && { backgroundColor: COLORS.priority[p] }]}>
-                                    <Text style={[styles.chipText, priority === p && { color: COLORS.white }]}>{p}</Text>
+                                    style={[styles.chip, priority === p && { backgroundColor: colors.priority[p] }]}>
+                                    <Text style={[styles.chipText, priority === p && { color: colors.white }]}>{p}</Text>
                                 </TouchableOpacity>
                             ))}
                         </View>
@@ -215,32 +221,33 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             {categories.map((c) => (
                                 <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
                                     style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
-                                    <Text style={[styles.chipText, categoryId === c.id && { color: COLORS.white }]}>{c.name}</Text>
+                                    <Text style={[styles.chipText, categoryId === c.id && { color: colors.white }]}>{c.name}</Text>
                                 </TouchableOpacity>
                             ))}
                             <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
-                                <Ionicons name="add" size={14} color={COLORS.primary} />
+                                <Ionicons name="add" size={14} color={colors.primary} />
                             </TouchableOpacity>
                         </ScrollView>
 
                         <Text style={styles.label}>Sub-tasks</Text>
                         {subTasks.map((s) => (
                             <View key={s.id} style={styles.subTaskRow}>
-                                <Ionicons name="ellipse-outline" size={14} color={COLORS.text.disabled} />
+                                <Ionicons name="ellipse-outline" size={14} color={colors.text.disabled} />
                                 <Text style={styles.subTaskTitle} numberOfLines={1}>{s.title}</Text>
                                 <TouchableOpacity onPress={() => removeSubTask(s.id)}>
-                                    <Ionicons name="close" size={14} color={COLORS.text.disabled} />
+                                    <Ionicons name="close" size={14} color={colors.text.disabled} />
                                 </TouchableOpacity>
                             </View>
                         ))}
                         <View style={styles.subTaskInputRow}>
-                            <Ionicons name="add" size={18} color={COLORS.primary} />
+                            <Ionicons name="add" size={18} color={colors.primary} />
                             <TextInput
                                 ref={subTaskInputRef}
                                 style={[styles.input, styles.subTaskInput]}
                                 value={subTaskInput}
                                 onChangeText={setSubTaskInput}
                                 placeholder="Add a sub-task"
+                                placeholderTextColor={colors.text.placeholder}
                                 onSubmitEditing={addSubTask}
                                 blurOnSubmit={false}
                                 returnKeyType="next"
@@ -263,38 +270,38 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimStrong, justifyContent: 'flex-end' },
-    content: { backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-end' },
+    content: { backgroundColor: c.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
     contentInner: { padding: 20 },
-    modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15 },
-    input: { borderBottomWidth: 1, borderBottomColor: COLORS.border.light, paddingVertical: 10, marginBottom: 15, fontSize: 16 },
+    modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: c.text.primary },
+    input: { borderBottomWidth: 1, borderBottomColor: c.border.light, paddingVertical: 10, marginBottom: 15, fontSize: 16, color: c.text.primary },
     textArea: { height: 60 },
-    label: { fontSize: 14, fontWeight: 'bold', color: COLORS.text.subtle, marginTop: 10, marginBottom: 8 },
-    sublabel: { fontSize: 12, fontWeight: '600', color: COLORS.text.weak, marginBottom: 6 },
+    label: { fontSize: 14, fontWeight: 'bold', color: c.text.subtle, marginTop: 10, marginBottom: 8 },
+    sublabel: { fontSize: 12, fontWeight: '600', color: c.text.weak, marginBottom: 6 },
     row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     categoryRow: { flexDirection: 'row', marginBottom: 8 },
     dateTimeRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
     dateTimeDate: { flex: 2 },
     dateTimeTime: { flex: 1 },
-    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: COLORS.surfaceAlt.soft, marginRight: 6 },
-    chipText: { fontSize: 12, fontWeight: '600' },
+    chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: c.surfaceAlt.soft, marginRight: 6 },
+    chipText: { fontSize: 12, fontWeight: '600', color: c.text.body },
     addCatChip: {
         width: 28, height: 28, borderRadius: 14,
-        backgroundColor: COLORS.surfaceAlt.soft, borderWidth: 1, borderColor: COLORS.primary,
+        backgroundColor: c.surfaceAlt.soft, borderWidth: 1, borderColor: c.primary,
         alignItems: 'center', justifyContent: 'center', alignSelf: 'center',
     },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
-    switchSub: { fontSize: 11, color: COLORS.text.light, marginTop: 2 },
-    recurrenceBlock: { backgroundColor: COLORS.surfaceAlt.offWhite, borderRadius: 10, padding: 12, marginBottom: 8 },
+    switchSub: { fontSize: 11, color: c.text.light, marginTop: 2 },
+    recurrenceBlock: { backgroundColor: c.surfaceAlt.offWhite, borderRadius: 10, padding: 12, marginBottom: 8 },
     subTaskInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
     subTaskInput: { flex: 1, marginBottom: 0, paddingVertical: 8, fontSize: 14 },
     subTaskRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
-    subTaskTitle: { flex: 1, fontSize: 13, color: COLORS.text.muted },
+    subTaskTitle: { flex: 1, fontSize: 13, color: c.text.muted },
     buttonRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15 },
     cancelBtn: { padding: 12 },
-    cancelText: { color: COLORS.text.placeholder, fontWeight: 'bold' },
-    saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
+    cancelText: { color: c.text.placeholder, fontWeight: 'bold' },
+    saveBtn: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 12, borderRadius: 10 },
     saveBtnDisabled: { opacity: 0.5 },
-    saveText: { color: COLORS.white, fontWeight: 'bold' },
+    saveText: { color: c.white, fontWeight: 'bold' },
 });

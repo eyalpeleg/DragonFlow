@@ -1,7 +1,8 @@
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { useTaskStore } from '../store/appStore';
 import { Task } from '../types';
 
@@ -23,6 +24,8 @@ function formatDuration(ms: number): string {
 }
 
 export default function DoneStatsModal({ task, onClose }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const insets = useSafeAreaInsets();
     const updateCompletionComment = useTaskStore((s) => s.updateCompletionComment);
     const [comment, setComment] = useState('');
@@ -49,9 +52,9 @@ export default function DoneStatsModal({ task, onClose }: Props) {
         const dueMs = new Date(task.dueDate + 'T23:59:59').getTime();
         const diff = Math.round((task.completedTime - dueMs) / 86400000);
         if (diff <= 0) {
-            timeliness = { label: '✓ On Time', color: COLORS.accent.success, bg: COLORS.accent.successBg };
+            timeliness = { label: '✓ On Time', color: colors.accent.success, bg: colors.accent.successBg };
         } else {
-            timeliness = { label: `⚠ ${diff}d late`, color: COLORS.accent.errorText, bg: COLORS.accent.errorBg };
+            timeliness = { label: `⚠ ${diff}d late`, color: colors.accent.errorText, bg: colors.accent.errorBg };
         }
     }
 
@@ -102,7 +105,7 @@ export default function DoneStatsModal({ task, onClose }: Props) {
                         value={comment}
                         onChangeText={setComment}
                         placeholder="Add a note about this task…"
-                        placeholderTextColor={COLORS.text.veryLight}
+                        placeholderTextColor={colors.text.veryLight}
                         multiline
                         numberOfLines={3}
                         textAlignVertical="top"
@@ -117,35 +120,35 @@ export default function DoneStatsModal({ task, onClose }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimDeep, justifyContent: 'flex-end' },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'flex-end' },
     sheet: {
-        backgroundColor: COLORS.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        backgroundColor: c.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
         padding: 20, paddingBottom: 36,
     },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border.medium, alignSelf: 'center', marginBottom: 16 },
-    title: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, marginBottom: 4 },
-    completedOn: { fontSize: 12, color: COLORS.text.placeholder, marginBottom: 16 },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, alignSelf: 'center', marginBottom: 16 },
+    title: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 4 },
+    completedOn: { fontSize: 12, color: c.text.placeholder, marginBottom: 16 },
     statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 20 },
     statBox: {
-        flex: 1, minWidth: 90, backgroundColor: COLORS.background, borderRadius: 12,
+        flex: 1, minWidth: 90, backgroundColor: c.background, borderRadius: 12,
         padding: 12, alignItems: 'center',
     },
-    statValue: { fontSize: 20, fontWeight: '700', color: COLORS.text.primary },
-    statLabel: { fontSize: 11, color: COLORS.text.placeholder, marginTop: 2 },
+    statValue: { fontSize: 20, fontWeight: '700', color: c.text.primary },
+    statLabel: { fontSize: 11, color: c.text.placeholder, marginTop: 2 },
     timelinessBox: {
         paddingHorizontal: 14, paddingVertical: 10, borderRadius: 12,
         alignItems: 'center', justifyContent: 'center',
     },
     timelinessText: { fontSize: 13, fontWeight: '700' },
-    label: { fontSize: 13, fontWeight: '600', color: COLORS.text.subtle, marginBottom: 8 },
+    label: { fontSize: 13, fontWeight: '600', color: c.text.subtle, marginBottom: 8 },
     commentInput: {
-        borderWidth: 1, borderColor: COLORS.border.light, borderRadius: 10,
-        padding: 10, fontSize: 14, minHeight: 72, color: COLORS.text.secondary,
+        borderWidth: 1, borderColor: c.border.light, borderRadius: 10,
+        padding: 10, fontSize: 14, minHeight: 72, color: c.text.secondary,
     },
     closeBtn: {
-        marginTop: 16, backgroundColor: COLORS.primary, borderRadius: 12,
+        marginTop: 16, backgroundColor: c.primary, borderRadius: 12,
         paddingVertical: 14, alignItems: 'center',
     },
-    closeBtnText: { color: COLORS.white, fontWeight: '700', fontSize: 15 },
+    closeBtnText: { color: c.white, fontWeight: '700', fontSize: 15 },
 });
