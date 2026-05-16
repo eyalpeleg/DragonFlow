@@ -2,14 +2,17 @@ import { useEffect } from 'react';
 import { AppState } from 'react-native';
 import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
+import { useColorMode } from '@/src/styles/useColors';
 
 export default function RootLayout() {
     const { setFloatingBubbleDismissed } = useTaskStore();
+    const colorMode = useColorMode();
 
     useEffect(() => {
         audioService.initialize().catch(() => {});
@@ -69,6 +72,7 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
+            <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
             <Slot />
         </SafeAreaProvider>
     );

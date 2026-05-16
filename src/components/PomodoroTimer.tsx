@@ -1,6 +1,5 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
-import { useTaskStore } from '../store/appStore';
 import { COLORS } from '../styles/theme';
 
 export const POMODORO_MODES = [
@@ -33,7 +32,6 @@ export default function PomodoroTimer({
     modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
     onSelectMode, onSetCustomTimerSeconds, onStart, onPause, onReset,
 }: Props) {
-    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
     const [customTimeSubmitted, setCustomTimeSubmitted] = useState(false);
@@ -171,7 +169,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : isPaused ? (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : COLORS.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -179,7 +177,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : COLORS.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >

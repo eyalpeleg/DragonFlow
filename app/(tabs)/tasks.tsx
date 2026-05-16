@@ -26,7 +26,6 @@ export default function TasksScreen() {
     const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
     const tasks = useSortedFilteredTasks();
     const archivedTasks = useArchivedTasks();
-    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
@@ -404,7 +403,7 @@ export default function TasksScreen() {
                         }
                         renderItem={renderTask}
                     />
-                    <TouchableOpacity style={[styles.fab, { backgroundColor: themeColorSecondary }]} onPress={() => setAddModalVisible(true)}>
+                    <TouchableOpacity style={[styles.fab, { backgroundColor: COLORS.secondary }]} onPress={() => setAddModalVisible(true)}>
                         <Text style={styles.fabText}>+</Text>
                     </TouchableOpacity>
                 </>

@@ -1,11 +1,13 @@
-export const COLORS = {
-    primary: '#6200EE',
+export const lightColors = {
+    primary: '#7200EE',
+    secondary: '#aa7dc9',
+    action: '#88d295',
     background: '#F8F9FA',
     surface: '#FFFFFF',
     white: '#FFFFFF',
     black: '#000000',
     shadow: '#000000',
-    notification: '#6200EE',
+    notification: '#7200EE',
 
     text: {
         primary: '#222222',
@@ -85,13 +87,104 @@ export const COLORS = {
         longBreak: '#6B9CD1',
         custom: '#8CBCEF',
     },
+};
 
-    themeDefaults: {
-        primary: '#6200EE',
-        secondary: '#88d295',
-        action: '#a2d9a1',
+export type AppColors = typeof lightColors;
+
+export const darkColors: AppColors = {
+    primary: '#7200EE',
+    secondary: '#aa7dc9',
+    action: '#88d295',
+    background: '#121212',
+    surface: '#1E1E1E',
+    white: '#FFFFFF',
+    black: '#000000',
+    shadow: '#000000',
+    notification: '#7200EE',
+
+    text: {
+        primary: '#ECECEC',
+        secondary: '#D6D6D6',
+        body: '#C8C8C8',
+        muted: '#A8A8A8',
+        subtle: '#8E8E8E',
+        weak: '#6E6E6E',
+        placeholder: '#5E5E5E',
+        light: '#4E4E4E',
+        veryLight: '#3E3E3E',
+        disabled: '#333333',
+        error: '#EF5350',
+        errorStrong: '#E57373',
+    },
+
+    border: {
+        subtle: '#2A2A2A',
+        light: '#333333',
+        medium: '#3D3D3D',
+        muted: '#2F2F2F',
+    },
+
+    surfaceAlt: {
+        light: '#1E1E1E',
+        muted: '#222222',
+        soft: '#262626',
+        offWhite: '#1A1A1A',
+    },
+
+    overlay: {
+        scrim: 'rgba(0,0,0,0.5)',
+        scrimSoft: 'rgba(0,0,0,0.6)',
+        scrimDeep: 'rgba(0,0,0,0.7)',
+        scrimStrong: 'rgba(0,0,0,0.75)',
+        whiteSoft: 'rgba(255,255,255,0.08)',
+        whiteSubtle: 'rgba(255,255,255,0.12)',
+        whiteStrong: 'rgba(255,255,255,0.18)',
+        accentSoft: 'rgba(170,125,201,0.10)',
+        accentMedium: 'rgba(170,125,201,0.14)',
+        accentStrong: 'rgba(170,125,201,0.20)',
+    },
+
+    accent: {
+        warning: '#FFA726',
+        warningStrong: '#FF7043',
+        success: '#66BB6A',
+        successBg: '#1B3A20',
+        errorBg: '#3A1B1B',
+        errorText: '#EF9A9A',
+    },
+
+    priority: {
+        Critical: '#B71C1C',
+        High: '#FF5252',
+        Medium: '#FFC107',
+        Low: '#4CAF50',
+    },
+
+    status: {
+        'Ready': '#78909C',
+        'In Progress': '#2196F3',
+        'Paused': '#FF9800',
+        'Done': '#4CAF50',
+    },
+
+    statusSoft: {
+        'Ready': '#546E7A',
+        'In Progress': '#1976D2',
+        'Paused': '#EF6C00',
+        'Done': '#388E3C',
+    },
+
+    pomodoro: {
+        focus: '#3F5FC8',
+        shortBreak: '#6B9CD1',
+        longBreak: '#8CBCEF',
+        custom: '#A6CEEF',
     },
 };
+
+// Back-compat alias for code that hasn't migrated to useColors() yet
+// (notifications, store defaults, modules that don't render UI).
+export const COLORS = lightColors;
 
 export const PRESET_PALETTE = [
     '#4A90E2', 'rgba(155,39,176,0.75)', 'rgba(239,119,13,0.95)', 'rgba(34,218,166,0.69)',
@@ -99,5 +192,5 @@ export const PRESET_PALETTE = [
     '#00ACC1', '#5C6BC0', '#8D6E63', '#78909C',
 ];
 
-export type PriorityLevel = keyof typeof COLORS.priority;
-export type StatusType = keyof typeof COLORS.status;
+export type PriorityLevel = keyof typeof lightColors.priority;
+export type StatusType = keyof typeof lightColors.status;
