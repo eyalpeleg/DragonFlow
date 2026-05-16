@@ -594,7 +594,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     headerTitle: { color: c.white, fontSize: 20, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
     settingRow: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderRadius: 12,
         padding: 16,
         flexDirection: 'row',
@@ -612,7 +612,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     settingDesc: { fontSize: 12, color: c.text.placeholder },
     settingDescCentered: { fontSize: 12, color: c.text.placeholder, textAlign: 'center', marginBottom: 12 },
     settingBlock: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderRadius: 12,
         padding: 16,
         shadowColor: c.shadow,
@@ -670,7 +670,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     },
     dataDivider: { height: 1, backgroundColor: c.border.subtle },
     infoBox: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
@@ -705,7 +705,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         justifyContent: 'flex-end',
     },
     restoreContent: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 20,

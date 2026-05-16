@@ -169,7 +169,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',

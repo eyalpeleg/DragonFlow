@@ -72,7 +72,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         alignItems: 'center',
     },
     dropdown: {
-        backgroundColor: c.white,
+        backgroundColor: c.surface,
         borderRadius: 16,
         padding: 20,
         width: '85%',

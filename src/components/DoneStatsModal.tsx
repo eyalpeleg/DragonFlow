@@ -123,7 +123,7 @@ export default function DoneStatsModal({ task, onClose }: Props) {
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'flex-end' },
     sheet: {
-        backgroundColor: c.white, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
         padding: 20, paddingBottom: 36,
     },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, alignSelf: 'center', marginBottom: 16 },

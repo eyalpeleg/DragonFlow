@@ -289,7 +289,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-end' },
-    content: { backgroundColor: c.white, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
+    content: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
     contentInner: { padding: 20 },
     modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: c.text.primary },
     input: { borderBottomWidth: 1, borderBottomColor: c.border.light, paddingVertical: 10, marginBottom: 15, fontSize: 16, color: c.text.primary },
