@@ -800,7 +800,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderColor: c.primary,
     },
     playButton: {
-        backgroundColor: c.primary,
+        backgroundColor: c.secondary,
         width: 40,
         height: 40,
         borderRadius: 8,

@@ -166,7 +166,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         fontWeight: '600',
     },
     playButton: {
-        backgroundColor: c.primary,
+        backgroundColor: c.secondary,
         width: BUTTON_SIZE,
         height: BUTTON_SIZE,
         borderRadius: 8,
