@@ -138,6 +138,7 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                                     value={newTitle}
                                     onChangeText={setNewTitle}
                                     placeholder="Sub-task title"
+                                    placeholderTextColor={colors.text.placeholder}
                                     autoFocus
                                     onSubmitEditing={handleAdd}
                                     returnKeyType="done"
@@ -177,7 +178,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     editInput: { borderBottomWidth: 1, borderBottomColor: c.border.medium, paddingVertical: 2 },
     removeBtn: { padding: 4 },
     addRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: c.border.medium, fontSize: 13, paddingVertical: 4 },
+    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: c.border.medium, fontSize: 13, paddingVertical: 4, color: c.text.body },
     addConfirmBtn: { backgroundColor: c.primary, borderRadius: 12, padding: 4 },
     addTrigger: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
     addTriggerText: { fontSize: 12, color: c.primary },
