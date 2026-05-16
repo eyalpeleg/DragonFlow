@@ -7,7 +7,6 @@ import { COLORS } from '@/src/styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
-import EditStatusOrderModal from '@/src/components/EditStatusOrderModal';
 import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
 import VolumeControl from '@/src/components/VolumeControl';
 import { Category, SoundType } from '@/src/types';
@@ -53,7 +52,7 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, themeColorPrimary, themeColorSecondary, themeColorAction, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setThemeColorPrimary, setThemeColorSecondary, setThemeColorAction } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, themeColorPrimary, themeColorSecondary, themeColorAction, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setThemeColorPrimary, setThemeColorSecondary, setThemeColorAction } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [tempPrimaryColor, setTempPrimaryColor] = useState(themeColorPrimary);
     const [tempSecondaryColor, setTempSecondaryColor] = useState(themeColorSecondary);
@@ -66,7 +65,6 @@ export default function SettingsScreen() {
     }, [themeColorPrimary, themeColorSecondary, themeColorAction]);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
-    const [statusOrderModalVisible, setStatusOrderModalVisible] = useState(false);
     const [tasksDropdownOpen, setTasksDropdownOpen] = useState(false);
     const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
     const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
@@ -324,24 +322,6 @@ export default function SettingsScreen() {
                         </View>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
-                        <TouchableOpacity style={styles.statusOrderRow} onPress={() => setStatusOrderModalVisible(true)}>
-                            <View style={styles.statusOrderContent}>
-                                <Text style={styles.settingTitle}>Status Order</Text>
-                                <Text style={styles.settingDesc}>Customize how tasks are sorted by status</Text>
-                                <View style={styles.statusOrderPreview}>
-                                    {(['Ready', 'In Progress', 'Paused', 'Done'] as const).slice().sort(
-                                        (a: string, b: string) => statusOrderConfig[a as keyof typeof statusOrderConfig] - statusOrderConfig[b as keyof typeof statusOrderConfig]
-                                    ).map((status: string) => (
-                                        <Text key={status} style={styles.statusOrderTag}>
-                                            {status}
-                                        </Text>
-                                    ))}
-                                </View>
-                            </View>
-                            <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
-                        </TouchableOpacity>
-                    </View>
-                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         {categories.map((cat) => {
                             const isDefault = cat.id === DEFAULT_CATEGORY_ID;
                             return (
@@ -567,7 +547,6 @@ export default function SettingsScreen() {
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
-            <EditStatusOrderModal visible={statusOrderModalVisible} onClose={() => setStatusOrderModalVisible(false)} />
 
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
@@ -850,29 +829,6 @@ const styles = StyleSheet.create({
     weekDayBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
     weekDayText: { fontSize: 14, fontWeight: '600', color: COLORS.text.subtle },
     weekDayTextActive: { color: COLORS.white },
-    statusOrderRow: {
-        flexDirection: 'row',
-        alignItems: 'center',
-        justifyContent: 'space-between',
-        paddingVertical: 12,
-    },
-    statusOrderContent: { flex: 1 },
-    statusOrderPreview: {
-        flexDirection: 'row',
-        flexWrap: 'wrap',
-        gap: 6,
-        marginTop: 10,
-    },
-    statusOrderTag: {
-        fontSize: 11,
-        fontWeight: '600',
-        color: COLORS.surface,
-        backgroundColor: COLORS.primary,
-        paddingHorizontal: 8,
-        paddingVertical: 4,
-        borderRadius: 6,
-        overflow: 'hidden',
-    },
     ml12: { marginLeft: 12 },
     ml12flex: { marginLeft: 12, flex: 1 },
     mr8: { marginRight: 8 },

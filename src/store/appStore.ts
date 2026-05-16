@@ -3,7 +3,7 @@ import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { COLORS, PriorityLevel } from '../styles/theme';
-import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
+import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
@@ -15,6 +15,13 @@ import { makeId } from '../utils/id';
 export { getCategoryColor, getCategoryName };
 
 export const DEFAULT_CATEGORY_ID = 'default';
+
+const STATUS_RANK: Record<TaskStatus, number> = {
+    'In Progress': 0,
+    'Ready': 1,
+    'Paused': 1,
+    'Done': 2,
+};
 
 const BUILTIN_CATEGORIES: Category[] = [
     { id: 'default',  name: 'Default',  color: '#607D8B' },
@@ -81,7 +88,6 @@ interface TaskStore {
     showBubbleInBackground: boolean;
     defaultTaskTime: string;
     firstDayOfWeek: 'sunday' | 'monday';
-    statusOrderConfig: StatusOrderConfig;
     notificationSoundEnabled: boolean;
     pomodoroSoundType: SoundType;
     tasksSoundType: SoundType;
@@ -131,7 +137,6 @@ interface TaskStore {
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
     setFocusMode: (enabled: boolean) => void;
-    setStatusOrderConfig: (config: StatusOrderConfig) => void;
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
@@ -164,12 +169,6 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroModeIdx: null,
             pomodoroPausedSecondsLeft: null,
             pomodoroNotifId: null,
-            statusOrderConfig: {
-                'In Progress': 0,
-                'Paused': 1,
-                'Ready': 1,
-                'Done': 3,
-            },
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -387,8 +386,6 @@ export const useTaskStore = create<TaskStore>()(
 
             setFocusMode: (enabled) => set({ focusMode: enabled }),
 
-            setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
-
             setPomodoroTimer: (endTime, modeIdx, notifId) => set({
                 pomodoroEndTime: endTime,
                 pomodoroModeIdx: modeIdx,
@@ -600,7 +597,6 @@ export const useTaskStore = create<TaskStore>()(
 
 export function useSortedFilteredTasks(): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
-    const statusOrderConfig = useTaskStore((s) => s.statusOrderConfig);
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
@@ -632,7 +628,7 @@ export function useSortedFilteredTasks(): Task[] {
         });
 
         return [...filtered].sort((a, b) => {
-            const statusDiff = statusOrderConfig[a.status] - statusOrderConfig[b.status];
+            const statusDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
             if (statusDiff !== 0) return statusDiff;
 
             const dateA = a.dueDate || '9999-12-31';
@@ -648,7 +644,7 @@ export function useSortedFilteredTasks(): Task[] {
 
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, statusOrderConfig, statusFilters, categoryFilters, priorityFilters, dueDateFilters, focusMode]);
+    }, [tasks, statusFilters, categoryFilters, priorityFilters, dueDateFilters, focusMode]);
 }
 
 export function useArchivedTasks(): Task[] {
