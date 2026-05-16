@@ -4,6 +4,7 @@ import { Task, SoundType } from '../types';
 import { getCategoryName } from './categories';
 import FloatingBubble from '../modules/FloatingBubble';
 import { audioService } from '../services/audioService';
+import { COLORS } from '../styles/theme';
 
 const POMODORO_CHANNEL = 'pomodoro-3';
 const REMINDERS_CHANNEL = 'reminders-3';
@@ -50,7 +51,7 @@ export async function setupNotificationChannels(): Promise<void> {
                 name: ch.name,
                 importance: Notifications.AndroidImportance.HIGH,
                 vibrationPattern: ch.vibe as unknown as number[],
-                lightColor: '#6200EE',
+                lightColor: COLORS.notification,
             });
         }
     } catch {

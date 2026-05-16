@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { PriorityLevel } from '../styles/theme';
+import { COLORS, PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, StatusOrderConfig, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
@@ -166,9 +166,9 @@ export const useTaskStore = create<TaskStore>()(
             dueDateFilters: new Set(),
             customTimerSeconds: 0,
             debugModeEnabled: false,
-            themeColorPrimary: '#6200EE',
-            themeColorSecondary: '#88d295',
-            themeColorAction: '#a2d9a1',
+            themeColorPrimary: COLORS.themeDefaults.primary,
+            themeColorSecondary: COLORS.themeDefaults.secondary,
+            themeColorAction: COLORS.themeDefaults.action,
 
             addTask: (input) => set((s) => {
                 const task: Task = {

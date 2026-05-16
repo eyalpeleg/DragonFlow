@@ -17,12 +17,7 @@ interface Props {
 
 const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Paused', 'Done'];
 const PRIORITY_OPTIONS: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
-const PRIORITY_COLORS: Record<PriorityLevel, string> = {
-    Critical: '#F44336',
-    High: '#FF9800',
-    Medium: '#FFC107',
-    Low: '#4CAF50',
-};
+const PRIORITY_COLORS: Record<PriorityLevel, string> = COLORS.priority;
 const DUE_DATE_OPTIONS: ('overdue' | 'today' | 'upcoming')[] = ['overdue', 'today', 'upcoming'];
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };
 
@@ -95,7 +90,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                     <View style={styles.header}>
                         <Text style={styles.title}>Filter by {filterType?.charAt(0).toUpperCase()}{filterType?.slice(1)}</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color="#333" />
+                            <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
@@ -167,11 +162,11 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: COLORS.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',
@@ -183,9 +178,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: COLORS.border.light,
     },
-    title: { fontSize: 16, fontWeight: '700', color: '#333' },
+    title: { fontSize: 16, fontWeight: '700', color: COLORS.text.secondary },
     content: { paddingHorizontal: 12, paddingVertical: 8 },
     option: {
         flexDirection: 'row',
@@ -198,24 +193,24 @@ const styles = StyleSheet.create({
     placeholder: { width: 20, marginRight: 10 },
     priorityDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
     categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
-    optionText: { fontSize: 14, color: '#555', fontWeight: '500' },
+    optionText: { fontSize: 14, color: COLORS.text.muted, fontWeight: '500' },
     footer: {
         flexDirection: 'row',
         gap: 10,
         paddingHorizontal: 16,
         paddingVertical: 12,
         borderTopWidth: 1,
-        borderTopColor: '#eee',
+        borderTopColor: COLORS.border.light,
     },
     clearBtn: {
         flex: 1,
         paddingVertical: 10,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#ccc',
+        borderColor: COLORS.text.disabled,
         alignItems: 'center',
     },
-    clearBtnText: { fontSize: 14, fontWeight: '600', color: '#666' },
+    clearBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.text.subtle },
     doneBtn: {
         flex: 1,
         paddingVertical: 10,
@@ -223,5 +218,5 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.primary,
         alignItems: 'center',
     },
-    doneBtnText: { fontSize: 14, fontWeight: '600', color: 'white' },
+    doneBtnText: { fontSize: 14, fontWeight: '600', color: COLORS.white },
 });

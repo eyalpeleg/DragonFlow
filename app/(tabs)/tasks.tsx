@@ -324,7 +324,7 @@ export default function TasksScreen() {
                             <Ionicons
                                 name={hasActiveFilters && filterBarVisible ? "funnel" : "funnel-outline"}
                                 size={20}
-                                color="white"
+                                color={COLORS.white}
                             />
                             {totalFilterCount > 1 && (
                                 <View style={styles.filterBadge}>
@@ -340,7 +340,7 @@ export default function TasksScreen() {
                         <Ionicons
                             name={showArchive ? 'chevron-back' : 'archive-outline'}
                             size={20}
-                            color={showArchive ? COLORS.primary : 'white'}
+                            color={showArchive ? COLORS.primary : COLORS.white}
                         />
                     </TouchableOpacity>
                     {!showArchive && (
@@ -348,7 +348,7 @@ export default function TasksScreen() {
                             {timerActive ? (
                                 <Text style={styles.pomodoroBtnTimer}>{parseInt(timerHours) > 0 ? `${timerHours}:${timerMins}:${timerSecs}` : `${timerMins}:${timerSecs}`}</Text>
                             ) : (
-                                <Ionicons name="hourglass" size={20} color="white" />
+                                <Ionicons name="hourglass" size={20} color={COLORS.white} />
                             )}
                         </TouchableOpacity>
                     )}
@@ -454,41 +454,41 @@ const styles = StyleSheet.create({
     },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
     filterBtn: {
         width: 38, height: 38, borderRadius: 19,
-        backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: COLORS.overlay.whiteSoft, alignItems: 'center', justifyContent: 'center',
     },
     filterBadge: {
         position: 'absolute', top: -2, right: -2,
-        backgroundColor: '#FF9800', borderRadius: 8, minWidth: 16, height: 16,
+        backgroundColor: COLORS.accent.warning, borderRadius: 8, minWidth: 16, height: 16,
         alignItems: 'center', justifyContent: 'center', paddingHorizontal: 2,
     },
-    filterBadgeText: { color: 'white', fontSize: 9, fontWeight: '700' },
+    filterBadgeText: { color: COLORS.white, fontSize: 9, fontWeight: '700' },
     archiveBtn: {
         width: 38, height: 38, borderRadius: 19,
-        backgroundColor: 'rgba(255,255,255,0.2)', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: COLORS.overlay.whiteSoft, alignItems: 'center', justifyContent: 'center',
     },
     archiveBtnActive: {
         width: 38, height: 38, borderRadius: 19,
-        backgroundColor: 'white', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
     },
     pomodoroBtn: { minWidth: 38, height: 38, alignItems: 'center', justifyContent: 'center', paddingHorizontal: 8 },
-    pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: 'white' },
+    pomodoroBtnTimer: { fontSize: 13, fontWeight: '700', color: COLORS.white },
     listContent: { paddingBottom: 100 },
     emptyContainer: { flex: 1 },
     emptyState: { flex: 1, alignItems: 'center', justifyContent: 'center', paddingTop: 100 },
     emptyEmoji: { fontSize: 60, marginBottom: 16 },
-    emptyText: { fontSize: 20, fontWeight: '600', color: '#444', marginBottom: 6 },
-    emptySubtext: { fontSize: 14, color: '#999' },
+    emptyText: { fontSize: 20, fontWeight: '600', color: COLORS.text.body, marginBottom: 6 },
+    emptySubtext: { fontSize: 14, color: COLORS.text.placeholder },
     fab: {
         position: 'absolute', right: 20, bottom: 30,
         backgroundColor: COLORS.primary, width: 60, height: 60,
         borderRadius: 30, justifyContent: 'center', alignItems: 'center',
-        shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 4,
+        shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 4,
         elevation: 6,
         borderWidth: 2, borderColor: COLORS.primary,
     },
-    fabText: { color: 'white', fontSize: 30, lineHeight: 34 },
+    fabText: { color: COLORS.white, fontSize: 30, lineHeight: 34 },
 });

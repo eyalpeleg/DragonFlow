@@ -72,8 +72,8 @@ const styles = StyleSheet.create({
     iosPicker: { height: 40 },
     androidButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        borderWidth: 1, borderColor: '#ddd', borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+        borderWidth: 1, borderColor: COLORS.border.medium, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
     },
-    androidText: { fontSize: 15, color: '#333' },
+    androidText: { fontSize: 15, color: COLORS.text.secondary },
     androidIcon: { fontSize: 16 },
 });

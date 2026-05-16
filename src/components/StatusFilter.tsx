@@ -51,12 +51,12 @@ export default function StatusFilter({ active, onChange }: Props) {
 }
 
 const styles = StyleSheet.create({
-    container: { maxHeight: 44, backgroundColor: '#fafafa', borderBottomWidth: 1, borderBottomColor: '#eee' },
+    container: { maxHeight: 44, backgroundColor: COLORS.surfaceAlt.light, borderBottomWidth: 1, borderBottomColor: COLORS.border.light },
     content: { paddingHorizontal: 12, paddingVertical: 8, gap: 8, flexDirection: 'row', alignItems: 'center' },
     chip: {
         paddingHorizontal: 14, paddingVertical: 5, borderRadius: 16,
-        backgroundColor: '#f0f0f0', borderWidth: 1, borderColor: '#e0e0e0',
+        backgroundColor: COLORS.surfaceAlt.soft, borderWidth: 1, borderColor: COLORS.border.muted,
     },
-    chipText: { fontSize: 12, fontWeight: '600', color: '#666' },
-    chipTextActive: { color: 'white' },
+    chipText: { fontSize: 12, fontWeight: '600', color: COLORS.text.subtle },
+    chipTextActive: { color: COLORS.white },
 });

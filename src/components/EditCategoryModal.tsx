@@ -48,7 +48,7 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
                     <TextInput
                         style={styles.input}
                         placeholder="Category name"
-                        placeholderTextColor="#aaa"
+                        placeholderTextColor={COLORS.text.light}
                         value={name}
                         onChangeText={setName}
                         maxLength={20}
@@ -67,7 +67,7 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
                                 onPress={() => setSelectedColor(color)}
                             >
                                 {selectedColor === color && (
-                                    <Ionicons name="checkmark" size={14} color="white" />
+                                    <Ionicons name="checkmark" size={14} color={COLORS.white} />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -92,26 +92,26 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-    sheet: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '85%' },
-    title: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 14 },
+    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+    sheet: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, width: '85%' },
+    title: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, marginBottom: 14 },
     input: {
-        borderWidth: 1, borderColor: '#ddd', borderRadius: 8,
-        paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, color: '#222',
+        borderWidth: 1, borderColor: COLORS.border.medium, borderRadius: 8,
+        paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, color: COLORS.text.primary,
     },
-    error: { color: '#E53935', fontSize: 12, marginTop: 4 },
-    label: { fontSize: 13, fontWeight: '600', color: '#555', marginTop: 16, marginBottom: 8 },
+    error: { color: COLORS.text.error, fontSize: 12, marginTop: 4 },
+    label: { fontSize: 13, fontWeight: '600', color: COLORS.text.muted, marginTop: 16, marginBottom: 8 },
     palette: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     swatch: {
         width: 34, height: 34, borderRadius: 17,
         alignItems: 'center', justifyContent: 'center',
         borderWidth: 2, borderColor: 'transparent',
     },
-    swatchSelected: { borderColor: '#222' },
+    swatchSelected: { borderColor: COLORS.text.primary },
     buttons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
     cancelBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    cancelText: { color: '#888', fontSize: 14 },
+    cancelText: { color: COLORS.text.weak, fontSize: 14 },
     saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
     saveBtnDisabled: { opacity: 0.4 },
-    saveText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    saveText: { color: COLORS.surface, fontWeight: '700', fontSize: 14 },
 });

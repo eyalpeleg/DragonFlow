@@ -79,7 +79,7 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                         </Text>
                         {onPlayPreview && (
                             <TouchableOpacity style={styles.playButton} onPress={() => onPlayPreview(tempVolume)}>
-                                <Ionicons name="musical-notes" size={20} color="white" />
+                                <Ionicons name="musical-notes" size={20} color={COLORS.white} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -101,12 +101,12 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: COLORS.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 16,
         padding: 24,
         width: '85%',
@@ -116,7 +116,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: '#222',
+        color: COLORS.text.primary,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -133,7 +133,7 @@ const styles = StyleSheet.create({
     sliderTrack: {
         width: 8,
         height: '100%',
-        backgroundColor: '#e0e0e0',
+        backgroundColor: COLORS.border.muted,
         borderRadius: 4,
         overflow: 'hidden',
         justifyContent: 'flex-end',
@@ -159,7 +159,7 @@ const styles = StyleSheet.create({
     },
     volumeText: {
         fontSize: 14,
-        color: '#666',
+        color: COLORS.text.subtle,
         fontWeight: '600',
     },
     playButton: {
@@ -180,7 +180,7 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     cancelBtnText: {
-        color: '#888',
+        color: COLORS.text.weak,
         fontWeight: '600',
         fontSize: 14,
     },
@@ -191,7 +191,7 @@ const styles = StyleSheet.create({
         borderRadius: 8,
     },
     applyBtnText: {
-        color: 'white',
+        color: COLORS.white,
         fontWeight: '600',
         fontSize: 14,
     },

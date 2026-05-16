@@ -64,7 +64,7 @@ export default function EditStatusOrderModal({ visible, onClose }: Props) {
                                 <TextInput
                                     style={styles.orderInput}
                                     placeholder="0"
-                                    placeholderTextColor="#aaa"
+                                    placeholderTextColor={COLORS.text.light}
                                     value={String(orders[status])}
                                     onChangeText={(value) => handleOrderChange(status, value)}
                                     keyboardType="decimal-pad"
@@ -89,24 +89,24 @@ export default function EditStatusOrderModal({ visible, onClose }: Props) {
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.45)', justifyContent: 'center', alignItems: 'center' },
-    sheet: { backgroundColor: '#fff', borderRadius: 16, padding: 20, width: '88%', maxHeight: '80%' },
-    title: { fontSize: 18, fontWeight: '700', color: '#222', marginBottom: 4 },
-    subtitle: { fontSize: 12, color: '#666', marginBottom: 16, lineHeight: 16 },
+    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+    sheet: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, width: '88%', maxHeight: '80%' },
+    title: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, marginBottom: 4 },
+    subtitle: { fontSize: 12, color: COLORS.text.subtle, marginBottom: 16, lineHeight: 16 },
     content: { marginBottom: 16 },
-    label: { fontSize: 13, fontWeight: '600', color: '#555', marginBottom: 8 },
+    label: { fontSize: 13, fontWeight: '600', color: COLORS.text.muted, marginBottom: 8 },
     labelTop: { marginTop: 12 },
-    orderPreview: { backgroundColor: '#f5f5f5', borderRadius: 8, padding: 12, marginBottom: 12 },
-    orderItem: { fontSize: 13, color: '#333', lineHeight: 20 },
+    orderPreview: { backgroundColor: COLORS.surfaceAlt.muted, borderRadius: 8, padding: 12, marginBottom: 12 },
+    orderItem: { fontSize: 13, color: COLORS.text.secondary, lineHeight: 20 },
     statusRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12, justifyContent: 'space-between' },
-    statusLabel: { fontSize: 14, color: '#333', fontWeight: '500', flex: 1 },
+    statusLabel: { fontSize: 14, color: COLORS.text.secondary, fontWeight: '500', flex: 1 },
     orderInput: {
-        borderWidth: 1, borderColor: '#ddd', borderRadius: 6,
-        paddingHorizontal: 8, paddingVertical: 6, fontSize: 14, color: '#222', width: 70, textAlign: 'center',
+        borderWidth: 1, borderColor: COLORS.border.medium, borderRadius: 6,
+        paddingHorizontal: 8, paddingVertical: 6, fontSize: 14, color: COLORS.text.primary, width: 70, textAlign: 'center',
     },
     buttons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10 },
     cancelBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    cancelText: { color: '#888', fontSize: 14 },
+    cancelText: { color: COLORS.text.weak, fontSize: 14 },
     saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
-    saveText: { color: '#fff', fontWeight: '700', fontSize: 14 },
+    saveText: { color: COLORS.surface, fontWeight: '700', fontSize: 14 },
 });

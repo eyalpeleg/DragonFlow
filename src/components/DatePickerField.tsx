@@ -97,11 +97,11 @@ export default function DatePickerField({ value, onChange, onClear, expanded }: 
             <View>
                 <View style={styles.selectedRow}>
                     <TouchableOpacity style={styles.selectedPill} onPress={() => setShowChips(!showChips)}>
-                        <Ionicons name="calendar" size={14} color="white" style={{ marginRight: 6 }} />
+                        <Ionicons name="calendar" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
                         <Text style={styles.selectedText}>{formatted}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-                        <Ionicons name="close-circle" size={20} color="#bbb" />
+                        <Ionicons name="close-circle" size={20} color={COLORS.text.veryLight} />
                     </TouchableOpacity>
                 </View>
                 {showChips && renderChips()}
@@ -134,7 +134,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         gap: 8,
         borderWidth: 1.5,
-        borderColor: '#ddd',
+        borderColor: COLORS.border.medium,
         borderStyle: 'dashed',
         borderRadius: 10,
         paddingHorizontal: 14,
@@ -142,7 +142,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
-        color: '#999',
+        color: COLORS.text.placeholder,
         fontWeight: '500',
     },
     chipsRow: {
@@ -155,18 +155,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: COLORS.surfaceAlt.soft,
     },
     quickChipText: {
         fontSize: 13,
         fontWeight: '600',
-        color: '#444',
+        color: COLORS.text.body,
     },
     otherChip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: 'rgba(79,55,139,0.08)',
+        backgroundColor: COLORS.overlay.accentMedium,
     },
     selectedRow: {
         flexDirection: 'row',
@@ -183,7 +183,7 @@ const styles = StyleSheet.create({
     selectedText: {
         fontSize: 13,
         fontWeight: '600',
-        color: 'white',
+        color: COLORS.white,
     },
     clearBtn: {
         marginLeft: 6,

@@ -17,7 +17,7 @@ import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
-const SWITCH_TRACK_COLOR = { false: '#ccc', true: COLORS.primary } as const;
+const SWITCH_TRACK_COLOR = { false: COLORS.text.disabled, true: COLORS.primary } as const;
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
 
@@ -27,7 +27,7 @@ function CollapsibleSection({ title, children }: { title: string; children: Reac
         <View style={sectionStyles.wrapper}>
             <TouchableOpacity style={sectionStyles.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
                 <Text style={sectionStyles.title}>{title}</Text>
-                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color="#999" />
+                <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={COLORS.text.placeholder} />
             </TouchableOpacity>
             {expanded && children}
         </View>
@@ -37,7 +37,7 @@ function CollapsibleSection({ title, children }: { title: string; children: Reac
 const sectionStyles = StyleSheet.create({
     wrapper: { marginBottom: 24 },
     header: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginBottom: 12 },
-    title: { fontSize: 14, fontWeight: '700', color: '#666', textTransform: 'uppercase' },
+    title: { fontSize: 14, fontWeight: '700', color: COLORS.text.subtle, textTransform: 'uppercase' },
 });
 
 function formatRelativeTime(isoString: string | null): string {
@@ -226,7 +226,7 @@ export default function SettingsScreen() {
                             value={showBubbleInBackground}
                             onValueChange={setShowBubbleInBackground}
                             trackColor={SWITCH_TRACK_COLOR}
-                            thumbColor="white"
+                            thumbColor={COLORS.white}
                         />
                     </View>
                 </CollapsibleSection>
@@ -256,7 +256,7 @@ export default function SettingsScreen() {
                                 onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume).catch(console.error)}
                                 disabled={tasksSoundType === 'Disabled'}
                             >
-                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                                <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? COLORS.text.disabled : COLORS.white} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -284,7 +284,7 @@ export default function SettingsScreen() {
                                 onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume).catch(console.error)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
-                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
+                                <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? COLORS.text.disabled : COLORS.white} />
                             </TouchableOpacity>
                         </View>
                     </View>
@@ -338,7 +338,7 @@ export default function SettingsScreen() {
                                     ))}
                                 </View>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                            <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
                         </TouchableOpacity>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
@@ -349,7 +349,7 @@ export default function SettingsScreen() {
                                     <View style={[styles.catDot, { backgroundColor: cat.color }]} />
                                     <Text style={styles.catName}>{cat.name}</Text>
                                     {isDefault && (
-                                        <Ionicons name="lock-closed" size={14} color="#bbb" style={styles.mr8} />
+                                        <Ionicons name="lock-closed" size={14} color={COLORS.text.veryLight} style={styles.mr8} />
                                     )}
                                     {!isDefault && (
                                         <View style={styles.catActions}>
@@ -357,7 +357,7 @@ export default function SettingsScreen() {
                                                 <Ionicons name="pencil" size={16} color={COLORS.primary} />
                                             </TouchableOpacity>
                                             <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="trash" size={16} color="#E53935" />
+                                                <Ionicons name="trash" size={16} color={COLORS.text.error} />
                                             </TouchableOpacity>
                                         </View>
                                     )}
@@ -379,7 +379,7 @@ export default function SettingsScreen() {
                                 <Text style={styles.settingTitle}>Export Data</Text>
                                 <Text style={styles.settingDesc}>Save tasks & categories to a JSON backup file</Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                            <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
                         </TouchableOpacity>
                         <View style={styles.dataDivider} />
                         <TouchableOpacity style={styles.dataRow} onPress={handleImport}>
@@ -388,7 +388,7 @@ export default function SettingsScreen() {
                                 <Text style={styles.settingTitle}>Import Data</Text>
                                 <Text style={styles.settingDesc}>Restore from a backup file (replaces current data)</Text>
                             </View>
-                            <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                            <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
                         </TouchableOpacity>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
@@ -398,7 +398,7 @@ export default function SettingsScreen() {
                                 <Text style={styles.settingTitleCentered}>Google Drive Backup</Text>
                                 <Text style={styles.settingDescCentered}>Automatically back up your tasks to Google Drive</Text>
                                 <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
-                                    <Ionicons name="logo-google" size={18} color="white" />
+                                    <Ionicons name="logo-google" size={18} color={COLORS.white} />
                                     <Text style={styles.signInText}>Sign in with Google</Text>
                                 </TouchableOpacity>
                             </View>
@@ -421,7 +421,7 @@ export default function SettingsScreen() {
                                         value={autoBackupEnabled}
                                         onValueChange={setAutoBackup}
                                         trackColor={SWITCH_TRACK_COLOR}
-                                        thumbColor="white"
+                                        thumbColor={COLORS.white}
                                     />
                                 </View>
                                 <View style={styles.dataDivider} />
@@ -439,7 +439,7 @@ export default function SettingsScreen() {
                                     <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Back Up Now</Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                                    <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
                                 </TouchableOpacity>
                                 <View style={styles.dataDivider} />
                                 <TouchableOpacity style={styles.dataRow} onPress={handleOpenRestorePicker} disabled={backupStatus === 'restoring'}>
@@ -451,7 +451,7 @@ export default function SettingsScreen() {
                                     <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Restore from Backup</Text>
                                     </View>
-                                    <Ionicons name="chevron-forward" size={18} color="#ccc" />
+                                    <Ionicons name="chevron-forward" size={18} color={COLORS.text.disabled} />
                                 </TouchableOpacity>
                             </>
                         )}
@@ -471,7 +471,7 @@ export default function SettingsScreen() {
                             value={debugModeEnabled}
                             onValueChange={setDebugModeEnabled}
                             trackColor={SWITCH_TRACK_COLOR}
-                            thumbColor="white"
+                            thumbColor={COLORS.white}
                         />
                     </View>
 
@@ -638,7 +638,7 @@ export default function SettingsScreen() {
                                                         <Ionicons
                                                             name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                                                             size={20}
-                                                            color={isSelected ? COLORS.primary : '#ccc'}
+                                                            color={isSelected ? COLORS.primary : COLORS.text.disabled}
                                                         />
                                                         <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
                                                             {date}{taskLabel}
@@ -669,7 +669,7 @@ export default function SettingsScreen() {
 }
 
 const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: '#f5f5f5' },
+    container: { flex: 1, backgroundColor: COLORS.surfaceAlt.muted },
     header: {
         backgroundColor: COLORS.primary,
         paddingHorizontal: 16,
@@ -679,31 +679,31 @@ const styles = StyleSheet.create({
     },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
     content: { padding: 20, paddingBottom: 40 },
     settingRow: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 12,
         padding: 16,
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
     },
     settingLabel: { flexDirection: 'row', alignItems: 'center', flex: 1 },
-    settingTitle: { fontSize: 16, fontWeight: '600', color: '#222', marginBottom: 2 },
-    settingTitleCentered: { fontSize: 16, fontWeight: '600', color: '#222', marginTop: 8, textAlign: 'center' },
-    settingDesc: { fontSize: 12, color: '#999' },
-    settingDescCentered: { fontSize: 12, color: '#999', textAlign: 'center', marginBottom: 12 },
+    settingTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginBottom: 2 },
+    settingTitleCentered: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginTop: 8, textAlign: 'center' },
+    settingDesc: { fontSize: 12, color: COLORS.text.placeholder },
+    settingDescCentered: { fontSize: 12, color: COLORS.text.placeholder, textAlign: 'center', marginBottom: 12 },
     settingBlock: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 12,
         padding: 16,
-        shadowColor: '#000',
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -715,7 +715,7 @@ const styles = StyleSheet.create({
     timeInputRow: { flexDirection: 'row', alignItems: 'center', marginTop: 12, gap: 10 },
     timeInput: {
         borderWidth: 1,
-        borderColor: '#eee',
+        borderColor: COLORS.border.light,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -725,16 +725,16 @@ const styles = StyleSheet.create({
         width: 80,
         textAlign: 'center',
     },
-    timeFormat: { fontSize: 12, color: '#999' },
+    timeFormat: { fontSize: 12, color: COLORS.text.placeholder },
     catRow: {
         flexDirection: 'row',
         alignItems: 'center',
         paddingVertical: 10,
         borderBottomWidth: 1,
-        borderBottomColor: '#f0f0f0',
+        borderBottomColor: COLORS.border.subtle,
     },
     catDot: { width: 14, height: 14, borderRadius: 7, marginRight: 12 },
-    catName: { flex: 1, fontSize: 15, color: '#333', fontWeight: '500' },
+    catName: { flex: 1, fontSize: 15, color: COLORS.text.secondary, fontWeight: '500' },
     catActions: { flexDirection: 'row', gap: 12 },
     catActionBtn: { padding: 4 },
     addCatBtn: {
@@ -756,20 +756,20 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         justifyContent: 'space-between',
     },
-    dataDivider: { height: 1, backgroundColor: '#f0f0f0' },
+    dataDivider: { height: 1, backgroundColor: COLORS.border.subtle },
     infoBox: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
-        shadowColor: '#000',
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
         elevation: 1,
     },
-    infoText: { fontSize: 16, fontWeight: '600', color: '#222' },
-    infoSubtext: { fontSize: 12, color: '#999', marginTop: 4 },
+    infoText: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary },
+    infoSubtext: { fontSize: 12, color: COLORS.text.placeholder, marginTop: 4 },
     signInBtn: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -779,34 +779,34 @@ const styles = StyleSheet.create({
         paddingVertical: 12,
         borderRadius: 10,
     },
-    signInText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+    signInText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
     cloudSignInWrapper: { alignItems: 'center', paddingVertical: 8 },
     cloudUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
-    cloudUserEmail: { fontSize: 12, color: '#999', flex: 1, marginLeft: 8 },
-    signOutText: { fontSize: 13, color: '#E53935', fontWeight: '600' },
+    cloudUserEmail: { fontSize: 12, color: COLORS.text.placeholder, flex: 1, marginLeft: 8 },
+    signOutText: { fontSize: 13, color: COLORS.text.error, fontWeight: '600' },
     syncRow: { flexDirection: 'row', alignItems: 'center' },
-    autoBackupTitle: { fontSize: 16, fontWeight: '600', color: '#222', marginLeft: 12 },
-    lastBackupValue: { fontSize: 12, color: '#555', fontWeight: '600' },
+    autoBackupTitle: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, marginLeft: 12 },
+    lastBackupValue: { fontSize: 12, color: COLORS.text.muted, fontWeight: '600' },
     restoreOverlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.5)',
+        backgroundColor: COLORS.overlay.scrimStrong,
         justifyContent: 'flex-end',
     },
     restoreContent: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 20,
         paddingBottom: 40,
     },
-    restoreTitle: { fontSize: 18, fontWeight: 'bold', color: '#222', textAlign: 'center' },
+    restoreTitle: { fontSize: 18, fontWeight: 'bold', color: COLORS.text.primary, textAlign: 'center' },
     restoreLoader: { marginVertical: 30 },
-    noBackupsText: { fontSize: 12, color: '#999', textAlign: 'center', marginVertical: 30 },
+    noBackupsText: { fontSize: 12, color: COLORS.text.placeholder, textAlign: 'center', marginVertical: 30 },
     backupScrollView: { maxHeight: 360, marginVertical: 12 },
     bucketHeader: {
         fontSize: 12,
         fontWeight: '700',
-        color: '#888',
+        color: COLORS.text.weak,
         textTransform: 'uppercase',
         letterSpacing: 0.5,
         marginTop: 8,
@@ -828,28 +828,28 @@ const styles = StyleSheet.create({
         paddingVertical: 14,
         paddingHorizontal: 8,
         borderRadius: 10,
-        backgroundColor: 'rgba(79,55,139,0.06)',
+        backgroundColor: COLORS.overlay.accentSoft,
     },
-    restoreRowText: { fontSize: 15, color: '#444', fontWeight: '500' },
+    restoreRowText: { fontSize: 15, color: COLORS.text.body, fontWeight: '500' },
     restoreRowTextSelected: { fontSize: 15, color: COLORS.primary, fontWeight: '500' },
     restoreBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15, marginTop: 8 },
     cancelBtn: { padding: 12 },
-    cancelBtnText: { color: '#999', fontWeight: 'bold', fontSize: 15 },
+    cancelBtnText: { color: COLORS.text.placeholder, fontWeight: 'bold', fontSize: 15 },
     restoreBtn: {
         backgroundColor: COLORS.primary,
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 10,
     },
-    restoreBtnText: { color: 'white', fontWeight: 'bold', fontSize: 15 },
+    restoreBtnText: { color: COLORS.white, fontWeight: 'bold', fontSize: 15 },
     weekDayRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
     weekDayBtn: {
         flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
-        borderWidth: 1, borderColor: '#e0e0e0', backgroundColor: '#fafafa',
+        borderWidth: 1, borderColor: COLORS.border.muted, backgroundColor: COLORS.surfaceAlt.light,
     },
     weekDayBtnActive: { backgroundColor: COLORS.primary, borderColor: COLORS.primary },
-    weekDayText: { fontSize: 14, fontWeight: '600', color: '#666' },
-    weekDayTextActive: { color: 'white' },
+    weekDayText: { fontSize: 14, fontWeight: '600', color: COLORS.text.subtle },
+    weekDayTextActive: { color: COLORS.white },
     statusOrderRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -866,7 +866,7 @@ const styles = StyleSheet.create({
     statusOrderTag: {
         fontSize: 11,
         fontWeight: '600',
-        color: '#fff',
+        color: COLORS.surface,
         backgroundColor: COLORS.primary,
         paddingHorizontal: 8,
         paddingVertical: 4,
@@ -888,11 +888,11 @@ const styles = StyleSheet.create({
         alignItems: 'center',
         justifyContent: 'space-between',
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: COLORS.border.muted,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
-        backgroundColor: '#fafafa',
+        backgroundColor: COLORS.surfaceAlt.light,
     },
     soundDropdownButtonText: {
         fontSize: 15,
@@ -917,7 +917,7 @@ const styles = StyleSheet.create({
         alignItems: 'center',
     },
     playButtonDisabled: {
-        backgroundColor: '#e0e0e0',
+        backgroundColor: COLORS.border.muted,
     },
     colorInputRow: {
         flexDirection: 'row',
@@ -928,7 +928,7 @@ const styles = StyleSheet.create({
     colorInput: {
         flex: 1,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: COLORS.border.muted,
         borderRadius: 8,
         paddingHorizontal: 12,
         paddingVertical: 10,
@@ -940,15 +940,15 @@ const styles = StyleSheet.create({
         height: 40,
         borderRadius: 8,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: COLORS.border.muted,
     },
     colorCard: {
-        backgroundColor: '#fff',
+        backgroundColor: COLORS.surface,
         padding: 14,
         marginVertical: 6,
         borderRadius: 12,
         elevation: 1,
-        shadowColor: '#000',
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 1 },
         shadowOpacity: 0.05,
         shadowRadius: 2,
@@ -959,7 +959,7 @@ const styles = StyleSheet.create({
     colorCardTitle: {
         fontSize: 15,
         fontWeight: '600',
-        color: '#222',
+        color: COLORS.text.primary,
         marginBottom: 4,
     },
     colorCardHeader: {
@@ -971,14 +971,14 @@ const styles = StyleSheet.create({
     readOnlyBadge: {
         fontSize: 11,
         fontWeight: '600',
-        color: '#999',
+        color: COLORS.text.placeholder,
         paddingHorizontal: 8,
         paddingVertical: 2,
         borderRadius: 4,
-        backgroundColor: '#f0f0f0',
+        backgroundColor: COLORS.surfaceAlt.soft,
     },
     colorInputDisabled: {
-        backgroundColor: '#f5f5f5',
-        color: '#999',
+        backgroundColor: COLORS.surfaceAlt.muted,
+        color: COLORS.text.placeholder,
     },
 });

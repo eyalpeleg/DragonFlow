@@ -39,14 +39,14 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
                 <View style={styles.actions}>
                     <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(task)}>
-                        <Ionicons name="pencil-sharp" size={13} color="white" />
+                        <Ionicons name="pencil-sharp" size={13} color={COLORS.white} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.restoreBtn} onPress={() => onRestore(id)}>
-                        <Ionicons name="refresh-outline" size={13} color="white" />
+                        <Ionicons name="refresh-outline" size={13} color={COLORS.white} />
                         <Text style={styles.restoreText}>Restore</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
-                        <Ionicons name="trash" size={15} color="white" />
+                        <Ionicons name="trash" size={15} color={COLORS.white} />
                         <Text style={styles.deleteText}>Delete</Text>
                     </TouchableOpacity>
                 </View>
@@ -69,31 +69,31 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#f9f9f9', padding: 12, marginVertical: 4, marginHorizontal: 12,
+        backgroundColor: COLORS.surfaceAlt.offWhite, padding: 12, marginVertical: 4, marginHorizontal: 12,
         borderRadius: 10, borderLeftWidth: 4, opacity: 0.85,
-        elevation: 1, shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+        elevation: 1, shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
     },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
-    title: { fontSize: 14, fontWeight: '600', color: '#555', flex: 1, marginRight: 8 },
+    title: { fontSize: 14, fontWeight: '600', color: COLORS.text.muted, flex: 1, marginRight: 8 },
     actions: { flexDirection: 'row', gap: 6 },
     editBtn: {
         width: 28, height: 28, borderRadius: 14,
-        backgroundColor: '#888', alignItems: 'center', justifyContent: 'center',
+        backgroundColor: COLORS.text.weak, alignItems: 'center', justifyContent: 'center',
     },
     restoreBtn: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
         backgroundColor: COLORS.status['In Progress'], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
     },
-    restoreText: { color: 'white', fontSize: 11, fontWeight: '700' },
+    restoreText: { color: COLORS.white, fontSize: 11, fontWeight: '700' },
     deleteBtn: {
         flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: '#E53935', paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
+        backgroundColor: COLORS.text.error, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
     },
-    deleteText: { color: 'white', fontSize: 11, fontWeight: '700' },
+    deleteText: { color: COLORS.white, fontSize: 11, fontWeight: '700' },
     meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     priority: { fontSize: 11, fontWeight: '700' },
     catChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
-    catChipText: { fontSize: 10, color: 'white', fontWeight: '600' },
-    metaText: { fontSize: 11, color: '#999' },
-    archivedText: { fontSize: 11, color: '#bbb', fontStyle: 'italic' },
+    catChipText: { fontSize: 10, color: COLORS.white, fontWeight: '600' },
+    metaText: { fontSize: 11, color: COLORS.text.placeholder },
+    archivedText: { fontSize: 11, color: COLORS.text.veryLight, fontStyle: 'italic' },
 });
