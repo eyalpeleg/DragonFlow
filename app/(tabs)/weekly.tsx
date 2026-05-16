@@ -1,8 +1,9 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { ActivityIndicator, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { COLORS } from '@/src/styles/theme';
+import { AppColors } from '@/src/styles/theme';
+import { useColors } from '@/src/styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '@/src/store/appStore';
 import { formatDuration, getDailySummary, getWeeklyTimeSpent, getWeeklyCategoryStats } from '@/src/utils/summaryLogic';
 import { Task } from '@/src/types';
@@ -11,6 +12,8 @@ const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     return (
         <View style={[styles.statCard, color ? { borderTopColor: color, borderTopWidth: 3 } : {}]}>
             <Text style={styles.statValue}>{value}</Text>
@@ -34,6 +37,8 @@ function getWeekBounds(weekOffset: number, firstDayOfWeek: 'sunday' | 'monday'):
 }
 
 export default function WeeklyScreen() {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const tasks = useTaskStore((s) => s.tasks);
     const categories = useTaskStore((s) => s.categories);
     const hasHydrated = useTaskStore((s) => s.hasHydrated);
@@ -44,7 +49,7 @@ export default function WeeklyScreen() {
     if (!hasHydrated) {
         return (
             <SafeAreaView style={[styles.container, styles.centered]}>
-                <ActivityIndicator size="large" color={COLORS.primary} />
+                <ActivityIndicator size="large" color={colors.primary} />
             </SafeAreaView>
         );
     }
@@ -78,7 +83,7 @@ export default function WeeklyScreen() {
             <View style={styles.header}>
                 <Image source={appIcon} style={styles.headerIcon} />
                 <TouchableOpacity style={styles.navBtn} onPress={() => setWeekOffset((o) => o - 1)}>
-                    <Ionicons name="chevron-back" size={22} color={COLORS.overlay.whiteStrong} />
+                    <Ionicons name="chevron-back" size={22} color={colors.overlay.whiteStrong} />
                 </TouchableOpacity>
                 <View style={styles.headerContent}>
                     <Text style={styles.headerTitle}>{weekTitle}</Text>
@@ -88,15 +93,15 @@ export default function WeeklyScreen() {
                     onPress={() => weekOffset < 0 && setWeekOffset((o) => o + 1)}
                     disabled={weekOffset === 0}
                 >
-                    <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? COLORS.overlay.whiteStrong : COLORS.overlay.whiteSoft} />
+                    <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? colors.overlay.whiteStrong : colors.overlay.whiteSoft} />
                 </TouchableOpacity>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
                 <View style={styles.statsRow}>
-                    <StatCard label="Done" value={summary.done} color={COLORS.status['Done']} />
-                    <StatCard label="In Progress" value={summary.inProgress} color={COLORS.status['In Progress']} />
-                    <StatCard label="Done %" value={`${summary.completionRate}%`} color={COLORS.primary} />
+                    <StatCard label="Done" value={summary.done} color={colors.status['Done']} />
+                    <StatCard label="In Progress" value={summary.inProgress} color={colors.status['In Progress']} />
+                    <StatCard label="Done %" value={`${summary.completionRate}%`} color={colors.primary} />
                 </View>
 
                 <Text style={styles.sectionTitle}>By Category</Text>
@@ -146,33 +151,33 @@ export default function WeeklyScreen() {
     );
 }
 
-const styles = StyleSheet.create({
-    container: { flex: 1, backgroundColor: COLORS.background },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    container: { flex: 1, backgroundColor: c.background },
     centered: { justifyContent: 'center', alignItems: 'center' },
-    header: { backgroundColor: COLORS.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
+    header: { backgroundColor: c.primary, paddingHorizontal: 16, height: HEADER_HEIGHT, flexDirection: 'row', alignItems: 'center' },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
     navBtn: { width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
-    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: c.white, fontSize: 20, fontWeight: 'bold' },
     scroll: { paddingBottom: 40 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-    statCard: { flex: 1, backgroundColor: COLORS.white, borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: COLORS.shadow, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
-    statValue: { fontSize: 20, fontWeight: 'bold', color: COLORS.text.primary },
-    statLabel: { fontSize: 10, color: COLORS.text.weak, marginTop: 2, textAlign: 'center' },
-    sectionTitle: { fontSize: 14, fontWeight: '700', color: COLORS.text.muted, paddingHorizontal: 16, marginTop: 8, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
+    statCard: { flex: 1, backgroundColor: c.surface, borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+    statValue: { fontSize: 20, fontWeight: 'bold', color: c.text.primary },
+    statLabel: { fontSize: 10, color: c.text.weak, marginTop: 2, textAlign: 'center' },
+    sectionTitle: { fontSize: 14, fontWeight: '700', color: c.text.muted, paddingHorizontal: 16, marginTop: 8, marginBottom: 10, textTransform: 'uppercase', letterSpacing: 0.5 },
     catSection: { paddingHorizontal: 16, marginBottom: 8 },
     catRow: { flexDirection: 'row', alignItems: 'center', marginBottom: 12 },
     catDot: { width: 10, height: 10, borderRadius: 5, marginRight: 8 },
-    catName: { width: 68, fontSize: 13, color: COLORS.text.body },
-    barContainer: { flex: 1, height: 8, backgroundColor: COLORS.border.light, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
+    catName: { width: 68, fontSize: 13, color: c.text.body },
+    barContainer: { flex: 1, height: 8, backgroundColor: c.border.light, borderRadius: 4, overflow: 'hidden', marginHorizontal: 8 },
     barFill: { height: '100%', borderRadius: 4 },
-    catCount: { width: 20, fontSize: 13, fontWeight: '600', color: COLORS.text.muted, textAlign: 'right' },
-    catTime: { width: 44, fontSize: 11, color: COLORS.text.weak, textAlign: 'right', marginLeft: 6 },
+    catCount: { width: 20, fontSize: 13, fontWeight: '600', color: c.text.muted, textAlign: 'right' },
+    catTime: { width: 44, fontSize: 11, color: c.text.weak, textAlign: 'right', marginLeft: 6 },
     emptySection: { paddingHorizontal: 16, paddingVertical: 20, alignItems: 'center' },
-    emptyText: { color: COLORS.text.light, fontSize: 14 },
-    logRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: COLORS.white, marginHorizontal: 12, marginBottom: 6, borderRadius: 8 },
-    logTitle: { flex: 1, fontSize: 13, color: COLORS.text.secondary },
+    emptyText: { color: c.text.light, fontSize: 14 },
+    logRow: { flexDirection: 'row', alignItems: 'center', paddingHorizontal: 16, paddingVertical: 10, backgroundColor: c.surface, marginHorizontal: 12, marginBottom: 6, borderRadius: 8 },
+    logTitle: { flex: 1, fontSize: 13, color: c.text.secondary },
     catChip: { paddingHorizontal: 7, paddingVertical: 3, borderRadius: 10, marginLeft: 6 },
-    catChipText: { fontSize: 10, color: COLORS.white, fontWeight: '600' },
-    logTime: { fontSize: 11, color: COLORS.text.weak, marginLeft: 6 },
+    catChipText: { fontSize: 10, color: c.white, fontWeight: '600' },
+    logTime: { fontSize: 11, color: c.text.weak, marginLeft: 6 },
 });

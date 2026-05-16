@@ -67,3 +67,20 @@
 - Categories can be renamed without data migration
 - Built-in categories (Default, Friends, Personal, Fitness, Study) can't be deleted
 - User-created categories get random IDs via `makeId()`
+
+---
+
+## ADR-006: Dark Mode via Twin Palettes + `useColors()` Hook
+
+**Decision:** Implement dark mode by maintaining two palette objects (`lightColors`, `darkColors`) with identical key shapes in `src/styles/theme.ts`, selected at runtime by a `useColors()` hook driven from a `darkMode` boolean in the Zustand store. Each themed component converts its `StyleSheet.create({...})` into a `makeStyles(c: AppColors)` factory called inside the component and memoized with `useMemo`. Theme preference is a user-controlled toggle (no "follow system" mode) accessible from the top of the Settings screen.
+
+**Context:** The codebase had ~25 components with `StyleSheet.create` called at module load against a flat `COLORS` object. The previous "Dark mode" entry in features.md described `userInterfaceStyle: "automatic"` in `app.json`, but no JS branched on the OS color scheme — surfaces, text, and borders were hardcoded light. We needed real theming that adapts every screen, modal, and bottom-tab, owned by the user rather than the OS. We rejected: (a) a 3-way `system / light / dark` preference (too much UI for a personal app — the user wanted a single switch), (b) restructuring to semantic CSS-variable-style tokens (large refactor for minimal benefit at this scale), (c) auto-deriving dark variants from light values (magical, produces unexpected hues).
+
+**Consequences:**
+- Single source of truth for both palettes — adding a new color key requires defining both light and dark values
+- `useColors()` triggers a render of every consuming component when `darkMode` flips, which is the desired behavior
+- `makeStyles(c) + useMemo` recomputes the stylesheet on mode change but otherwise hits the memo cache
+- The previous user-customizable accent inputs (`themeColorPrimary/Secondary/Action`) were dropped in the same PR series; primary/secondary/action are now fixed brand colors that read on both backgrounds
+- `COLORS` survives as a back-compat alias for non-UI code (notification icon tint, category fallback colors) where mode doesn't matter
+- Status bar style is driven at runtime via `expo-status-bar` in `app/_layout.tsx`; cold-start splash may briefly show the previous mode's bar (acceptable)
+- Persisted store schema bumped to v2 to drop the legacy `themeColor*` keys on rehydrate

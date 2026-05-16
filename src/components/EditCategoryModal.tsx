@@ -1,7 +1,8 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
-import { COLORS, PRESET_PALETTE } from '../styles/theme';
+import { AppColors, PRESET_PALETTE } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { useTaskStore } from '../store/appStore';
 import { Category } from '../types';
 
@@ -12,6 +13,8 @@ interface Props {
 }
 
 export default function EditCategoryModal({ visible, category, onClose }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const { categories, updateCategory } = useTaskStore();
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(PRESET_PALETTE[0]);
@@ -48,7 +51,7 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
                     <TextInput
                         style={styles.input}
                         placeholder="Category name"
-                        placeholderTextColor={COLORS.text.light}
+                        placeholderTextColor={colors.text.light}
                         value={name}
                         onChangeText={setName}
                         maxLength={20}
@@ -67,7 +70,7 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
                                 onPress={() => setSelectedColor(color)}
                             >
                                 {selectedColor === color && (
-                                    <Ionicons name="checkmark" size={14} color={COLORS.white} />
+                                    <Ionicons name="checkmark" size={14} color={colors.white} />
                                 )}
                             </TouchableOpacity>
                         ))}
@@ -91,27 +94,27 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
     );
 }
 
-const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
-    sheet: { backgroundColor: COLORS.surface, borderRadius: 16, padding: 20, width: '85%' },
-    title: { fontSize: 18, fontWeight: '700', color: COLORS.text.primary, marginBottom: 14 },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+    sheet: { backgroundColor: c.surface, borderRadius: 16, padding: 20, width: '85%' },
+    title: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 14 },
     input: {
-        borderWidth: 1, borderColor: COLORS.border.medium, borderRadius: 8,
-        paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, color: COLORS.text.primary,
+        borderWidth: 1, borderColor: c.border.medium, borderRadius: 8,
+        paddingHorizontal: 12, paddingVertical: 8, fontSize: 15, color: c.text.primary,
     },
-    error: { color: COLORS.text.error, fontSize: 12, marginTop: 4 },
-    label: { fontSize: 13, fontWeight: '600', color: COLORS.text.muted, marginTop: 16, marginBottom: 8 },
+    error: { color: c.text.error, fontSize: 12, marginTop: 4 },
+    label: { fontSize: 13, fontWeight: '600', color: c.text.muted, marginTop: 16, marginBottom: 8 },
     palette: { flexDirection: 'row', flexWrap: 'wrap', gap: 8 },
     swatch: {
         width: 34, height: 34, borderRadius: 17,
         alignItems: 'center', justifyContent: 'center',
         borderWidth: 2, borderColor: 'transparent',
     },
-    swatchSelected: { borderColor: COLORS.text.primary },
+    swatchSelected: { borderColor: c.text.primary },
     buttons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
     cancelBtn: { paddingHorizontal: 16, paddingVertical: 8 },
-    cancelText: { color: COLORS.text.weak, fontSize: 14 },
-    saveBtn: { backgroundColor: COLORS.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
+    cancelText: { color: c.text.weak, fontSize: 14 },
+    saveBtn: { backgroundColor: c.primary, paddingHorizontal: 20, paddingVertical: 8, borderRadius: 8 },
     saveBtnDisabled: { opacity: 0.4 },
-    saveText: { color: COLORS.surface, fontWeight: '700', fontSize: 14 },
+    saveText: { color: c.surface, fontWeight: '700', fontSize: 14 },
 });

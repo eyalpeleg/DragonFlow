@@ -1,8 +1,9 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 
 function addDays(date: Date, days: number): Date {
     const d = new Date(date);
@@ -18,6 +19,8 @@ interface Props {
 }
 
 export default function DatePickerField({ value, onChange, onClear, expanded }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [showChips, setShowChips] = useState(false);
     const chipsVisible = showChips || (expanded && !value);
     const [showPicker, setShowPicker] = useState(false);
@@ -57,8 +60,8 @@ export default function DatePickerField({ value, onChange, onClear, expanded }: 
                     <Text style={styles.quickChipText}>Next Week</Text>
                 </TouchableOpacity>
                 <TouchableOpacity style={[styles.quickChip, styles.otherChip]} onPress={() => setShowPicker(true)}>
-                    <Ionicons name="calendar-outline" size={14} color={COLORS.primary} />
-                    <Text style={[styles.quickChipText, { color: COLORS.primary }]}>Other...</Text>
+                    <Ionicons name="calendar-outline" size={14} color={colors.primary} />
+                    <Text style={[styles.quickChipText, { color: colors.primary }]}>Other...</Text>
                 </TouchableOpacity>
             </View>
         );
@@ -75,7 +78,7 @@ export default function DatePickerField({ value, onChange, onClear, expanded }: 
                         minimumDate={new Date()}
                         onChange={(_, date) => handlePickerChange(date)}
                         themeVariant="light"
-                        accentColor={COLORS.primary}
+                        accentColor={colors.primary}
                     />
                 </View>
             );
@@ -97,11 +100,11 @@ export default function DatePickerField({ value, onChange, onClear, expanded }: 
             <View>
                 <View style={styles.selectedRow}>
                     <TouchableOpacity style={styles.selectedPill} onPress={() => setShowChips(!showChips)}>
-                        <Ionicons name="calendar" size={14} color={COLORS.white} style={{ marginRight: 6 }} />
+                        <Ionicons name="calendar" size={14} color={colors.white} style={{ marginRight: 6 }} />
                         <Text style={styles.selectedText}>{formatted}</Text>
                     </TouchableOpacity>
                     <TouchableOpacity onPress={handleClear} style={styles.clearBtn}>
-                        <Ionicons name="close-circle" size={20} color={COLORS.text.veryLight} />
+                        <Ionicons name="close-circle" size={20} color={colors.text.veryLight} />
                     </TouchableOpacity>
                 </View>
                 {showChips && renderChips()}
@@ -122,19 +125,19 @@ export default function DatePickerField({ value, onChange, onClear, expanded }: 
 
     return (
         <TouchableOpacity style={styles.emptyButton} onPress={() => setShowChips(true)}>
-            <Ionicons name="add-circle-outline" size={18} color={COLORS.primary} />
+            <Ionicons name="add-circle-outline" size={18} color={colors.primary} />
             <Text style={styles.emptyText}>Add due date</Text>
         </TouchableOpacity>
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     emptyButton: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
         borderWidth: 1.5,
-        borderColor: COLORS.border.medium,
+        borderColor: c.border.medium,
         borderStyle: 'dashed',
         borderRadius: 10,
         paddingHorizontal: 14,
@@ -142,7 +145,7 @@ const styles = StyleSheet.create({
     },
     emptyText: {
         fontSize: 14,
-        color: COLORS.text.placeholder,
+        color: c.text.placeholder,
         fontWeight: '500',
     },
     chipsRow: {
@@ -155,18 +158,18 @@ const styles = StyleSheet.create({
         paddingHorizontal: 14,
         paddingVertical: 8,
         borderRadius: 20,
-        backgroundColor: COLORS.surfaceAlt.soft,
+        backgroundColor: c.surfaceAlt.soft,
     },
     quickChipText: {
         fontSize: 13,
         fontWeight: '600',
-        color: COLORS.text.body,
+        color: c.text.body,
     },
     otherChip: {
         flexDirection: 'row',
         alignItems: 'center',
         gap: 4,
-        backgroundColor: COLORS.overlay.accentMedium,
+        backgroundColor: c.overlay.accentMedium,
     },
     selectedRow: {
         flexDirection: 'row',
@@ -175,7 +178,7 @@ const styles = StyleSheet.create({
     selectedPill: {
         flexDirection: 'row',
         alignItems: 'center',
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
         borderRadius: 20,
         paddingHorizontal: 14,
         paddingVertical: 8,
@@ -183,7 +186,7 @@ const styles = StyleSheet.create({
     selectedText: {
         fontSize: 13,
         fontWeight: '600',
-        color: COLORS.white,
+        color: c.white,
     },
     clearBtn: {
         marginLeft: 6,

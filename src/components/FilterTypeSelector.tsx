@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 
 type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
 
@@ -19,6 +20,8 @@ const FILTER_TYPES: { type: FilterType; label: string; icon: string; description
 ];
 
 export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     return (
         <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
             <Pressable style={styles.overlay} onPress={onClose}>
@@ -26,7 +29,7 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
                     <View style={styles.header}>
                         <Text style={styles.title}>Add Filter</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color={COLORS.text.secondary} />
+                            <Ionicons name="close" size={24} color={colors.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
@@ -40,12 +43,12 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
                                     onClose();
                                 }}
                             >
-                                <Ionicons name={item.icon as any} size={24} color={COLORS.primary} />
+                                <Ionicons name={item.icon as any} size={24} color={colors.primary} />
                                 <View style={styles.optionText}>
                                     <Text style={styles.optionLabel}>{item.label}</Text>
                                     <Text style={styles.optionDesc}>{item.description}</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color={COLORS.text.disabled} />
+                                <Ionicons name="chevron-forward" size={20} color={colors.text.disabled} />
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -55,14 +58,14 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: COLORS.overlay.scrim,
+        backgroundColor: c.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: COLORS.white,
+        backgroundColor: c.surface,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',
@@ -74,9 +77,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: COLORS.border.light,
+        borderBottomColor: c.border.light,
     },
-    title: { fontSize: 16, fontWeight: '700', color: COLORS.text.secondary },
+    title: { fontSize: 16, fontWeight: '700', color: c.text.secondary },
     content: { paddingHorizontal: 12, paddingVertical: 8 },
     option: {
         flexDirection: 'row',
@@ -85,9 +88,9 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderRadius: 8,
         marginVertical: 4,
-        backgroundColor: COLORS.surfaceAlt.light,
+        backgroundColor: c.surfaceAlt.light,
     },
     optionText: { flex: 1, marginLeft: 12 },
-    optionLabel: { fontSize: 15, fontWeight: '600', color: COLORS.text.secondary, marginBottom: 2 },
-    optionDesc: { fontSize: 12, color: COLORS.text.placeholder },
+    optionLabel: { fontSize: 15, fontWeight: '600', color: c.text.secondary, marginBottom: 2 },
+    optionDesc: { fontSize: 12, color: c.text.placeholder },
 });
