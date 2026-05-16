@@ -44,5 +44,6 @@ app-example
 /android
 .claude/*
 !.claude/skills/
+!.claude/settings.json
 build*.apk
 *.apk

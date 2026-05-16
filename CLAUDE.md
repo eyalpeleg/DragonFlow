@@ -167,6 +167,7 @@ main ← PR from develop only (never push directly, never check out in a worktre
 3. **main is PR-only** — `main` only receives changes via a pull request from `develop`. Never `git push origin main`, never check out `main` in a worktree.
 4. **No worktrees on main** — if the agent isolation mode creates a worktree, it must be based on `develop`, not `main`.
 5. **Merge direction** — to sync `main` improvements into `develop`, merge `origin/main` → `develop` (not the other way around until a release PR is ready).
+6. **Always run `/precommit` before commit and push** — invoke the precommit skill before every `git commit` and every `git push` to catch type errors, lint issues, and secrets before they enter history. No exceptions, even for tiny changes.
 
 ### Typical session flow
 
