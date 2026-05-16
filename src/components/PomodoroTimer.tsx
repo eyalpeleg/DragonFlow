@@ -1,13 +1,14 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
-import { COLORS } from '../styles/theme';
 import { useTaskStore } from '../store/appStore';
 
 export const POMODORO_MODES = [
-    { label: 'Focus', minutes: 25, color: COLORS.primary },
-    { label: 'Short Break', minutes: 5, color: '#FF9913' },
-    { label: 'Long Break', minutes: 15, color: COLORS.status['In Progress'] },
+    { label: 'Focus', minutes: 25, color: '#003396' },
+    { label: 'Short Break', minutes: 5, color: '#1750AC' },
+    { label: 'Long Break', minutes: 15, color: '#3373C4' },
 ] as const;
+
+const CUSTOM_MODE_COLOR = '#5494DA';
 
 export type PomodoroModeIdx = 0 | 1 | 2 | 3;
 
@@ -111,7 +112,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ))}
                         <TouchableOpacity
-                            style={[styles.modeChip, isCustomMode && { backgroundColor: COLORS.primary }, running && !isCustomMode && { opacity: 0.5 }]}
+                            style={[styles.modeChip, isCustomMode && { backgroundColor: CUSTOM_MODE_COLOR }, running && !isCustomMode && { opacity: 0.5 }]}
                             onPress={() => !running && handleSelectCustom()}
                             disabled={running && !isCustomMode}
                         >
@@ -148,9 +149,9 @@ export default function PomodoroTimer({
                             </View>
                         ) : (
                             <View style={[styles.ringOuter, { borderColor: '#eee' }]}>
-                                <View style={[styles.ringInner, { borderColor: isCustomMode ? COLORS.primary : mode?.color, opacity: progress }]} />
+                                <View style={[styles.ringInner, { borderColor: isCustomMode ? CUSTOM_MODE_COLOR : mode?.color, opacity: progress }]} />
                                 <View style={styles.clockFace}>
-                                    <Text style={[styles.clockTime, { color: isCustomMode ? COLORS.primary : mode?.color }]}>
+                                    <Text style={[styles.clockTime, { color: isCustomMode ? CUSTOM_MODE_COLOR : mode?.color }]}>
                                         {isCustomMode ? `${hours}:${mins}:${secs}` : (parseInt(hours) > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`)}
                                     </Text>
                                     <Text style={styles.clockLabel}>{isCustomMode ? 'Custom' : mode?.label}</Text>
@@ -211,9 +212,9 @@ const styles = StyleSheet.create({
     modeChipSub: { fontSize: 9, color: '#888', marginTop: 2 },
     clockContainer: { marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
     customTimerContainer: { alignItems: 'center', gap: 12 },
-    customTimeInput: { fontSize: 48, fontWeight: '700', color: COLORS.primary, textAlign: 'center', borderBottomWidth: 2, borderColor: COLORS.primary, paddingVertical: 12, minWidth: 200 },
+    customTimeInput: { fontSize: 48, fontWeight: '700', color: CUSTOM_MODE_COLOR, textAlign: 'center', borderBottomWidth: 2, borderColor: CUSTOM_MODE_COLOR, paddingVertical: 12, minWidth: 200 },
     customTimeError: { fontSize: 12, color: '#d32f2f', textAlign: 'center' },
-    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.primary, marginTop: 8 },
+    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: CUSTOM_MODE_COLOR, marginTop: 8 },
     submitBtnText: { fontSize: 14, fontWeight: '700', color: 'white' },
     ringOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 8, alignItems: 'center', justifyContent: 'center' },
     ringInner: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 8 },
