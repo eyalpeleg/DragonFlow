@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useState } from 'react';
-import { Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { COLORS, PriorityLevel } from '../styles/theme';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '../store/appStore';
@@ -41,6 +41,8 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     const [editingSubId, setEditingSubId] = useState<string | null>(null);
     const [editingSubTitle, setEditingSubTitle] = useState('');
 
+    const subTaskInputRef = useRef<TextInput>(null);
+
     useEffect(() => {
         if (task) {
             setTitle(task.title);
@@ -66,9 +68,13 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
 
     function addSubTask() {
         const t = subTaskInput.trim();
-        if (!t) return;
+        if (!t) {
+            Keyboard.dismiss();
+            return;
+        }
         setSubTasks((prev) => [...prev, { id: makeId(), title: t, completed: false }]);
         setSubTaskInput('');
+        subTaskInputRef.current?.focus();
     }
 
     function removeSubTask(id: string) {
@@ -118,7 +124,10 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     return (
         <>
             <Modal visible={isVisible} animationType="slide" transparent onRequestClose={onClose}>
-                <View style={styles.overlay}>
+                <KeyboardAvoidingView
+                    style={styles.overlay}
+                    behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                >
                     <ScrollView
                         style={styles.content}
                         contentContainerStyle={[styles.contentInner, { paddingBottom: Math.max(20, insets.bottom) }]}
@@ -212,19 +221,6 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                         )}
 
                         <Text style={styles.label}>Sub-tasks</Text>
-                        <View style={styles.subTaskInputRow}>
-                            <TextInput
-                                style={[styles.input, { flex: 1, marginBottom: 0 }]}
-                                value={subTaskInput}
-                                onChangeText={setSubTaskInput}
-                                placeholder="Add a sub-task"
-                                onSubmitEditing={addSubTask}
-                                returnKeyType="done"
-                            />
-                            <TouchableOpacity style={styles.addSubBtn} onPress={addSubTask}>
-                                <Ionicons name="add" size={18} color={COLORS.white} />
-                            </TouchableOpacity>
-                        </View>
                         {subTasks.map((s) => (
                             <View key={s.id} style={styles.subTaskRow}>
                                 <Ionicons
@@ -254,6 +250,19 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                 </TouchableOpacity>
                             </View>
                         ))}
+                        <View style={styles.subTaskInputRow}>
+                            <Ionicons name="add" size={18} color={COLORS.primary} />
+                            <TextInput
+                                ref={subTaskInputRef}
+                                style={[styles.input, styles.subTaskInput]}
+                                value={subTaskInput}
+                                onChangeText={setSubTaskInput}
+                                placeholder="Add a sub-task"
+                                onSubmitEditing={addSubTask}
+                                blurOnSubmit={false}
+                                returnKeyType="next"
+                            />
+                        </View>
 
                         <View style={[styles.buttonRow, { marginTop: 20 }]}>
                             <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
@@ -264,7 +273,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                             </TouchableOpacity>
                         </View>
                     </ScrollView>
-                </View>
+                </KeyboardAvoidingView>
             </Modal>
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
         </>
@@ -295,8 +304,8 @@ const styles = StyleSheet.create({
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
     switchSub: { fontSize: 11, color: COLORS.text.light, marginTop: 2 },
     recurrenceBlock: { backgroundColor: COLORS.surfaceAlt.offWhite, borderRadius: 10, padding: 12, marginBottom: 8 },
-    subTaskInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginBottom: 8 },
-    addSubBtn: { backgroundColor: COLORS.primary, borderRadius: 8, width: 36, height: 36, alignItems: 'center', justifyContent: 'center' },
+    subTaskInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
+    subTaskInput: { flex: 1, marginBottom: 0, paddingVertical: 8, fontSize: 14 },
     subTaskRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },
     subTaskTitle: { flex: 1, fontSize: 13, color: COLORS.text.muted },
     subTaskEditInput: { borderBottomWidth: 1, borderBottomColor: COLORS.border.medium, paddingVertical: 2 },
