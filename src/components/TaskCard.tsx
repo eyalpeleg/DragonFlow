@@ -26,8 +26,10 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
     const isRecurring = !!recurrence;
 
     const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const isOverdue = status !== 'Done' && dueDate && dueDate < today;
     const isDueToday = status !== 'Done' && dueDate === today;
+    const isDueTomorrow = status !== 'Done' && dueDate === tomorrow;
     const isUrgent = priority === 'Critical' || priority === 'High';
 
     const displayDate = dueDate
@@ -90,8 +92,9 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 <Text style={[
                                     styles.meta,
                                     isDueToday && styles.metaAlertBold,
+                                    isDueTomorrow && styles.metaSoon,
                                 ]}>
-                                    {isDueToday ? 'Today' : displayDate}
+                                    {isDueToday ? 'Today' : isDueTomorrow ? 'Tomorrow' : displayDate}
                                 </Text>
                                 {isRecurring && (
                                     <Ionicons name="repeat" size={12} color={COLORS.text.light} style={styles.recurIcon} />
@@ -181,6 +184,7 @@ const styles = StyleSheet.create({
     meta: { fontSize: 12, color: COLORS.text.weak },
     metaUrgent: { color: COLORS.text.errorStrong, fontWeight: '600' },
     metaAlertBold: { color: COLORS.text.errorStrong, fontWeight: '700' },
+    metaSoon: { color: COLORS.accent.warning, fontWeight: '600' },
     overdueBadge: { backgroundColor: COLORS.text.error, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
     overdueBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
     recurIcon: { marginLeft: 2 },
