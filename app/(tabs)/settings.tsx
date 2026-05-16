@@ -335,6 +335,8 @@ export default function SettingsScreen() {
                         </View>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
+                        <Text style={styles.settingTitle}>Categories</Text>
+                        <Text style={styles.settingDesc}>Tags for organizing tasks</Text>
                         {categories.map((cat) => {
                             const isDefault = cat.id === DEFAULT_CATEGORY_ID;
                             return (
