@@ -32,6 +32,6 @@ const styles = StyleSheet.create({
     },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { color: 'white', fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 });

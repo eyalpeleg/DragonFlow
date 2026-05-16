@@ -14,8 +14,8 @@ interface Props {
 const FILTER_CONFIG: Record<FilterType, { icon: string; label: string; color: string }> = {
     status: { icon: 'radio-button-on', label: 'Status', color: COLORS.primary },
     category: { icon: 'folder', label: 'Category', color: COLORS.primary },
-    priority: { icon: 'alert-circle', label: 'Priority', color: '#FF9800' },
-    dueDate: { icon: 'calendar', label: 'Due', color: '#666' },
+    priority: { icon: 'alert-circle', label: 'Priority', color: COLORS.accent.warning },
+    dueDate: { icon: 'calendar', label: 'Due', color: COLORS.text.subtle },
 };
 
 export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
@@ -99,9 +99,9 @@ export default function FilterBar({ onFilterPress, onAddFilter }: Props) {
 
 const styles = StyleSheet.create({
     container: {
-        backgroundColor: '#fafafa',
+        backgroundColor: COLORS.surfaceAlt.light,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: COLORS.border.light,
     },
     content: {
         paddingHorizontal: 12,
@@ -116,15 +116,15 @@ const styles = StyleSheet.create({
         gap: 6,
         paddingHorizontal: 12,
         paddingVertical: 6,
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 16,
         borderWidth: 1,
-        borderColor: '#e0e0e0',
+        borderColor: COLORS.border.muted,
     },
     pillText: {
         fontSize: 12,
         fontWeight: '600',
-        color: '#333',
+        color: COLORS.text.secondary,
     },
     addBtn: {
         flexDirection: 'row',
@@ -132,7 +132,7 @@ const styles = StyleSheet.create({
         gap: 4,
         paddingHorizontal: 10,
         paddingVertical: 6,
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 16,
         borderWidth: 1,
         borderColor: COLORS.primary,

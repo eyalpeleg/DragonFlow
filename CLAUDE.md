@@ -17,7 +17,7 @@ app/                    # Expo Router pages
   (tabs)/               # Bottom tab navigator (tasks, daily, weekly, settings)
 src/
   components/           # UI components (modals, cards, filters)
-  store/taskStore.ts    # Zustand store — single source of truth
+  store/appStore.ts     # Zustand store — single source of truth for all app state
   types.ts              # Task, Category, SubTask, RecurrenceConfig interfaces
   styles/theme.ts       # Colors, priority palette, spacing
   modules/              # Native module bridges (FloatingBubble)
@@ -167,6 +167,7 @@ main ← PR from develop only (never push directly, never check out in a worktre
 3. **main is PR-only** — `main` only receives changes via a pull request from `develop`. Never `git push origin main`, never check out `main` in a worktree.
 4. **No worktrees on main** — if the agent isolation mode creates a worktree, it must be based on `develop`, not `main`.
 5. **Merge direction** — to sync `main` improvements into `develop`, merge `origin/main` → `develop` (not the other way around until a release PR is ready).
+6. **Always run `/precommit` before commit and push** — invoke the precommit skill before every `git commit` and every `git push` to catch type errors, lint issues, and secrets before they enter history. No exceptions, even for tiny changes.
 
 ### Typical session flow
 
@@ -180,7 +181,20 @@ git push -u origin develop    # or push to feature branch then merge to develop
 
 ## Adding Features
 
-- New task property: update `src/types.ts` -> `src/store/taskStore.ts` -> components
+- New task property: update `src/types.ts` -> `src/store/appStore.ts` -> components
 - New filter type: add Set to store -> add setter -> update `useSortedFilteredTasks()` -> add UI in FilterModal
 - New notification: add channel in `src/utils/notifications.ts` -> create schedule/cancel helpers
 - Styling: `src/styles/theme.ts` for colors, `StyleSheet.create()` in components
+
+## Store Design
+
+**appStore.ts** (not `taskStore`) manages all global app state, not just tasks:
+- Task CRUD, categories, subcategories
+- Filters (status, category, priority, due date)
+- Notifications & sounds (Pomodoro, task completion)
+- Floating bubble display
+- Preferences (first day of week, default task time)
+- Pomodoro timer state
+- Debug mode
+
+The broader name reflects its role as the single source of truth for the entire app's state.

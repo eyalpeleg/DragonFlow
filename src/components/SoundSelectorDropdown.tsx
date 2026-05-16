@@ -64,17 +64,17 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0,0,0,0.4)',
+        backgroundColor: COLORS.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
     dropdown: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderRadius: 16,
         padding: 20,
         width: '85%',
         maxWidth: 400,
-        shadowColor: '#000',
+        shadowColor: COLORS.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -83,7 +83,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 16,
         fontWeight: '700',
-        color: '#222',
+        color: COLORS.text.primary,
         marginBottom: 16,
         textAlign: 'center',
     },
@@ -96,12 +96,12 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     optionRowSelected: {
-        backgroundColor: 'rgba(79, 55, 139, 0.1)',
+        backgroundColor: COLORS.overlay.accentStrong,
     },
     optionText: {
         flex: 1,
         fontSize: 15,
-        color: '#333',
+        color: COLORS.text.secondary,
         fontWeight: '500',
     },
     optionTextSelected: {
@@ -115,14 +115,14 @@ const styles = StyleSheet.create({
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: '#f0f0f0',
+        borderTopColor: COLORS.border.subtle,
     },
     closeBtn: {
         padding: 12,
         alignItems: 'center',
     },
     closeBtnText: {
-        color: '#888',
+        color: COLORS.text.weak,
         fontWeight: '600',
         fontSize: 15,
     },

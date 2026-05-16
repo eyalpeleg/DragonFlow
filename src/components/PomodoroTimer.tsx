@@ -1,12 +1,15 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { useTaskStore } from '../store/appStore';
 import { COLORS } from '../styles/theme';
 
 export const POMODORO_MODES = [
-    { label: 'Focus', minutes: 25, color: COLORS.primary },
-    { label: 'Short Break', minutes: 5, color: COLORS.status['Done'] },
-    { label: 'Long Break', minutes: 15, color: COLORS.status['In Progress'] },
+    { label: 'Focus', minutes: 25, color: COLORS.pomodoro.focus },
+    { label: 'Short Break', minutes: 5, color: COLORS.pomodoro.shortBreak },
+    { label: 'Long Break', minutes: 15, color: COLORS.pomodoro.longBreak },
 ] as const;
+
+const CUSTOM_MODE_COLOR = COLORS.pomodoro.custom;
 
 export type PomodoroModeIdx = 0 | 1 | 2 | 3;
 
@@ -30,6 +33,7 @@ export default function PomodoroTimer({
     modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
     onSelectMode, onSetCustomTimerSeconds, onStart, onPause, onReset,
 }: Props) {
+    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
     const [customTimeSubmitted, setCustomTimeSubmitted] = useState(false);
@@ -100,23 +104,23 @@ export default function PomodoroTimer({
                                 onPress={() => !running && onSelectMode(i as PomodoroModeIdx)}
                                 disabled={running && modeIdx !== i}
                             >
-                                <Text style={[styles.modeChipText, modeIdx === i && { color: 'white' }]}>
+                                <Text style={[styles.modeChipText, modeIdx === i && { color: COLORS.white }]}>
                                     {m.minutes}m
                                 </Text>
-                                <Text style={[styles.modeChipSub, modeIdx === i && { color: 'rgba(255,255,255,0.8)' }]}>
+                                <Text style={[styles.modeChipSub, modeIdx === i && { color: COLORS.overlay.whiteSubtle }]}>
                                     {m.label}
                                 </Text>
                             </TouchableOpacity>
                         ))}
                         <TouchableOpacity
-                            style={[styles.modeChip, isCustomMode && { backgroundColor: COLORS.primary }, running && !isCustomMode && { opacity: 0.5 }]}
+                            style={[styles.modeChip, isCustomMode && { backgroundColor: CUSTOM_MODE_COLOR }, running && !isCustomMode && { opacity: 0.5 }]}
                             onPress={() => !running && handleSelectCustom()}
                             disabled={running && !isCustomMode}
                         >
-                            <Text style={[styles.modeChipText, isCustomMode && { color: 'white' }]}>
+                            <Text style={[styles.modeChipText, isCustomMode && { color: COLORS.white }]}>
                                 Custom
                             </Text>
-                            <Text style={[styles.modeChipSub, isCustomMode && { color: 'rgba(255,255,255,0.8)' }]}>
+                            <Text style={[styles.modeChipSub, isCustomMode && { color: COLORS.overlay.whiteSubtle }]}>
                                 Set time
                             </Text>
                         </TouchableOpacity>
@@ -130,7 +134,7 @@ export default function PomodoroTimer({
                                     value={customTimeInput}
                                     onChangeText={handleCustomTimeChange}
                                     placeholder="00:00:00"
-                                    placeholderTextColor="#ccc"
+                                    placeholderTextColor={COLORS.text.disabled}
                                     maxLength={8}
                                 />
                                 {customTimeError && (
@@ -145,10 +149,10 @@ export default function PomodoroTimer({
                                 </TouchableOpacity>
                             </View>
                         ) : (
-                            <View style={[styles.ringOuter, { borderColor: '#eee' }]}>
-                                <View style={[styles.ringInner, { borderColor: isCustomMode ? COLORS.primary : mode?.color, opacity: progress }]} />
+                            <View style={[styles.ringOuter, { borderColor: COLORS.border.light }]}>
+                                <View style={[styles.ringInner, { borderColor: isCustomMode ? CUSTOM_MODE_COLOR : mode?.color, opacity: progress }]} />
                                 <View style={styles.clockFace}>
-                                    <Text style={[styles.clockTime, { color: isCustomMode ? COLORS.primary : mode?.color }]}>
+                                    <Text style={[styles.clockTime, { color: isCustomMode ? CUSTOM_MODE_COLOR : mode?.color }]}>
                                         {isCustomMode ? `${hours}:${mins}:${secs}` : (parseInt(hours) > 0 ? `${hours}:${mins}:${secs}` : `${mins}:${secs}`)}
                                     </Text>
                                     <Text style={styles.clockLabel}>{isCustomMode ? 'Custom' : mode?.label}</Text>
@@ -162,12 +166,12 @@ export default function PomodoroTimer({
                             <Text style={styles.resetBtnText}>↺ Reset</Text>
                         </TouchableOpacity>
                         {running ? (
-                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: '#999' }]} onPress={onPause}>
+                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: COLORS.text.placeholder }]} onPress={onPause}>
                                 <Text style={styles.startBtnText}>⏸ Pause</Text>
                             </TouchableOpacity>
                         ) : isPaused ? (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : (mode?.color ?? COLORS.primary) }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -175,7 +179,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : (mode?.color ?? COLORS.primary) }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -199,31 +203,31 @@ export default function PomodoroTimer({
 }
 
 const styles = StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: 'rgba(0,0,0,0.5)', justifyContent: 'flex-start', paddingTop: 80 },
-    sheet: { backgroundColor: 'white', borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
-    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: '#ddd', marginBottom: 16 },
-    title: { fontSize: 20, fontWeight: 'bold', color: '#222', marginBottom: 16 },
+    overlay: { flex: 1, backgroundColor: COLORS.overlay.scrimStrong, justifyContent: 'flex-start', paddingTop: 80 },
+    sheet: { backgroundColor: COLORS.white, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
+    handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: COLORS.border.medium, marginBottom: 16 },
+    title: { fontSize: 20, fontWeight: 'bold', color: COLORS.text.primary, marginBottom: 16 },
     modeRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },
-    modeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: '#f0f0f0' },
-    modeChipText: { fontSize: 14, fontWeight: '700', color: '#555' },
-    modeChipSub: { fontSize: 9, color: '#888', marginTop: 2 },
+    modeChip: { flex: 1, alignItems: 'center', paddingVertical: 10, borderRadius: 12, backgroundColor: COLORS.surfaceAlt.soft },
+    modeChipText: { fontSize: 14, fontWeight: '700', color: COLORS.text.muted },
+    modeChipSub: { fontSize: 9, color: COLORS.text.weak, marginTop: 2 },
     clockContainer: { marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
     customTimerContainer: { alignItems: 'center', gap: 12 },
-    customTimeInput: { fontSize: 48, fontWeight: '700', color: COLORS.primary, textAlign: 'center', borderBottomWidth: 2, borderColor: COLORS.primary, paddingVertical: 12, minWidth: 200 },
-    customTimeError: { fontSize: 12, color: '#d32f2f', textAlign: 'center' },
-    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: COLORS.primary, marginTop: 8 },
-    submitBtnText: { fontSize: 14, fontWeight: '700', color: 'white' },
+    customTimeInput: { fontSize: 48, fontWeight: '700', color: CUSTOM_MODE_COLOR, textAlign: 'center', borderBottomWidth: 2, borderColor: CUSTOM_MODE_COLOR, paddingVertical: 12, minWidth: 200 },
+    customTimeError: { fontSize: 12, color: COLORS.text.errorStrong, textAlign: 'center' },
+    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: CUSTOM_MODE_COLOR, marginTop: 8, borderWidth: 2, borderColor: COLORS.pomodoro.focus },
+    submitBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.white },
     ringOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 8, alignItems: 'center', justifyContent: 'center' },
     ringInner: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 8 },
     clockFace: { alignItems: 'center' },
     clockTime: { fontSize: 28, fontWeight: '700' },
-    clockLabel: { fontSize: 12, color: '#888', marginTop: 2 },
+    clockLabel: { fontSize: 12, color: COLORS.text.weak, marginTop: 2 },
     controls: { flexDirection: 'row', gap: 16, marginBottom: 16 },
-    resetBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, backgroundColor: '#f0f0f0' },
-    resetBtnText: { fontSize: 15, fontWeight: '600', color: '#555' },
+    resetBtn: { paddingHorizontal: 24, paddingVertical: 12, borderRadius: 20, backgroundColor: COLORS.surfaceAlt.soft },
+    resetBtnText: { fontSize: 15, fontWeight: '600', color: COLORS.text.muted },
     startBtn: { paddingHorizontal: 36, paddingVertical: 12, borderRadius: 20 },
-    startBtnText: { fontSize: 15, fontWeight: '700', color: 'white' },
-    notifNote: { fontSize: 11, color: '#aaa', textAlign: 'center', marginBottom: 16, paddingHorizontal: 20 },
+    startBtnText: { fontSize: 15, fontWeight: '700', color: COLORS.white },
+    notifNote: { fontSize: 11, color: COLORS.text.light, textAlign: 'center', marginBottom: 16, paddingHorizontal: 20 },
     closeBtn: { padding: 8 },
-    closeBtnText: { color: '#999', fontWeight: '600' },
+    closeBtnText: { color: COLORS.text.placeholder, fontWeight: '600' },
 });

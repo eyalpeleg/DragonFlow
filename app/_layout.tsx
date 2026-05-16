@@ -1,6 +1,6 @@
 import { useEffect } from 'react';
 import { AppState } from 'react-native';
-import { Slot } from 'expo-router';
+import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
@@ -26,6 +26,12 @@ export default function RootLayout() {
         // Listen for native bubble dismiss gesture
         const unsubscribe = FloatingBubble.onDismissed(() => {
             setFloatingBubbleDismissed(true);
+        });
+
+        // Listen for native bubble double-tap → enter Focus mode on tasks list
+        const unsubscribeOpenFocus = FloatingBubble.onOpenFocus(() => {
+            useTaskStore.getState().setFocusMode(true);
+            router.push('/(tabs)/tasks');
         });
 
         const sub = AppState.addEventListener('change', (nextState) => {
@@ -56,6 +62,7 @@ export default function RootLayout() {
         return () => {
             sub.remove();
             unsubscribe();
+            unsubscribeOpenFocus();
             unsubscribeBackup();
         };
     }, [setFloatingBubbleDismissed]);

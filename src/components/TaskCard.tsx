@@ -14,23 +14,22 @@ interface Props {
     onOpenStats: (task: Task) => void;
 }
 
-const STATUS_BAR_COLORS: Record<TaskStatus, string> = {
-    'Ready': '#B0BEC5',
-    'In Progress': '#64B5F6',
-    'Paused': '#FFB74D',
-    'Done': '#81C784',
-};
+const STATUS_BAR_COLORS: Record<TaskStatus, string> = COLORS.statusSoft;
 
 export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
     const categories = useTaskStore((s) => s.categories);
+    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
+    const themeColorAction = useTaskStore((s) => s.themeColorAction);
     const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
     const isRecurring = !!recurrence;
 
     const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const isOverdue = status !== 'Done' && dueDate && dueDate < today;
     const isDueToday = status !== 'Done' && dueDate === today;
+    const isDueTomorrow = status !== 'Done' && dueDate === tomorrow;
     const isUrgent = priority === 'Critical' || priority === 'High';
 
     const displayDate = dueDate
@@ -63,13 +62,13 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                             </TouchableOpacity>
                         )}
                         <TouchableOpacity onPress={() => onEdit(task)} style={styles.actionBtn}>
-                            <Ionicons name="pencil-sharp" size={15} color="#666" />
+                            <Ionicons name="pencil-sharp" size={15} color={COLORS.text.subtle} />
                         </TouchableOpacity>
                         <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
                             <Ionicons
                                 name={status === 'Done' ? 'archive' : 'trash'}
                                 size={15}
-                                color={status === 'Done' ? '#aaa' : '#F44336'}
+                                color={status === 'Done' ? COLORS.text.light : COLORS.text.error}
                             />
                         </TouchableOpacity>
                     </View>
@@ -93,24 +92,25 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 <Text style={[
                                     styles.meta,
                                     isDueToday && styles.metaAlertBold,
+                                    isDueTomorrow && styles.metaSoon,
                                 ]}>
-                                    {isDueToday ? 'Today' : displayDate}
+                                    {isDueToday ? 'Today' : isDueTomorrow ? 'Tomorrow' : displayDate}
                                 </Text>
                                 {isRecurring && (
-                                    <Ionicons name="repeat" size={12} color="#aaa" style={styles.recurIcon} />
+                                    <Ionicons name="repeat" size={12} color={COLORS.text.light} style={styles.recurIcon} />
                                 )}
                             </View>
                         )}
                         {!displayDate && isRecurring && (
-                            <Ionicons name="repeat" size={12} color="#aaa" />
+                            <Ionicons name="repeat" size={12} color={COLORS.text.light} />
                         )}
                     </View>
                     {status === 'Ready' && (
                         <TouchableOpacity
-                            style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                            style={[styles.statusIconBtn, { backgroundColor: themeColorSecondary }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
-                            <Ionicons name="play" size={14} color="white" />
+                            <Ionicons name="play" size={14} color={COLORS.white} />
                         </TouchableOpacity>
                     )}
                     {status === 'In Progress' && (
@@ -119,22 +119,22 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 style={[styles.statusIconBtn, styles.statusIconBtnMuted]}
                                 onPress={() => onStatusChange(id, 'Paused')}
                             >
-                                <Ionicons name="pause" size={14} color="#666" />
+                                <Ionicons name="pause" size={14} color={COLORS.text.subtle} />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                                style={[styles.statusIconBtn, { backgroundColor: themeColorAction }]}
                                 onPress={() => onStatusChange(id, 'Done')}
                             >
-                                <Ionicons name="checkmark" size={16} color="white" />
+                                <Ionicons name="checkmark" size={16} color={COLORS.white} />
                             </TouchableOpacity>
                         </View>
                     )}
                     {status === 'Paused' && (
                         <TouchableOpacity
-                            style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                            style={[styles.statusIconBtn, { backgroundColor: themeColorSecondary }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
-                            <Ionicons name="play" size={14} color="white" />
+                            <Ionicons name="play" size={14} color={COLORS.white} />
                         </TouchableOpacity>
                     )}
                     {status === 'Done' && (
@@ -166,32 +166,33 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
 
 const styles = StyleSheet.create({
     card: {
-        backgroundColor: '#fff', padding: 14, marginVertical: 5, marginHorizontal: 12,
+        backgroundColor: COLORS.surface, padding: 14, marginVertical: 5, marginHorizontal: 12,
         borderRadius: 12, borderLeftWidth: 4, elevation: 1,
-        shadowColor: '#000', shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+        shadowColor: COLORS.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
     },
     cardDone: { opacity: 0.6 },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     actions: { flexDirection: 'row', gap: 6 },
     actionBtn: { padding: 4 },
-    title: { fontSize: 16, fontWeight: '600', color: '#222', flex: 1, marginRight: 8 },
-    titleDone: { textDecorationLine: 'line-through', color: '#999' },
-    desc: { fontSize: 13, color: '#888', marginBottom: 8 },
+    title: { fontSize: 16, fontWeight: '600', color: COLORS.text.primary, flex: 1, marginRight: 8 },
+    titleDone: { textDecorationLine: 'line-through', color: COLORS.text.placeholder },
+    desc: { fontSize: 13, color: COLORS.text.weak, marginBottom: 8 },
     footer: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginTop: 6 },
     footerLeft: { flexDirection: 'row', alignItems: 'center', gap: 12, flex: 1, flexWrap: 'wrap' },
     metaItem: { flexDirection: 'row', alignItems: 'center', gap: 6 },
     catDot: { width: 7, height: 7, borderRadius: 4 },
-    meta: { fontSize: 12, color: '#888' },
-    metaUrgent: { color: '#D32F2F', fontWeight: '600' },
-    metaAlertBold: { color: '#D32F2F', fontWeight: '700' },
-    overdueBadge: { backgroundColor: '#E53935', paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
-    overdueBadgeText: { color: 'white', fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
+    meta: { fontSize: 12, color: COLORS.text.weak },
+    metaUrgent: { color: COLORS.text.errorStrong, fontWeight: '600' },
+    metaAlertBold: { color: COLORS.text.errorStrong, fontWeight: '700' },
+    metaSoon: { color: COLORS.accent.warning, fontWeight: '600' },
+    overdueBadge: { backgroundColor: COLORS.text.error, paddingHorizontal: 7, paddingVertical: 2, borderRadius: 8 },
+    overdueBadgeText: { color: COLORS.white, fontSize: 10, fontWeight: '700', letterSpacing: 0.5, textTransform: 'uppercase' },
     recurIcon: { marginLeft: 2 },
     statusBtnGroup: { flexDirection: 'row', gap: 6 },
     statusIconBtn: { width: 32, height: 32, borderRadius: 16, alignItems: 'center', justifyContent: 'center' },
     statusIconBtnPrimary: { backgroundColor: COLORS.primary },
-    statusIconBtnMuted: { backgroundColor: '#F0F0F0' },
+    statusIconBtnMuted: { backgroundColor: COLORS.surfaceAlt.soft },
     reopenBtn: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 16, borderWidth: 1, borderColor: COLORS.primary },
     reopenBtnText: { color: COLORS.primary, fontSize: 12, fontWeight: '600' },
-    tapHint: { fontSize: 10, color: '#aaa', marginTop: 6, textAlign: 'right' },
+    tapHint: { fontSize: 10, color: COLORS.text.light, marginTop: 6, textAlign: 'right' },
 });

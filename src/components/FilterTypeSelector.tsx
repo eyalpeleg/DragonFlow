@@ -26,7 +26,7 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
                     <View style={styles.header}>
                         <Text style={styles.title}>Add Filter</Text>
                         <TouchableOpacity onPress={onClose}>
-                            <Ionicons name="close" size={24} color="#333" />
+                            <Ionicons name="close" size={24} color={COLORS.text.secondary} />
                         </TouchableOpacity>
                     </View>
 
@@ -45,7 +45,7 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
                                     <Text style={styles.optionLabel}>{item.label}</Text>
                                     <Text style={styles.optionDesc}>{item.description}</Text>
                                 </View>
-                                <Ionicons name="chevron-forward" size={20} color="#ccc" />
+                                <Ionicons name="chevron-forward" size={20} color={COLORS.text.disabled} />
                             </TouchableOpacity>
                         ))}
                     </ScrollView>
@@ -58,11 +58,11 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
 const styles = StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: 'rgba(0, 0, 0, 0.3)',
+        backgroundColor: COLORS.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: 'white',
+        backgroundColor: COLORS.white,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',
@@ -74,9 +74,9 @@ const styles = StyleSheet.create({
         paddingHorizontal: 16,
         paddingVertical: 14,
         borderBottomWidth: 1,
-        borderBottomColor: '#eee',
+        borderBottomColor: COLORS.border.light,
     },
-    title: { fontSize: 16, fontWeight: '700', color: '#333' },
+    title: { fontSize: 16, fontWeight: '700', color: COLORS.text.secondary },
     content: { paddingHorizontal: 12, paddingVertical: 8 },
     option: {
         flexDirection: 'row',
@@ -85,9 +85,9 @@ const styles = StyleSheet.create({
         paddingVertical: 16,
         borderRadius: 8,
         marginVertical: 4,
-        backgroundColor: '#fafafa',
+        backgroundColor: COLORS.surfaceAlt.light,
     },
     optionText: { flex: 1, marginLeft: 12 },
-    optionLabel: { fontSize: 15, fontWeight: '600', color: '#333', marginBottom: 2 },
-    optionDesc: { fontSize: 12, color: '#999' },
+    optionLabel: { fontSize: 15, fontWeight: '600', color: COLORS.text.secondary, marginBottom: 2 },
+    optionDesc: { fontSize: 12, color: COLORS.text.placeholder },
 });
