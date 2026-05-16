@@ -290,75 +290,6 @@ export default function SettingsScreen() {
                     </View>
                 </CollapsibleSection>
 
-                <CollapsibleSection title="Appearance">
-                    <View style={styles.colorCard}>
-                        <View style={styles.colorCardHeader}>
-                            <Text style={styles.colorCardTitle}>Primary</Text>
-                            {!debugModeEnabled && <Text style={styles.readOnlyBadge}>Read-only</Text>}
-                        </View>
-                        <Text style={styles.settingDesc}>Main app accent color</Text>
-                        <View style={styles.colorInputRow}>
-                            <TextInput
-                                style={[styles.colorInput, !debugModeEnabled && styles.colorInputDisabled]}
-                                value={tempPrimaryColor}
-                                onChangeText={(text) => {
-                                    if (debugModeEnabled) {
-                                        setTempPrimaryColor(text);
-                                        if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                                            setThemeColorPrimary(text);
-                                        }
-                                    }
-                                }}
-                                placeholder="#6200EE"
-                                maxLength={7}
-                                keyboardType="ascii-capable"
-                                editable={debugModeEnabled}
-                            />
-                            <View style={[styles.colorPreview, { backgroundColor: tempPrimaryColor }]} />
-                        </View>
-                    </View>
-                    <View style={[styles.colorCard, styles.colorCardGap]}>
-                        <Text style={styles.colorCardTitle}>Secondary</Text>
-                        <Text style={styles.settingDesc}>Start, progress bar</Text>
-                        <View style={styles.colorInputRow}>
-                            <TextInput
-                                style={styles.colorInput}
-                                value={tempSecondaryColor}
-                                onChangeText={(text) => {
-                                    setTempSecondaryColor(text);
-                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                                        setThemeColorSecondary(text);
-                                    }
-                                }}
-                                placeholder="#88d295"
-                                maxLength={7}
-                                keyboardType="ascii-capable"
-                            />
-                            <View style={[styles.colorPreview, { backgroundColor: tempSecondaryColor }]} />
-                        </View>
-                    </View>
-                    <View style={[styles.colorCard, styles.colorCardGap]}>
-                        <Text style={styles.colorCardTitle}>Action</Text>
-                        <Text style={styles.settingDesc}>Done</Text>
-                        <View style={styles.colorInputRow}>
-                            <TextInput
-                                style={styles.colorInput}
-                                value={tempActionColor}
-                                onChangeText={(text) => {
-                                    setTempActionColor(text);
-                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                                        setThemeColorAction(text);
-                                    }
-                                }}
-                                placeholder="#a2d9a1"
-                                maxLength={7}
-                                keyboardType="ascii-capable"
-                            />
-                            <View style={[styles.colorPreview, { backgroundColor: tempActionColor }]} />
-                        </View>
-                    </View>
-                </CollapsibleSection>
-
                 <CollapsibleSection title="Task-List">
                     <View style={styles.settingBlock}>
                         <Text style={styles.settingTitle}>Default Task Time</Text>
@@ -542,6 +473,74 @@ export default function SettingsScreen() {
                             trackColor={SWITCH_TRACK_COLOR}
                             thumbColor="white"
                         />
+                    </View>
+
+                    <Text style={[styles.settingTitle, { marginTop: 16, marginBottom: 12 }]}>Color Customization</Text>
+                    <View style={styles.colorCard}>
+                        <View style={styles.colorCardHeader}>
+                            <Text style={styles.colorCardTitle}>Primary</Text>
+                            {!debugModeEnabled && <Text style={styles.readOnlyBadge}>Read-only</Text>}
+                        </View>
+                        <Text style={styles.settingDesc}>Main app accent color</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={[styles.colorInput, !debugModeEnabled && styles.colorInputDisabled]}
+                                value={tempPrimaryColor}
+                                onChangeText={(text) => {
+                                    if (debugModeEnabled) {
+                                        setTempPrimaryColor(text);
+                                        if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                            setThemeColorPrimary(text);
+                                        }
+                                    }
+                                }}
+                                placeholder="#6200EE"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                                editable={debugModeEnabled}
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempPrimaryColor }]} />
+                        </View>
+                    </View>
+                    <View style={[styles.colorCard, styles.colorCardGap]}>
+                        <Text style={styles.colorCardTitle}>Secondary</Text>
+                        <Text style={styles.settingDesc}>Start, progress bar</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={styles.colorInput}
+                                value={tempSecondaryColor}
+                                onChangeText={(text) => {
+                                    setTempSecondaryColor(text);
+                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                        setThemeColorSecondary(text);
+                                    }
+                                }}
+                                placeholder="#88d295"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempSecondaryColor }]} />
+                        </View>
+                    </View>
+                    <View style={[styles.colorCard, styles.colorCardGap]}>
+                        <Text style={styles.colorCardTitle}>Action</Text>
+                        <Text style={styles.settingDesc}>Done</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={styles.colorInput}
+                                value={tempActionColor}
+                                onChangeText={(text) => {
+                                    setTempActionColor(text);
+                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                        setThemeColorAction(text);
+                                    }
+                                }}
+                                placeholder="#a2d9a1"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempActionColor }]} />
+                        </View>
                     </View>
                 </CollapsibleSection>
 

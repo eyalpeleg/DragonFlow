@@ -31,7 +31,7 @@ export default function PomodoroTimer({
     modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
     onSelectMode, onSetCustomTimerSeconds, onStart, onPause, onReset,
 }: Props) {
-    const themeColorAction = useTaskStore((s) => s.themeColorAction);
+    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
     const [customTimeSubmitted, setCustomTimeSubmitted] = useState(false);
@@ -169,7 +169,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : isPaused ? (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorAction }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorSecondary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -177,7 +177,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorAction }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorSecondary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
