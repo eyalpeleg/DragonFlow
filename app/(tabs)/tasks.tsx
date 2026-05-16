@@ -11,7 +11,6 @@ import FilterModal from '@/src/components/FilterModal';
 import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import PomodoroTimer, { POMODORO_MODES, PomodoroModeIdx } from '@/src/components/PomodoroTimer';
 import TaskCard from '@/src/components/TaskCard';
-import TaskCardLegacy from '@/src/components/TaskCardLegacy';
 import { COLORS, PriorityLevel } from '@/src/styles/theme';
 import { computeBubbleScore, useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
@@ -27,6 +26,7 @@ export default function TasksScreen() {
     const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
     const tasks = useSortedFilteredTasks();
     const archivedTasks = useArchivedTasks();
+    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
@@ -39,7 +39,6 @@ export default function TasksScreen() {
 
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
-    const debugModeEnabled = useTaskStore((s) => s.debugModeEnabled);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
     const customTimerSeconds = useTaskStore((s) => s.customTimerSeconds);
@@ -254,18 +253,15 @@ export default function TasksScreen() {
         setSecondsLeft(getModeSeconds(modeIdx, customTimerSeconds));
     }, [stopTimer, modeIdx, customTimerSeconds]);
 
-    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => {
-        const CardComponent = debugModeEnabled ? TaskCard : TaskCardLegacy;
-        return (
-            <CardComponent
-                task={item}
-                onStatusChange={setStatus}
-                onEdit={setEditTask}
-                onArchive={archiveTask}
-                onOpenStats={setStatsTask}
-            />
-        );
-    }, [setStatus, archiveTask, debugModeEnabled]);
+    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
+        <TaskCard
+            task={item}
+            onStatusChange={setStatus}
+            onEdit={setEditTask}
+            onArchive={archiveTask}
+            onOpenStats={setStatsTask}
+        />
+    ), [setStatus, archiveTask]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
         <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={setEditTask} />
@@ -394,7 +390,7 @@ export default function TasksScreen() {
                         }
                         renderItem={renderTask}
                     />
-                    <TouchableOpacity style={styles.fab} onPress={() => setAddModalVisible(true)}>
+                    <TouchableOpacity style={[styles.fab, { backgroundColor: themeColorSecondary }]} onPress={() => setAddModalVisible(true)}>
                         <Text style={styles.fabText}>+</Text>
                     </TouchableOpacity>
                 </>
@@ -492,6 +488,7 @@ const styles = StyleSheet.create({
         borderRadius: 30, justifyContent: 'center', alignItems: 'center',
         shadowColor: '#000', shadowOffset: { width: 0, height: 3 }, shadowOpacity: 0.3, shadowRadius: 4,
         elevation: 6,
+        borderWidth: 2, borderColor: COLORS.primary,
     },
     fabText: { color: 'white', fontSize: 30, lineHeight: 34 },
 });

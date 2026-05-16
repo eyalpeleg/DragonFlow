@@ -17,7 +17,7 @@ app/                    # Expo Router pages
   (tabs)/               # Bottom tab navigator (tasks, daily, weekly, settings)
 src/
   components/           # UI components (modals, cards, filters)
-  store/taskStore.ts    # Zustand store — single source of truth
+  store/appStore.ts     # Zustand store — single source of truth for all app state
   types.ts              # Task, Category, SubTask, RecurrenceConfig interfaces
   styles/theme.ts       # Colors, priority palette, spacing
   modules/              # Native module bridges (FloatingBubble)
@@ -180,7 +180,20 @@ git push -u origin develop    # or push to feature branch then merge to develop
 
 ## Adding Features
 
-- New task property: update `src/types.ts` -> `src/store/taskStore.ts` -> components
+- New task property: update `src/types.ts` -> `src/store/appStore.ts` -> components
 - New filter type: add Set to store -> add setter -> update `useSortedFilteredTasks()` -> add UI in FilterModal
 - New notification: add channel in `src/utils/notifications.ts` -> create schedule/cancel helpers
 - Styling: `src/styles/theme.ts` for colors, `StyleSheet.create()` in components
+
+## Store Design
+
+**appStore.ts** (not `taskStore`) manages all global app state, not just tasks:
+- Task CRUD, categories, subcategories
+- Filters (status, category, priority, due date)
+- Notifications & sounds (Pomodoro, task completion)
+- Floating bubble display
+- Preferences (first day of week, default task time)
+- Pomodoro timer state
+- Debug mode
+
+The broader name reflects its role as the single source of truth for the entire app's state.

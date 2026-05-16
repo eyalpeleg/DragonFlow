@@ -90,6 +90,9 @@ interface TaskStore {
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
     customTimerSeconds: number;
     debugModeEnabled: boolean;
+    themeColorPrimary: string;
+    themeColorSecondary: string;
+    themeColorAction: string;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -125,8 +128,11 @@ interface TaskStore {
     clearPomodoroTimer: () => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
+    setThemeColorPrimary: (color: string) => void;
+    setThemeColorSecondary: (color: string) => void;
+    setThemeColorAction: (color: string) => void;
     exportData: () => object;
-    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType } }) => { tasksImported: number };
+    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType; themeColorPrimary?: string; themeColorSecondary?: string; themeColorAction?: string } }) => { tasksImported: number };
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -160,6 +166,9 @@ export const useTaskStore = create<TaskStore>()(
             dueDateFilters: new Set(),
             customTimerSeconds: 0,
             debugModeEnabled: false,
+            themeColorPrimary: '#6200EE',
+            themeColorSecondary: '#aa7dc9',
+            themeColorAction: '#a2d9a1',
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -392,6 +401,18 @@ export const useTaskStore = create<TaskStore>()(
                 debugModeEnabled: enabled,
             }),
 
+            setThemeColorPrimary: (color) => set({
+                themeColorPrimary: color,
+            }),
+
+            setThemeColorSecondary: (color) => set({
+                themeColorSecondary: color,
+            }),
+
+            setThemeColorAction: (color) => set({
+                themeColorAction: color,
+            }),
+
             exportData: () => {
                 const s = get();
                 return {
@@ -405,6 +426,9 @@ export const useTaskStore = create<TaskStore>()(
                         notificationSoundEnabled: s.notificationSoundEnabled,
                         pomodoroSoundType: s.pomodoroSoundType,
                         tasksSoundType: s.tasksSoundType,
+                        themeColorPrimary: s.themeColorPrimary,
+                        themeColorSecondary: s.themeColorSecondary,
+                        themeColorAction: s.themeColorAction,
                     },
                 };
             },
@@ -430,6 +454,9 @@ export const useTaskStore = create<TaskStore>()(
                     ...(data.settings?.notificationSoundEnabled !== undefined && { notificationSoundEnabled: data.settings.notificationSoundEnabled }),
                     ...(data.settings?.pomodoroSoundType && { pomodoroSoundType: data.settings.pomodoroSoundType }),
                     ...(data.settings?.tasksSoundType && { tasksSoundType: data.settings.tasksSoundType }),
+                    ...(data.settings?.themeColorPrimary && { themeColorPrimary: data.settings.themeColorPrimary }),
+                    ...(data.settings?.themeColorSecondary && { themeColorSecondary: data.settings.themeColorSecondary }),
+                    ...(data.settings?.themeColorAction && { themeColorAction: data.settings.themeColorAction }),
                 });
 
                 return { tasksImported: tasks.length };
@@ -455,6 +482,9 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: state.pomodoroNotifId,
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
+                themeColorPrimary: state.themeColorPrimary,
+                themeColorSecondary: state.themeColorSecondary,
+                themeColorAction: state.themeColorAction,
                 _schemaVersion: 1,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),

@@ -53,8 +53,17 @@ function formatRelativeTime(isoString: string | null): string {
 }
 
 export default function SettingsScreen() {
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, statusOrderConfig, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, themeColorPrimary, themeColorSecondary, themeColorAction, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setThemeColorPrimary, setThemeColorSecondary, setThemeColorAction } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
+    const [tempPrimaryColor, setTempPrimaryColor] = useState(themeColorPrimary);
+    const [tempSecondaryColor, setTempSecondaryColor] = useState(themeColorSecondary);
+    const [tempActionColor, setTempActionColor] = useState(themeColorAction);
+
+    React.useEffect(() => {
+        setTempPrimaryColor(themeColorPrimary);
+        setTempSecondaryColor(themeColorSecondary);
+        setTempActionColor(themeColorAction);
+    }, [themeColorPrimary, themeColorSecondary, themeColorAction]);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
     const [statusOrderModalVisible, setStatusOrderModalVisible] = useState(false);
@@ -277,6 +286,75 @@ export default function SettingsScreen() {
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? '#ccc' : 'white'} />
                             </TouchableOpacity>
+                        </View>
+                    </View>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Appearance">
+                    <View style={styles.colorCard}>
+                        <View style={styles.colorCardHeader}>
+                            <Text style={styles.colorCardTitle}>Primary</Text>
+                            {!debugModeEnabled && <Text style={styles.readOnlyBadge}>Read-only</Text>}
+                        </View>
+                        <Text style={styles.settingDesc}>Main app accent color</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={[styles.colorInput, !debugModeEnabled && styles.colorInputDisabled]}
+                                value={tempPrimaryColor}
+                                onChangeText={(text) => {
+                                    if (debugModeEnabled) {
+                                        setTempPrimaryColor(text);
+                                        if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                            setThemeColorPrimary(text);
+                                        }
+                                    }
+                                }}
+                                placeholder="#6200EE"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                                editable={debugModeEnabled}
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempPrimaryColor }]} />
+                        </View>
+                    </View>
+                    <View style={[styles.colorCard, styles.colorCardGap]}>
+                        <Text style={styles.colorCardTitle}>Secondary</Text>
+                        <Text style={styles.settingDesc}>Start, progress bar</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={styles.colorInput}
+                                value={tempSecondaryColor}
+                                onChangeText={(text) => {
+                                    setTempSecondaryColor(text);
+                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                        setThemeColorSecondary(text);
+                                    }
+                                }}
+                                placeholder="#aa7dc9"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempSecondaryColor }]} />
+                        </View>
+                    </View>
+                    <View style={[styles.colorCard, styles.colorCardGap]}>
+                        <Text style={styles.colorCardTitle}>Action</Text>
+                        <Text style={styles.settingDesc}>Done</Text>
+                        <View style={styles.colorInputRow}>
+                            <TextInput
+                                style={styles.colorInput}
+                                value={tempActionColor}
+                                onChangeText={(text) => {
+                                    setTempActionColor(text);
+                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                        setThemeColorAction(text);
+                                    }
+                                }}
+                                placeholder="#a2d9a1"
+                                maxLength={7}
+                                keyboardType="ascii-capable"
+                            />
+                            <View style={[styles.colorPreview, { backgroundColor: tempActionColor }]} />
                         </View>
                     </View>
                 </CollapsibleSection>
@@ -829,5 +907,67 @@ const styles = StyleSheet.create({
     },
     playButtonDisabled: {
         backgroundColor: '#e0e0e0',
+    },
+    colorInputRow: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        marginTop: 10,
+    },
+    colorInput: {
+        flex: 1,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+        borderRadius: 8,
+        paddingHorizontal: 12,
+        paddingVertical: 10,
+        fontSize: 14,
+        fontFamily: 'monospace',
+    },
+    colorPreview: {
+        width: 40,
+        height: 40,
+        borderRadius: 8,
+        borderWidth: 1,
+        borderColor: '#e0e0e0',
+    },
+    colorCard: {
+        backgroundColor: '#fff',
+        padding: 14,
+        marginVertical: 6,
+        borderRadius: 12,
+        elevation: 1,
+        shadowColor: '#000',
+        shadowOffset: { width: 0, height: 1 },
+        shadowOpacity: 0.05,
+        shadowRadius: 2,
+    },
+    colorCardGap: {
+        marginTop: 12,
+    },
+    colorCardTitle: {
+        fontSize: 15,
+        fontWeight: '600',
+        color: '#222',
+        marginBottom: 4,
+    },
+    colorCardHeader: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        justifyContent: 'space-between',
+        marginBottom: 4,
+    },
+    readOnlyBadge: {
+        fontSize: 11,
+        fontWeight: '600',
+        color: '#999',
+        paddingHorizontal: 8,
+        paddingVertical: 2,
+        borderRadius: 4,
+        backgroundColor: '#f0f0f0',
+    },
+    colorInputDisabled: {
+        backgroundColor: '#f5f5f5',
+        color: '#999',
     },
 });

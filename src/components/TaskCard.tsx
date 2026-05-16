@@ -23,6 +23,8 @@ const STATUS_BAR_COLORS: Record<TaskStatus, string> = {
 
 export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
     const categories = useTaskStore((s) => s.categories);
+    const themeColorSecondary = useTaskStore((s) => s.themeColorSecondary);
+    const themeColorAction = useTaskStore((s) => s.themeColorAction);
     const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
@@ -107,7 +109,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                     </View>
                     {status === 'Ready' && (
                         <TouchableOpacity
-                            style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                            style={[styles.statusIconBtn, { backgroundColor: themeColorSecondary }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
                             <Ionicons name="play" size={14} color="white" />
@@ -122,7 +124,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 <Ionicons name="pause" size={14} color="#666" />
                             </TouchableOpacity>
                             <TouchableOpacity
-                                style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                                style={[styles.statusIconBtn, { backgroundColor: themeColorAction }]}
                                 onPress={() => onStatusChange(id, 'Done')}
                             >
                                 <Ionicons name="checkmark" size={16} color="white" />
@@ -131,7 +133,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                     )}
                     {status === 'Paused' && (
                         <TouchableOpacity
-                            style={[styles.statusIconBtn, styles.statusIconBtnPrimary]}
+                            style={[styles.statusIconBtn, { backgroundColor: themeColorSecondary }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
                             <Ionicons name="play" size={14} color="white" />
