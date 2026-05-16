@@ -80,10 +80,10 @@ export const COLORS = {
     },
 
     pomodoro: {
-        focus: '#003396',
-        shortBreak: '#1750AC',
-        longBreak: '#3373C4',
-        custom: '#5494DA',
+        focus: '#1E3Ea5',
+        shortBreak: '#4A7BB0',
+        longBreak: '#6B9CD1',
+        custom: '#8CBCEF',
     },
 
     themeDefaults: {
