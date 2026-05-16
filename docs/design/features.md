@@ -21,6 +21,8 @@
 | Completion comments | Add a note when marking a task done | `DoneStatsModal` |
 | Dark mode | Automatic UI style switching | `app.json` (`userInterfaceStyle: automatic`) |
 | Persistent storage | All data persisted locally via AsyncStorage | `taskStore.ts` (Zustand persist) |
+| Data export/import | Export/import tasks, categories, and settings as JSON file via share/document picker | `utils/dataTransfer.ts` |
+| Cloud sync | Google Drive backup with native Google Sign-In, auto-backup, and restore | `services/cloudBackup/` |
 
 ## Planned
 
@@ -28,8 +30,6 @@
 |---------|--------|-------|
 | iOS floating bubble | Idea | Equivalent of Android overlay for iOS |
 | App Store / Play Store publish | Planned | Bundle ID ready (`com.plgsw.dragonflow`) |
-| Data export/import | Idea | Export tasks as JSON or CSV for backup |
-| Cloud sync | Idea | Sync tasks across devices |
 | Widgets | Idea | Home screen widget showing today's tasks |
 | | | |
 
