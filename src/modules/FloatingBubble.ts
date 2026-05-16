@@ -56,6 +56,16 @@ const FloatingBubble = {
             return () => {};
         }
     },
+    onOpenFocus(callback: () => void) {
+        if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
+        try {
+            const emitter = new NativeEventEmitter(NativeFloatingBubble);
+            const listener = emitter.addListener('floatingBubbleOpenFocus', callback);
+            return () => listener.remove();
+        } catch {
+            return () => {};
+        }
+    },
 };
 
 export default FloatingBubble;

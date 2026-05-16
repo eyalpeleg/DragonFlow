@@ -24,28 +24,34 @@ const BUILTIN_CATEGORIES: Category[] = [
     { id: 'study',    name: 'Study',    color: 'rgba(34, 218, 166, 0.69)' },
 ];
 
-export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr: string): number {
-    return tasks.filter((t) => {
-        if (t.archivedAt) return false;
-        if (t.status === 'Done') return false;
-        if (t.dueDate < todayStr) return true;
-        if (t.dueDate === todayStr) return true;
-        if (t.dueDate === tomorrowStr && (t.priority === 'Critical' || t.priority === 'High')) return true;
-        return false;
-    }).length;
+export function isUrgent(t: Task, todayStr: string, tomorrowStr: string): boolean {
+    if (t.archivedAt) return false;
+    if (t.status === 'Done') return false;
+    if (t.dueDate < todayStr) return true;
+    if (t.dueDate === todayStr) return true;
+    if (t.dueDate === tomorrowStr && (t.priority === 'Critical' || t.priority === 'High')) return true;
+    return false;
 }
 
-function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomodoroEndTime: number | null) {
-    // While a pomodoro is active the native service owns the bubble — don't interfere
-    if (pomodoroEndTime !== null && pomodoroEndTime > Date.now()) return;
+export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr: string): number {
+    return tasks.filter((t) => isUrgent(t, todayStr, tomorrowStr)).length;
+}
 
+function getTodayTomorrowStrs(): { todayStr: string; tomorrowStr: string } {
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
     const tom = new Date(now);
     tom.setDate(tom.getDate() + 1);
     const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+    return { todayStr, tomorrowStr };
+}
 
+function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomodoroEndTime: number | null) {
+    // While a pomodoro is active the native service owns the bubble — don't interfere
+    if (pomodoroEndTime !== null && pomodoroEndTime > Date.now()) return;
+
+    const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
     const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
 
     if (score === 0 || AppState.currentState === 'active' || !showBubbleInBackground) {
@@ -69,6 +75,7 @@ export interface AddTaskInput {
 interface TaskStore {
     tasks: Task[];
     categories: Category[];
+    deletedBuiltinCategoryIds: string[];
     hasHydrated: boolean;
     dismissedFloatingBubble: boolean;
     showBubbleInBackground: boolean;
@@ -88,6 +95,7 @@ interface TaskStore {
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
     dueDateFilters: Set<'overdue' | 'today' | 'upcoming'>;
+    focusMode: boolean;
     customTimerSeconds: number;
     debugModeEnabled: boolean;
     themeColorPrimary: string;
@@ -122,6 +130,7 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    setFocusMode: (enabled: boolean) => void;
     setStatusOrderConfig: (config: StatusOrderConfig) => void;
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
@@ -140,6 +149,7 @@ export const useTaskStore = create<TaskStore>()(
         (set, get) => ({
             tasks: [],
             categories: BUILTIN_CATEGORIES,
+            deletedBuiltinCategoryIds: [],
             hasHydrated: false,
             dismissedFloatingBubble: false,
             showBubbleInBackground: true,
@@ -164,6 +174,7 @@ export const useTaskStore = create<TaskStore>()(
             categoryFilters: new Set(),
             priorityFilters: new Set(),
             dueDateFilters: new Set(),
+            focusMode: false,
             customTimerSeconds: 0,
             debugModeEnabled: false,
             themeColorPrimary: COLORS.themeDefaults.primary,
@@ -269,7 +280,11 @@ export const useTaskStore = create<TaskStore>()(
                 const categories = s.categories.filter((c) => c.id !== id);
                 const categoryFilters = new Set(s.categoryFilters);
                 categoryFilters.delete(id);
-                set({ tasks, categories, categoryFilters });
+                const isBuiltin = BUILTIN_CATEGORIES.some((bc) => bc.id === id);
+                const deletedBuiltinCategoryIds = isBuiltin && !s.deletedBuiltinCategoryIds.includes(id)
+                    ? [...s.deletedBuiltinCategoryIds, id]
+                    : s.deletedBuiltinCategoryIds;
+                set({ tasks, categories, categoryFilters, deletedBuiltinCategoryIds });
             },
 
             updateCategory: (id, updates) => {
@@ -370,6 +385,8 @@ export const useTaskStore = create<TaskStore>()(
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
 
+            setFocusMode: (enabled) => set({ focusMode: enabled }),
+
             setStatusOrderConfig: (config) => set({ statusOrderConfig: config }),
 
             setPomodoroTimer: (endTime, modeIdx, notifId) => set({
@@ -468,6 +485,7 @@ export const useTaskStore = create<TaskStore>()(
             partialize: (state: TaskStore) => ({
                 tasks: state.tasks,
                 categories: state.categories,
+                deletedBuiltinCategoryIds: state.deletedBuiltinCategoryIds,
                 defaultTaskTime: state.defaultTaskTime,
                 showBubbleInBackground: state.showBubbleInBackground,
                 firstDayOfWeek: state.firstDayOfWeek,
@@ -526,10 +544,15 @@ export const useTaskStore = create<TaskStore>()(
                 if (p.pomodoroSoundType !== 'AppSound' && p.pomodoroSoundType !== 'Disabled') p.pomodoroSoundType = 'AppSound';
                 if (p.tasksSoundType !== 'AppSound' && p.tasksSoundType !== 'Disabled') p.tasksSoundType = 'AppSound';
 
-                // Ensure all built-in categories exist
+                // Always ensure Default exists (orphan-task fallback). For other built-ins,
+                // only re-add if the user hasn't explicitly deleted them.
+                const deletedBuiltinCategoryIds: string[] = p.deletedBuiltinCategoryIds ?? [];
                 const existingIds = new Set(categories.map((c) => c.id));
                 for (const bc of BUILTIN_CATEGORIES) {
-                    if (!existingIds.has(bc.id)) categories.push({ ...bc });
+                    if (existingIds.has(bc.id)) continue;
+                    if (bc.id === DEFAULT_CATEGORY_ID || !deletedBuiltinCategoryIds.includes(bc.id)) {
+                        categories.push({ ...bc });
+                    }
                 }
 
                 const persistedFiltered = Object.fromEntries(
@@ -542,6 +565,7 @@ export const useTaskStore = create<TaskStore>()(
                     _schemaVersion: 1,
                     tasks,
                     categories,
+                    deletedBuiltinCategoryIds,
                     firstDayOfWeek: p.firstDayOfWeek ?? 'sunday',
                     statusFilters: new Set(p.statusFilters ?? []),
                     categoryFilters: new Set<string>(),
@@ -581,11 +605,14 @@ export function useSortedFilteredTasks(): Task[] {
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
+    const focusMode = useTaskStore((s) => s.focusMode);
 
     return useMemo(() => {
         const active = tasks.filter((t) => !t.archivedAt);
+        const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
 
         const filtered = active.filter((t) => {
+            if (focusMode && !isUrgent(t, todayStr, tomorrowStr)) return false;
             if (statusFilters.size > 0 && !statusFilters.has(t.status)) return false;
             if (categoryFilters.size > 0 && !categoryFilters.has(t.categoryId)) return false;
             if (priorityFilters.size > 0 && !priorityFilters.has(t.priority)) return false;
@@ -621,7 +648,7 @@ export function useSortedFilteredTasks(): Task[] {
 
             return a.createdAt - b.createdAt;
         });
-    }, [tasks, statusOrderConfig, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
+    }, [tasks, statusOrderConfig, statusFilters, categoryFilters, priorityFilters, dueDateFilters, focusMode]);
 }
 
 export function useArchivedTasks(): Task[] {

@@ -1,5 +1,6 @@
 package com.plgsw.dragonflow
 
+import android.app.Activity
 import android.app.AlarmManager
 import android.app.PendingIntent
 import android.content.Context
@@ -7,6 +8,8 @@ import android.content.Intent
 import android.net.Uri
 import android.os.Build
 import android.provider.Settings
+import com.facebook.react.bridge.ActivityEventListener
+import com.facebook.react.bridge.LifecycleEventListener
 import com.facebook.react.bridge.Promise
 import com.facebook.react.bridge.ReactApplicationContext
 import com.facebook.react.bridge.ReactContextBaseJavaModule
@@ -14,12 +17,42 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 class FloatingBubbleModule(reactContext: ReactApplicationContext) :
-    ReactContextBaseJavaModule(reactContext) {
+    ReactContextBaseJavaModule(reactContext),
+    ActivityEventListener,
+    LifecycleEventListener {
 
     override fun getName(): String = "FloatingBubble"
 
     init {
         Companion.reactContext = reactContext
+        reactContext.addActivityEventListener(this)
+        reactContext.addLifecycleEventListener(this)
+    }
+
+    // Warm start: bubble double-tap brings a running app forward via a new intent.
+    override fun onNewIntent(intent: Intent) {
+        consumeFocusAction(intent)
+    }
+
+    // ActivityEventListener requires this — we don't use it.
+    override fun onActivityResult(activity: Activity, requestCode: Int, resultCode: Int, data: Intent?) {}
+
+    // Cold start: after the launch intent created MainActivity, the first resume
+    // exposes that intent on currentActivity.intent. Peek once and consume.
+    override fun onHostResume() {
+        consumeFocusAction(reactApplicationContext.currentActivity?.intent)
+    }
+
+    override fun onHostPause() {}
+    override fun onHostDestroy() {}
+
+    private fun consumeFocusAction(intent: Intent?) {
+        if (intent?.getStringExtra("dragonflow_action") == "focus") {
+            // One-shot: clear the extra so subsequent foreground resumes don't re-trigger.
+            intent.removeExtra("dragonflow_action")
+            pendingOpenFocus = true
+            sendOpenFocusEvent()
+        }
     }
 
     @ReactMethod
@@ -157,7 +190,14 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     }
 
     @ReactMethod
-    fun addListener(eventName: String) {}
+    fun addListener(eventName: String) {
+        // On cold start, the open-focus intent may arrive before JS subscribes.
+        // When JS finally subscribes, flush any pending open-focus signal.
+        if (eventName == "floatingBubbleOpenFocus" && pendingOpenFocus) {
+            pendingOpenFocus = false
+            sendOpenFocusEvent()
+        }
+    }
 
     @ReactMethod
     fun removeListeners(count: Int) {}
@@ -165,10 +205,19 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     companion object {
         var reactContext: ReactApplicationContext? = null
 
+        @Volatile
+        var pendingOpenFocus: Boolean = false
+
         fun sendDismissEvent() {
             reactContext
                 ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 ?.emit("floatingBubbleDismissed", null)
+        }
+
+        fun sendOpenFocusEvent() {
+            reactContext
+                ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                ?.emit("floatingBubbleOpenFocus", null)
         }
     }
 }

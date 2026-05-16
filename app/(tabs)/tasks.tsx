@@ -41,6 +41,8 @@ export default function TasksScreen() {
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
+    const focusMode = useTaskStore((s) => s.focusMode);
+    const setFocusMode = useTaskStore((s) => s.setFocusMode);
     const customTimerSeconds = useTaskStore((s) => s.customTimerSeconds);
     const totalFilterCount = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size;
     const hasActiveFilters = totalFilterCount > 0;
@@ -320,6 +322,18 @@ export default function TasksScreen() {
                 </View>
                 <View style={styles.headerActions}>
                     {!showArchive && (
+                        <TouchableOpacity
+                            style={focusMode ? styles.focusBtnActive : styles.focusBtn}
+                            onPress={() => setFocusMode(!focusMode)}
+                        >
+                            <Ionicons
+                                name={focusMode ? 'flash' : 'flash-outline'}
+                                size={20}
+                                color={focusMode ? COLORS.primary : COLORS.white}
+                            />
+                        </TouchableOpacity>
+                    )}
+                    {!showArchive && (
                         <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
                             <Ionicons
                                 name={hasActiveFilters && filterBarVisible ? "funnel" : "funnel-outline"}
@@ -471,6 +485,14 @@ const styles = StyleSheet.create({
         backgroundColor: COLORS.overlay.whiteSoft, alignItems: 'center', justifyContent: 'center',
     },
     archiveBtnActive: {
+        width: 38, height: 38, borderRadius: 19,
+        backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
+    },
+    focusBtn: {
+        width: 38, height: 38, borderRadius: 19,
+        backgroundColor: COLORS.overlay.whiteSoft, alignItems: 'center', justifyContent: 'center',
+    },
+    focusBtnActive: {
         width: 38, height: 38, borderRadius: 19,
         backgroundColor: COLORS.white, alignItems: 'center', justifyContent: 'center',
     },
