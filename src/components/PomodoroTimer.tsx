@@ -1,6 +1,7 @@
 import React, { useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
 import { COLORS } from '../styles/theme';
+import { useTaskStore } from '../store/appStore';
 
 export const POMODORO_MODES = [
     { label: 'Focus', minutes: 25, color: COLORS.primary },
@@ -30,6 +31,7 @@ export default function PomodoroTimer({
     modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
     onSelectMode, onSetCustomTimerSeconds, onStart, onPause, onReset,
 }: Props) {
+    const themeColorAction = useTaskStore((s) => s.themeColorAction);
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
     const [customTimeSubmitted, setCustomTimeSubmitted] = useState(false);
@@ -167,7 +169,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : isPaused ? (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : (mode?.color ?? COLORS.primary) }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorAction }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -175,7 +177,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : (mode?.color ?? COLORS.primary) }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? '#ccc' : themeColorAction }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
