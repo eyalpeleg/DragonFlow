@@ -171,7 +171,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : isPaused ? (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -179,7 +179,7 @@ export default function PomodoroTimer({
                             </TouchableOpacity>
                         ) : (
                             <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }]}
+                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? COLORS.text.disabled : themeColorSecondary }, !isStartDisabled && { borderWidth: 2, borderColor: COLORS.primary }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
@@ -215,7 +215,7 @@ const styles = StyleSheet.create({
     customTimerContainer: { alignItems: 'center', gap: 12 },
     customTimeInput: { fontSize: 48, fontWeight: '700', color: CUSTOM_MODE_COLOR, textAlign: 'center', borderBottomWidth: 2, borderColor: CUSTOM_MODE_COLOR, paddingVertical: 12, minWidth: 200 },
     customTimeError: { fontSize: 12, color: COLORS.text.errorStrong, textAlign: 'center' },
-    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: CUSTOM_MODE_COLOR, marginTop: 8 },
+    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: CUSTOM_MODE_COLOR, marginTop: 8, borderWidth: 2, borderColor: COLORS.pomodoro.focus },
     submitBtnText: { fontSize: 14, fontWeight: '700', color: COLORS.white },
     ringOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 8, alignItems: 'center', justifyContent: 'center' },
     ringInner: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 8 },

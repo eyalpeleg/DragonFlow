@@ -432,7 +432,10 @@ export default function TasksScreen() {
                 isPaused={isPaused}
                 customTimerSeconds={customTimerSeconds}
                 onSelectMode={handleSelectMode}
-                onSetCustomTimerSeconds={setCustomTimerSeconds}
+                onSetCustomTimerSeconds={(seconds) => {
+                    setCustomTimerSeconds(seconds);
+                    setSecondsLeft(seconds);
+                }}
                 onStart={handleStart}
                 onPause={() => stopTimer(true)}
                 onReset={handleReset}
