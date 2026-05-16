@@ -167,7 +167,7 @@ export const useTaskStore = create<TaskStore>()(
             customTimerSeconds: 0,
             debugModeEnabled: false,
             themeColorPrimary: '#6200EE',
-            themeColorSecondary: '#aa7dc9',
+            themeColorSecondary: '#88d295',
             themeColorAction: '#a2d9a1',
 
             addTask: (input) => set((s) => {

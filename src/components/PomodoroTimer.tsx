@@ -5,7 +5,7 @@ import { useTaskStore } from '../store/appStore';
 
 export const POMODORO_MODES = [
     { label: 'Focus', minutes: 25, color: COLORS.primary },
-    { label: 'Short Break', minutes: 5, color: COLORS.status['Done'] },
+    { label: 'Short Break', minutes: 5, color: '#FF9913' },
     { label: 'Long Break', minutes: 15, color: COLORS.status['In Progress'] },
 ] as const;
 

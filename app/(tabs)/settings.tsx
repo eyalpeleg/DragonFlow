@@ -330,7 +330,7 @@ export default function SettingsScreen() {
                                         setThemeColorSecondary(text);
                                     }
                                 }}
-                                placeholder="#aa7dc9"
+                                placeholder="#88d295"
                                 maxLength={7}
                                 keyboardType="ascii-capable"
                             />
