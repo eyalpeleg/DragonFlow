@@ -79,13 +79,6 @@ export const COLORS = {
         'Done': '#81C784',
     },
 
-    pomodoro: {
-        focus: '#1E3Ea5',
-        shortBreak: '#4A7BB0',
-        longBreak: '#6B9CD1',
-        custom: '#8CBCEF',
-    },
-
     themeDefaults: {
         primary: '#6200EE',
         secondary: '#88d295',
