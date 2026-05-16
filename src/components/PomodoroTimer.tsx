@@ -7,9 +7,9 @@ export type PomodoroMode = { label: string; minutes: number; color: string };
 
 export function makePomodoroModes(c: AppColors): readonly PomodoroMode[] {
     return [
-        { label: 'Focus', minutes: 25, color: c.pomodoro.focus },
-        { label: 'Short Break', minutes: 5, color: c.pomodoro.shortBreak },
-        { label: 'Long Break', minutes: 15, color: c.pomodoro.longBreak },
+        { label: 'Focus', minutes: 25, color: c.secondary },
+        { label: 'Short Break', minutes: 5, color: c.secondary },
+        { label: 'Long Break', minutes: 15, color: c.secondary },
     ] as const;
 }
 
@@ -38,7 +38,7 @@ export default function PomodoroTimer({
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
-    const customModeColor = colors.pomodoro.custom;
+    const customModeColor = colors.secondary;
 
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
     const [customTimeError, setCustomTimeError] = useState<string | null>(null);
@@ -219,9 +219,9 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     modeChipSub: { fontSize: 9, color: c.text.weak, marginTop: 2 },
     clockContainer: { marginBottom: 24, alignItems: 'center', justifyContent: 'center' },
     customTimerContainer: { alignItems: 'center', gap: 12 },
-    customTimeInput: { fontSize: 48, fontWeight: '700', color: c.pomodoro.custom, textAlign: 'center', borderBottomWidth: 2, borderColor: c.pomodoro.custom, paddingVertical: 12, minWidth: 200 },
+    customTimeInput: { fontSize: 48, fontWeight: '700', color: c.secondary, textAlign: 'center', borderBottomWidth: 2, borderColor: c.secondary, paddingVertical: 12, minWidth: 200 },
     customTimeError: { fontSize: 12, color: c.text.errorStrong, textAlign: 'center' },
-    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: c.pomodoro.custom, marginTop: 8, borderWidth: 2, borderColor: c.pomodoro.focus },
+    submitBtn: { paddingHorizontal: 32, paddingVertical: 10, borderRadius: 20, backgroundColor: c.secondary, marginTop: 8, borderWidth: 2, borderColor: c.secondary },
     submitBtnText: { fontSize: 14, fontWeight: '700', color: c.white },
     ringOuter: { width: 140, height: 140, borderRadius: 70, borderWidth: 8, alignItems: 'center', justifyContent: 'center' },
     ringInner: { position: 'absolute', width: 140, height: 140, borderRadius: 70, borderWidth: 8 },
