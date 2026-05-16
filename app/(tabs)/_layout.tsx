@@ -10,7 +10,7 @@ export default function TabLayout() {
                 tabBarActiveTintColor: colors.primary,
                 tabBarInactiveTintColor: colors.text.weak,
                 headerShown: false,
-                tabBarStyle: { paddingBottom: 4 },
+                tabBarStyle: { paddingBottom: 4, backgroundColor: colors.surface, borderTopColor: colors.border.light },
             }}
         >
             <Tabs.Screen

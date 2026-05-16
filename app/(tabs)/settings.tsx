@@ -581,7 +581,7 @@ export default function SettingsScreen() {
 }
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
-    container: { flex: 1, backgroundColor: c.surfaceAlt.muted },
+    container: { flex: 1, backgroundColor: c.background },
     header: {
         backgroundColor: c.primary,
         paddingHorizontal: 16,
