@@ -81,12 +81,6 @@ export const lightColors = {
         'Done': '#81C784',
     },
 
-    pomodoro: {
-        focus: '#1E3Ea5',
-        shortBreak: '#4A7BB0',
-        longBreak: '#6B9CD1',
-        custom: '#8CBCEF',
-    },
 };
 
 export type AppColors = typeof lightColors;
@@ -174,12 +168,6 @@ export const darkColors: AppColors = {
         'Done': '#388E3C',
     },
 
-    pomodoro: {
-        focus: '#3F5FC8',
-        shortBreak: '#6B9CD1',
-        longBreak: '#8CBCEF',
-        custom: '#A6CEEF',
-    },
 };
 
 // Back-compat alias for code that hasn't migrated to useColors() yet
