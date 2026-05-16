@@ -46,5 +46,7 @@ app-example
 # so Claude's project memory and config persists across sessions and fresh clones.
 # Exception: settings.local.json is per-machine personal overrides by convention.
 .claude/settings.local.json
+.claude/worktrees/
+.claude/plans/
 build*.apk
 *.apk
