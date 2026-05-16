@@ -503,41 +503,53 @@ export default function SettingsScreen() {
                         </View>
                     </View>
                     <View style={[styles.colorCard, styles.colorCardGap]}>
-                        <Text style={styles.colorCardTitle}>Secondary</Text>
+                        <View style={styles.colorCardHeader}>
+                            <Text style={styles.colorCardTitle}>Secondary</Text>
+                            {!debugModeEnabled && <Text style={styles.readOnlyBadge}>Read-only</Text>}
+                        </View>
                         <Text style={styles.settingDesc}>Start, progress bar</Text>
                         <View style={styles.colorInputRow}>
                             <TextInput
-                                style={styles.colorInput}
+                                style={[styles.colorInput, !debugModeEnabled && styles.colorInputDisabled]}
                                 value={tempSecondaryColor}
                                 onChangeText={(text) => {
-                                    setTempSecondaryColor(text);
-                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                                        setThemeColorSecondary(text);
+                                    if (debugModeEnabled) {
+                                        setTempSecondaryColor(text);
+                                        if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                            setThemeColorSecondary(text);
+                                        }
                                     }
                                 }}
                                 placeholder="#88d295"
                                 maxLength={7}
                                 keyboardType="ascii-capable"
+                                editable={debugModeEnabled}
                             />
                             <View style={[styles.colorPreview, { backgroundColor: tempSecondaryColor }]} />
                         </View>
                     </View>
                     <View style={[styles.colorCard, styles.colorCardGap]}>
-                        <Text style={styles.colorCardTitle}>Action</Text>
+                        <View style={styles.colorCardHeader}>
+                            <Text style={styles.colorCardTitle}>Action</Text>
+                            {!debugModeEnabled && <Text style={styles.readOnlyBadge}>Read-only</Text>}
+                        </View>
                         <Text style={styles.settingDesc}>Done</Text>
                         <View style={styles.colorInputRow}>
                             <TextInput
-                                style={styles.colorInput}
+                                style={[styles.colorInput, !debugModeEnabled && styles.colorInputDisabled]}
                                 value={tempActionColor}
                                 onChangeText={(text) => {
-                                    setTempActionColor(text);
-                                    if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
-                                        setThemeColorAction(text);
+                                    if (debugModeEnabled) {
+                                        setTempActionColor(text);
+                                        if (text.match(/^#[0-9A-Fa-f]{6}$/)) {
+                                            setThemeColorAction(text);
+                                        }
                                     }
                                 }}
                                 placeholder="#a2d9a1"
                                 maxLength={7}
                                 keyboardType="ascii-capable"
+                                editable={debugModeEnabled}
                             />
                             <View style={[styles.colorPreview, { backgroundColor: tempActionColor }]} />
                         </View>
