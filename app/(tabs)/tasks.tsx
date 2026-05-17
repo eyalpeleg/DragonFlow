@@ -6,7 +6,6 @@ import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
 import DoneStatsModal from '@/src/components/DoneStatsModal';
 import EditTaskModal from '@/src/components/EditTaskModal';
-import FilterBar from '@/src/components/FilterBar';
 import FilterModal from '@/src/components/FilterModal';
 import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import TaskCard from '@/src/components/TaskCard';
@@ -33,7 +32,6 @@ export default function TasksScreen() {
     const [showArchive, setShowArchive] = useState(false);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
     const [filterTypeSelectorOpen, setFilterTypeSelectorOpen] = useState(false);
-    const [filterBarVisible, setFilterBarVisible] = useState(true);
     const [selectedFilterType, setSelectedFilterType] = useState<FilterType | null>(null);
 
     const statusFilters = useTaskStore((s) => s.statusFilters);
@@ -88,11 +86,7 @@ export default function TasksScreen() {
     ), [restoreTask, deleteTask]);
 
     function handleFilterToggle() {
-        if (hasActiveFilters) {
-            setFilterBarVisible(!filterBarVisible);
-        } else {
-            setFilterTypeSelectorOpen(true);
-        }
+        setFilterTypeSelectorOpen(true);
     }
 
     function handleFilterPress(filterType: FilterType) {
@@ -149,7 +143,7 @@ export default function TasksScreen() {
                     {!showArchive && (
                         <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
                             <Ionicons
-                                name={hasActiveFilters && filterBarVisible ? "funnel" : "funnel-outline"}
+                                name={hasActiveFilters ? 'funnel' : 'funnel-outline'}
                                 size={20}
                                 color={colors.white}
                             />
@@ -194,12 +188,6 @@ export default function TasksScreen() {
                 />
             ) : (
                 <>
-                    {hasActiveFilters && filterBarVisible && (
-                        <FilterBar
-                            onFilterPress={handleFilterPress}
-                            onAddFilter={() => setFilterTypeSelectorOpen(true)}
-                        />
-                    )}
                     <FlatList
                         data={tasks}
                         keyExtractor={(item) => item.id}
