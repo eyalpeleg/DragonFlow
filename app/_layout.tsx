@@ -1,15 +1,41 @@
-import { useEffect } from 'react';
-import { AppState } from 'react-native';
+import { useEffect, useRef, useState } from 'react';
+import { Animated, AppState, Image, StyleSheet, Text } from 'react-native';
 import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
+import { StatusBar } from 'expo-status-bar';
+import * as SplashScreen from 'expo-splash-screen';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
+import { useColorMode } from '@/src/styles/useColors';
+
+SplashScreen.preventAutoHideAsync().catch(() => {});
+
+const SPLASH_BG = '#1F0A3D';
+const SPLASH_GOLD = '#D4AF37';
+const splashImage = require('@/assets/images/splash-icon.png');
 
 export default function RootLayout() {
     const { setFloatingBubbleDismissed } = useTaskStore();
+    const colorMode = useColorMode();
+    const [splashVisible, setSplashVisible] = useState(true);
+    const splashOpacity = useRef(new Animated.Value(1)).current;
+
+    useEffect(() => {
+        SplashScreen.hideAsync().catch(() => {});
+        const holdMs = 1500;
+        const fadeMs = 600;
+        const t = setTimeout(() => {
+            Animated.timing(splashOpacity, {
+                toValue: 0,
+                duration: fadeMs,
+                useNativeDriver: true,
+            }).start(() => setSplashVisible(false));
+        }, holdMs);
+        return () => clearTimeout(t);
+    }, [splashOpacity]);
 
     useEffect(() => {
         audioService.initialize().catch(() => {});
@@ -18,6 +44,12 @@ export default function RootLayout() {
         FloatingBubble.canDrawOverlays().then((ok) => {
             if (!ok) FloatingBubble.requestOverlayPermission();
         }).catch(() => {});
+
+        // Cold-start: AppState 'change' listener won't fire 'active' because
+        // we already are 'active'. Hide the bubble service explicitly — if
+        // Pomodoro is running, its component will re-establish the bubble
+        // when the app next backgrounds.
+        FloatingBubble.hide();
 
         // Cloud backup initialization
         backupService.initializeBackup().catch(() => {});
@@ -69,7 +101,47 @@ export default function RootLayout() {
 
     return (
         <SafeAreaProvider>
+            <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
             <Slot />
+            {splashVisible && (
+                <Animated.View
+                    pointerEvents="none"
+                    style={[styles.splash, { opacity: splashOpacity }]}
+                >
+                    <Image source={splashImage} style={styles.splashImage} />
+                    <Text style={styles.splashText}>DragonFlow</Text>
+                </Animated.View>
+            )}
         </SafeAreaProvider>
     );
 }
+
+const SPLASH_IMAGE_SIZE = 200;
+const SPLASH_TEXT_GAP = 24;
+
+const styles = StyleSheet.create({
+    splash: {
+        ...StyleSheet.absoluteFillObject,
+        backgroundColor: SPLASH_BG,
+    },
+    splashImage: {
+        position: 'absolute',
+        width: SPLASH_IMAGE_SIZE,
+        height: SPLASH_IMAGE_SIZE,
+        left: '50%',
+        top: '50%',
+        marginLeft: -SPLASH_IMAGE_SIZE / 2,
+        marginTop: -SPLASH_IMAGE_SIZE / 2,
+    },
+    splashText: {
+        position: 'absolute',
+        top: '50%',
+        marginTop: SPLASH_IMAGE_SIZE / 2 + SPLASH_TEXT_GAP,
+        width: '100%',
+        textAlign: 'center',
+        color: SPLASH_GOLD,
+        fontSize: 32,
+        fontWeight: '700',
+        letterSpacing: 1.5,
+    },
+});

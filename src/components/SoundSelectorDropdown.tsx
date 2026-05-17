@@ -1,7 +1,8 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 import { SoundType } from '../types';
 
 interface Props {
@@ -13,6 +14,8 @@ interface Props {
 }
 
 export default function SoundSelectorDropdown({ visible, options, selectedValue, onSelect, onClose }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const handleSelect = (option: SoundType) => {
         onSelect(option);
         onClose();
@@ -44,7 +47,7 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
                                 <Ionicons
                                     name="checkmark-circle"
                                     size={20}
-                                    color={COLORS.primary}
+                                    color={colors.primary}
                                     style={styles.checkmark}
                                 />
                             )}
@@ -61,20 +64,20 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: COLORS.overlay.scrimSoft,
+        backgroundColor: c.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
     dropdown: {
-        backgroundColor: COLORS.white,
+        backgroundColor: c.surface,
         borderRadius: 16,
         padding: 20,
         width: '85%',
         maxWidth: 400,
-        shadowColor: COLORS.shadow,
+        shadowColor: c.shadow,
         shadowOffset: { width: 0, height: 4 },
         shadowOpacity: 0.15,
         shadowRadius: 8,
@@ -83,7 +86,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 16,
         fontWeight: '700',
-        color: COLORS.text.primary,
+        color: c.text.primary,
         marginBottom: 16,
         textAlign: 'center',
     },
@@ -96,16 +99,16 @@ const styles = StyleSheet.create({
         marginBottom: 8,
     },
     optionRowSelected: {
-        backgroundColor: COLORS.overlay.accentStrong,
+        backgroundColor: c.overlay.accentStrong,
     },
     optionText: {
         flex: 1,
         fontSize: 15,
-        color: COLORS.text.secondary,
+        color: c.text.secondary,
         fontWeight: '500',
     },
     optionTextSelected: {
-        color: COLORS.primary,
+        color: c.primary,
         fontWeight: '700',
     },
     checkmark: {
@@ -115,14 +118,14 @@ const styles = StyleSheet.create({
         marginTop: 16,
         paddingTop: 16,
         borderTopWidth: 1,
-        borderTopColor: COLORS.border.subtle,
+        borderTopColor: c.border.subtle,
     },
     closeBtn: {
         padding: 12,
         alignItems: 'center',
     },
     closeBtnText: {
-        color: COLORS.text.weak,
+        color: c.text.weak,
         fontWeight: '600',
         fontSize: 15,
     },

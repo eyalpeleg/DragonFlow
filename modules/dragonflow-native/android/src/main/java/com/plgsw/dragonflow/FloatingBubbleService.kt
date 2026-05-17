@@ -61,7 +61,7 @@ class FloatingBubbleService : Service() {
 
     private val bubbleSizeDp = 56
     private val dismissSizeDp = 56
-    private val dismissZoneRadiusDp = 60
+    private val dismissZoneRadiusDp = 90
     private val dismissBottomOffsetDp = 80
 
     private fun dpToPx(dp: Int): Int {
@@ -340,12 +340,21 @@ class FloatingBubbleService : Service() {
     private inner class BubbleTouchListener : View.OnTouchListener {
         private var moved = false
         private var doubleTapped = false
+        private var pendingShowDismiss: Runnable? = null
+
+        // Delay showing the dismiss "X" so a double-tap (which opens the app)
+        // doesn't briefly flash it between taps. ~200ms is just under the
+        // platform double-tap timeout (~300ms), enough that a real drag still
+        // sees the target appear quickly. A drag-threshold cross in
+        // ACTION_MOVE shows the X immediately regardless.
+        private val showDismissDelayMs = 200L
 
         private val gestureDetector = GestureDetector(
             this@FloatingBubbleService,
             object : GestureDetector.SimpleOnGestureListener() {
                 override fun onDoubleTap(e: MotionEvent): Boolean {
                     doubleTapped = true
+                    cancelPendingDismissShow()
                     removeDismissView()
                     snapToEdge()
                     openApp()
@@ -353,6 +362,18 @@ class FloatingBubbleService : Service() {
                 }
             }
         )
+
+        private fun scheduleDismissShow() {
+            cancelPendingDismissShow()
+            val r = Runnable { createDismissView() }
+            pendingShowDismiss = r
+            timerHandler.postDelayed(r, showDismissDelayMs)
+        }
+
+        private fun cancelPendingDismissShow() {
+            pendingShowDismiss?.let { timerHandler.removeCallbacks(it) }
+            pendingShowDismiss = null
+        }
 
         override fun onTouch(v: View, event: MotionEvent): Boolean {
             gestureDetector.onTouchEvent(event)
@@ -366,7 +387,7 @@ class FloatingBubbleService : Service() {
                     isDragging = true
                     moved = false
                     doubleTapped = false
-                    createDismissView()
+                    scheduleDismissShow()
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -374,7 +395,13 @@ class FloatingBubbleService : Service() {
                     val params = bubbleParams ?: return true
                     val dx = event.rawX - initialTouchX
                     val dy = event.rawY - initialTouchY
-                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) moved = true
+                    if (Math.abs(dx) > 5 || Math.abs(dy) > 5) {
+                        if (!moved) {
+                            cancelPendingDismissShow()
+                            createDismissView()
+                        }
+                        moved = true
+                    }
                     params.x = (initialX + dx).toInt()
                     params.y = (initialY + dy).toInt()
                     try { windowManager.updateViewLayout(bubbleView, params) } catch (_: Exception) {}
@@ -385,7 +412,9 @@ class FloatingBubbleService : Service() {
                 }
                 MotionEvent.ACTION_UP -> {
                     isDragging = false
+                    cancelPendingDismissShow()
                     if (doubleTapped) {
+                        removeDismissView()
                         doubleTapped = false
                         return true
                     }

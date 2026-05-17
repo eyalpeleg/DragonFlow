@@ -2,7 +2,7 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
-import { COLORS, PriorityLevel } from '../styles/theme';
+import { PriorityLevel } from '../styles/theme';
 import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, SoundType } from '../types';
 import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
@@ -97,6 +97,7 @@ interface TaskStore {
     pomodoroModeIdx: number | null;
     pomodoroPausedSecondsLeft: number | null;
     pomodoroNotifId: string | null;
+    pomodoroVisible: boolean;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -104,9 +105,7 @@ interface TaskStore {
     focusMode: boolean;
     customTimerSeconds: number;
     debugModeEnabled: boolean;
-    themeColorPrimary: string;
-    themeColorSecondary: string;
-    themeColorAction: string;
+    darkMode: boolean;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
@@ -140,13 +139,12 @@ interface TaskStore {
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
+    setPomodoroVisible: (visible: boolean) => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
-    setThemeColorPrimary: (color: string) => void;
-    setThemeColorSecondary: (color: string) => void;
-    setThemeColorAction: (color: string) => void;
+    setDarkMode: (enabled: boolean) => void;
     exportData: () => object;
-    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType; themeColorPrimary?: string; themeColorSecondary?: string; themeColorAction?: string } }) => { tasksImported: number };
+    importData: (data: { tasks: Task[]; categories: Category[]; settings?: { defaultTaskTime?: string; showBubbleInBackground?: boolean; notificationSoundEnabled?: boolean; pomodoroSoundType?: SoundType; tasksSoundType?: SoundType; darkMode?: boolean } }) => { tasksImported: number };
 }
 
 export const useTaskStore = create<TaskStore>()(
@@ -169,6 +167,7 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroModeIdx: null,
             pomodoroPausedSecondsLeft: null,
             pomodoroNotifId: null,
+            pomodoroVisible: false,
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -176,9 +175,7 @@ export const useTaskStore = create<TaskStore>()(
             focusMode: false,
             customTimerSeconds: 0,
             debugModeEnabled: false,
-            themeColorPrimary: COLORS.themeDefaults.primary,
-            themeColorSecondary: COLORS.themeDefaults.secondary,
-            themeColorAction: COLORS.themeDefaults.action,
+            darkMode: false,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -407,6 +404,8 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: null,
             }),
 
+            setPomodoroVisible: (visible) => set({ pomodoroVisible: visible }),
+
             setCustomTimerSeconds: (seconds) => set({
                 customTimerSeconds: seconds,
             }),
@@ -415,16 +414,8 @@ export const useTaskStore = create<TaskStore>()(
                 debugModeEnabled: enabled,
             }),
 
-            setThemeColorPrimary: (color) => set({
-                themeColorPrimary: color,
-            }),
-
-            setThemeColorSecondary: (color) => set({
-                themeColorSecondary: color,
-            }),
-
-            setThemeColorAction: (color) => set({
-                themeColorAction: color,
+            setDarkMode: (enabled) => set({
+                darkMode: enabled,
             }),
 
             exportData: () => {
@@ -440,9 +431,7 @@ export const useTaskStore = create<TaskStore>()(
                         notificationSoundEnabled: s.notificationSoundEnabled,
                         pomodoroSoundType: s.pomodoroSoundType,
                         tasksSoundType: s.tasksSoundType,
-                        themeColorPrimary: s.themeColorPrimary,
-                        themeColorSecondary: s.themeColorSecondary,
-                        themeColorAction: s.themeColorAction,
+                        darkMode: s.darkMode,
                     },
                 };
             },
@@ -468,9 +457,7 @@ export const useTaskStore = create<TaskStore>()(
                     ...(data.settings?.notificationSoundEnabled !== undefined && { notificationSoundEnabled: data.settings.notificationSoundEnabled }),
                     ...(data.settings?.pomodoroSoundType && { pomodoroSoundType: data.settings.pomodoroSoundType }),
                     ...(data.settings?.tasksSoundType && { tasksSoundType: data.settings.tasksSoundType }),
-                    ...(data.settings?.themeColorPrimary && { themeColorPrimary: data.settings.themeColorPrimary }),
-                    ...(data.settings?.themeColorSecondary && { themeColorSecondary: data.settings.themeColorSecondary }),
-                    ...(data.settings?.themeColorAction && { themeColorAction: data.settings.themeColorAction }),
+                    ...(data.settings?.darkMode !== undefined && { darkMode: data.settings.darkMode }),
                 });
 
                 return { tasksImported: tasks.length };
@@ -497,10 +484,8 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: state.pomodoroNotifId,
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
-                themeColorPrimary: state.themeColorPrimary,
-                themeColorSecondary: state.themeColorSecondary,
-                themeColorAction: state.themeColorAction,
-                _schemaVersion: 1,
+                darkMode: state.darkMode,
+                _schemaVersion: 2,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
@@ -553,13 +538,16 @@ export const useTaskStore = create<TaskStore>()(
                 }
 
                 const persistedFiltered = Object.fromEntries(
-                    Object.entries(p).filter(([key]) => !['activeCategory', '_schemaVersion'].includes(key))
+                    Object.entries(p).filter(([key]) => ![
+                        'activeCategory', '_schemaVersion',
+                        'themeColorPrimary', 'themeColorSecondary', 'themeColorAction',
+                    ].includes(key))
                 );
 
                 return {
                     ...current,
                     ...persistedFiltered,
-                    _schemaVersion: 1,
+                    _schemaVersion: 2,
                     tasks,
                     categories,
                     deletedBuiltinCategoryIds,

@@ -1,6 +1,7 @@
-import React from 'react';
+import React, { useMemo } from 'react';
 import { Image, StyleSheet, Text, View } from 'react-native';
-import { COLORS } from '@/src/styles/theme';
+import { AppColors } from '@/src/styles/theme';
+import { useColors } from '@/src/styles/useColors';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
@@ -11,6 +12,8 @@ interface ScreenHeaderProps {
 }
 
 export default function ScreenHeader({ title, rightContent }: ScreenHeaderProps) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     return (
         <View style={styles.header}>
             <Image source={appIcon} style={styles.headerIcon} />
@@ -22,9 +25,9 @@ export default function ScreenHeader({ title, rightContent }: ScreenHeaderProps)
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     header: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
         paddingHorizontal: 16,
         height: HEADER_HEIGHT,
         flexDirection: 'row',
@@ -32,6 +35,6 @@ const styles = StyleSheet.create({
     },
     headerIcon: { width: 50, height: 50, borderRadius: 6, marginRight: 12 },
     headerContent: { flex: 1, justifyContent: 'center', alignItems: 'center' },
-    headerTitle: { color: COLORS.white, fontSize: 20, fontWeight: 'bold' },
+    headerTitle: { color: c.white, fontSize: 20, fontWeight: 'bold' },
     headerActions: { flexDirection: 'row', alignItems: 'center', gap: 10 },
 });

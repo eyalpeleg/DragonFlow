@@ -1,7 +1,8 @@
-import React, { useState } from 'react';
+import React, { useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, TouchableOpacity, View, PanResponder } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 
 const BUTTON_SIZE = 40;
 const SLIDER_HEIGHT = 200;
@@ -15,6 +16,8 @@ interface Props {
 }
 
 export default function VolumeControl({ visible, volume, onVolumeChange, onClose, onPlayPreview }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [tempVolume, setTempVolume] = useState(volume);
     const startYRef = React.useRef(0);
 
@@ -53,7 +56,7 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
 
                     <View style={styles.sliderWrapper}>
                         <TouchableOpacity onPress={() => setTempVolume(1)}>
-                            <Ionicons name="volume-high" size={24} color={COLORS.primary} />
+                            <Ionicons name="volume-high" size={24} color={colors.primary} />
                         </TouchableOpacity>
 
                         <View style={styles.sliderContainer} {...panResponder.panHandlers}>
@@ -69,7 +72,7 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                         </View>
 
                         <TouchableOpacity onPress={() => setTempVolume(0)}>
-                            <Ionicons name="volume-mute" size={24} color={COLORS.primary} />
+                            <Ionicons name="volume-mute" size={24} color={colors.primary} />
                         </TouchableOpacity>
                     </View>
 
@@ -79,7 +82,7 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                         </Text>
                         {onPlayPreview && (
                             <TouchableOpacity style={styles.playButton} onPress={() => onPlayPreview(tempVolume)}>
-                                <Ionicons name="musical-notes" size={20} color={COLORS.white} />
+                                <Ionicons name="musical-notes" size={20} color={colors.white} />
                             </TouchableOpacity>
                         )}
                     </View>
@@ -98,15 +101,15 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: COLORS.overlay.scrimSoft,
+        backgroundColor: c.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: COLORS.white,
+        backgroundColor: c.surface,
         borderRadius: 16,
         padding: 24,
         width: '85%',
@@ -116,7 +119,7 @@ const styles = StyleSheet.create({
     title: {
         fontSize: 18,
         fontWeight: '700',
-        color: COLORS.text.primary,
+        color: c.text.primary,
         marginBottom: 20,
         textAlign: 'center',
     },
@@ -133,20 +136,20 @@ const styles = StyleSheet.create({
     sliderTrack: {
         width: 8,
         height: '100%',
-        backgroundColor: COLORS.border.muted,
+        backgroundColor: c.border.muted,
         borderRadius: 4,
         overflow: 'hidden',
         justifyContent: 'flex-end',
     },
     sliderFill: {
         width: '100%',
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
     },
     sliderThumb: {
         width: 20,
         height: 20,
         borderRadius: 10,
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
         position: 'absolute',
         alignSelf: 'center',
         marginBottom: -10,
@@ -159,11 +162,11 @@ const styles = StyleSheet.create({
     },
     volumeText: {
         fontSize: 14,
-        color: COLORS.text.subtle,
+        color: c.text.subtle,
         fontWeight: '600',
     },
     playButton: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.secondary,
         width: BUTTON_SIZE,
         height: BUTTON_SIZE,
         borderRadius: 8,
@@ -180,18 +183,18 @@ const styles = StyleSheet.create({
         paddingVertical: 10,
     },
     cancelBtnText: {
-        color: COLORS.text.weak,
+        color: c.text.weak,
         fontWeight: '600',
         fontSize: 14,
     },
     applyBtn: {
-        backgroundColor: COLORS.primary,
+        backgroundColor: c.primary,
         paddingHorizontal: 20,
         paddingVertical: 10,
         borderRadius: 8,
     },
     applyBtnText: {
-        color: COLORS.white,
+        color: c.white,
         fontWeight: '600',
         fontSize: 14,
     },

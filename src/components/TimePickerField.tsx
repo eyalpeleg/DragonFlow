@@ -1,7 +1,8 @@
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useEffect, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Platform, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
-import { COLORS } from '../styles/theme';
+import { AppColors } from '../styles/theme';
+import { useColors } from '../styles/useColors';
 
 interface Props {
     value: string; // "HH:MM"
@@ -21,6 +22,8 @@ function dateToTime(date: Date): string {
 }
 
 export default function TimePickerField({ value, onChange, autoOpen }: Props) {
+    const colors = useColors();
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [showPicker, setShowPicker] = useState(false);
     const date = timeToDate(value);
 
@@ -40,7 +43,7 @@ export default function TimePickerField({ value, onChange, autoOpen }: Props) {
                     onChange={(_, d) => d && onChange(dateToTime(d))}
                     style={styles.iosPicker}
                     themeVariant="light"
-                    accentColor={COLORS.primary}
+                    accentColor={colors.primary}
                 />
             </View>
         );
@@ -67,13 +70,13 @@ export default function TimePickerField({ value, onChange, autoOpen }: Props) {
     );
 }
 
-const styles = StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     iosContainer: { alignSelf: 'flex-start' },
     iosPicker: { height: 40 },
     androidButton: {
         flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between',
-        borderWidth: 1, borderColor: COLORS.border.medium, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
+        borderWidth: 1, borderColor: c.border.medium, borderRadius: 8, paddingHorizontal: 12, paddingVertical: 10,
     },
-    androidText: { fontSize: 15, color: COLORS.text.secondary },
+    androidText: { fontSize: 15, color: c.text.secondary },
     androidIcon: { fontSize: 16 },
 });
