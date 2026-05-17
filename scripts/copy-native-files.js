@@ -83,6 +83,38 @@ tasks.whenTaskAdded { task ->
       fs.writeFileSync(buildGradle, gradle);
       console.log('  ✓ build.gradle (autolinking package fix)');
     }
+
+    // Inject release signing config from env vars (DRAGONFLOW_KEYSTORE_*).
+    // Falls back to debug signing when env vars are unset (EAS cloud, other devs).
+    gradle = fs.readFileSync(buildGradle, 'utf8');
+    if (!gradle.includes('DRAGONFLOW_RELEASE_SIGNING')) {
+      const releaseSigning = `        // DRAGONFLOW_RELEASE_SIGNING — injected by scripts/copy-native-files.js
+        release {
+            def ksPath = System.getenv("DRAGONFLOW_KEYSTORE_PATH")
+            if (ksPath?.trim()) {
+                storeFile file(ksPath)
+                storePassword System.getenv("DRAGONFLOW_KEYSTORE_PASSWORD")
+                keyAlias System.getenv("DRAGONFLOW_KEY_ALIAS")
+                keyPassword System.getenv("DRAGONFLOW_KEY_PASSWORD")
+            }
+        }
+`;
+      // Insert release{} inside the existing signingConfigs { debug { ... } } block,
+      // immediately before its closing brace.
+      gradle = gradle.replace(
+        /(signingConfigs \{\s*\n\s*debug \{[\s\S]*?\n\s*\}\n)(\s*\})/,
+        `$1${releaseSigning}$2`
+      );
+
+      // Point release buildType at signingConfigs.release when env is present.
+      // The release block contains a "Caution!" comment that uniquely identifies it.
+      gradle = gradle.replace(
+        /(\/\/ Caution! In production[^\n]*\n[^\n]*\n\s*)signingConfig signingConfigs\.debug/,
+        '$1signingConfig System.getenv("DRAGONFLOW_KEYSTORE_PATH")?.trim() ? signingConfigs.release : signingConfigs.debug'
+      );
+      fs.writeFileSync(buildGradle, gradle);
+      console.log('  ✓ build.gradle (release signing from env)');
+    }
   }
 
   // Patch MainApplication.kt to register FloatingBubblePackage

@@ -298,7 +298,7 @@ class FloatingBubbleService : Service() {
     }
 
     override fun onDestroy() {
-        timerHandler.removeCallbacks(timerRunnable)
+        timerHandler.removeCallbacksAndMessages(null)
         mediaPlayer?.release()
         mediaPlayer = null
         bubbleView?.let {
@@ -386,8 +386,14 @@ class FloatingBubbleService : Service() {
                     initialY = bubbleParams?.y ?: 0
                     isDragging = true
                     moved = false
-                    doubleTapped = false
-                    scheduleDismissShow()
+                    // gestureDetector.onTouchEvent above may have already fired
+                    // onDoubleTap and set doubleTapped=true. If so, the app is
+                    // opening — don't arm a new dismiss-show that could outlive
+                    // the service and orphan the X view. Let ACTION_UP clear
+                    // the flag.
+                    if (!doubleTapped) {
+                        scheduleDismissShow()
+                    }
                     return true
                 }
                 MotionEvent.ACTION_MOVE -> {
@@ -443,18 +449,19 @@ class FloatingBubbleService : Service() {
         View(context) {
 
         companion object {
-            val COLOR_PRIMARY: Int = Color.parseColor("#6200EE")
-            val COLOR_ALERT_BORDER: Int = Color.parseColor("#FF9800")
+            val COLOR_PRIMARY: Int = Color.parseColor("#76578c")
+            val COLOR_NORMAL_BORDER: Int = Color.parseColor("#D4AF37")
+            val COLOR_ALERT_BORDER: Int = Color.parseColor("#E53935")
         }
 
         private val backgroundPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = COLOR_PRIMARY
             style = Paint.Style.FILL
         }
-        private val alertBorderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
-            color = COLOR_ALERT_BORDER
+        private val borderPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
+            color = COLOR_NORMAL_BORDER
             style = Paint.Style.STROKE
-            strokeWidth = 4f
+            strokeWidth = 6f
         }
         private val countTextPaint = Paint(Paint.ANTI_ALIAS_FLAG).apply {
             color = Color.WHITE
@@ -488,6 +495,13 @@ class FloatingBubbleService : Service() {
             // Draw purple ellipse background
             canvas.drawOval(0f, 0f, w, h, backgroundPaint)
 
+            // Always draw a border — alert color when count is high, normal otherwise.
+            // Inset by half the stroke so the outer edge of the stroke isn't clipped
+            // by the view bounds.
+            borderPaint.color = if (count > 3) COLOR_ALERT_BORDER else COLOR_NORMAL_BORDER
+            val inset = borderPaint.strokeWidth / 2f
+            canvas.drawOval(inset, inset, w - inset, h - inset, borderPaint)
+
             val t = timerText
             if (t != null) {
                 // Timer mode: clean white monospace text for sharp, readable MM:SS
@@ -495,10 +509,6 @@ class FloatingBubbleService : Service() {
                 val textY = h / 2f - (timerTextPaint.descent() + timerTextPaint.ascent()) / 2f
                 canvas.drawText(t, w / 2f, textY, timerTextPaint)
             } else if (count > 0) {
-                // Draw orange alert border if count > 3
-                if (count > 3) {
-                    canvas.drawOval(0f, 0f, w, h, alertBorderPaint)
-                }
                 val text = if (count > 9) "9+" else count.toString()
                 countTextPaint.textSize = w * 0.35f
                 val textY = h / 2f - (countTextPaint.descent() + countTextPaint.ascent()) / 2f

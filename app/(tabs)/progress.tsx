@@ -95,7 +95,7 @@ export default function ProgressScreen() {
                     style={[styles.segment, view === 'week' && { backgroundColor: colors.primary }]}
                     onPress={() => setView('week')}
                 >
-                    <Text style={[styles.segmentText, view === 'week' && { color: colors.white }]}>This Week</Text>
+                    <Text style={[styles.segmentText, view === 'week' && { color: colors.white }]}>Weekly</Text>
                 </TouchableOpacity>
             </View>
 

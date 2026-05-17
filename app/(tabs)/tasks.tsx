@@ -147,7 +147,7 @@ export default function TasksScreen() {
                                 size={20}
                                 color={colors.white}
                             />
-                            {totalFilterCount > 1 && (
+                            {totalFilterCount > 0 && (
                                 <View style={styles.filterBadge}>
                                     <Text style={styles.filterBadgeText}>{totalFilterCount}</Text>
                                 </View>

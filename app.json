@@ -2,7 +2,7 @@
   "expo": {
     "name": "DragonFlow",
     "slug": "DragonFlow",
-    "version": "1.0.0",
+    "version": "1.0.1",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dragonflow",
@@ -21,7 +21,8 @@
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
-      "package": "com.plgsw.dragonflow"
+      "package": "com.plgsw.dragonflow",
+      "versionCode": 2
     },
     "androidNavigationBar": {
       "barStyle": "dark-content",

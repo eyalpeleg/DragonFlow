@@ -1,5 +1,5 @@
 export const lightColors = {
-    primary: '#7200EE',
+    primary: '#76578c',
     secondary: '#aa7dc9',
     action: '#88d295',
     background: '#F8F9FA',
@@ -7,7 +7,7 @@ export const lightColors = {
     white: '#FFFFFF',
     black: '#000000',
     shadow: '#000000',
-    notification: '#7200EE',
+    notification: '#76578c',
 
     text: {
         primary: '#222222',
@@ -86,7 +86,7 @@ export const lightColors = {
 export type AppColors = typeof lightColors;
 
 export const darkColors: AppColors = {
-    primary: '#7200EE',
+    primary: '#76578c',
     secondary: '#aa7dc9',
     action: '#88d295',
     background: '#121212',
@@ -94,7 +94,7 @@ export const darkColors: AppColors = {
     white: '#FFFFFF',
     black: '#000000',
     shadow: '#000000',
-    notification: '#7200EE',
+    notification: '#76578c',
 
     text: {
         primary: '#ECECEC',

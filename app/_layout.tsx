@@ -51,6 +51,14 @@ export default function RootLayout() {
         // when the app next backgrounds.
         FloatingBubble.hide();
 
+        // pomodoroVisible is in-memory store state (not persisted), but the
+        // Zustand singleton survives an activity destroy/recreate when the
+        // JS process stays alive. The AppState 'active' listeners that
+        // normally close the modal don't fire on a fresh mount (no
+        // transition), so a stale `true` would leave the Modal's scrim
+        // covering the UI with no visible content.
+        useTaskStore.getState().setPomodoroVisible(false);
+
         // Cloud backup initialization
         backupService.initializeBackup().catch(() => {});
         const unsubscribeBackup = backupService.setupAutoBackup();

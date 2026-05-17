@@ -17,6 +17,8 @@ import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
+const APP_VERSION = Constants.expoConfig?.version ?? '?';
+const ANDROID_VERSION_CODE = Constants.expoConfig?.android?.versionCode ?? '?';
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
 
@@ -56,7 +58,7 @@ function formatRelativeTime(isoString: string | null): string {
 export default function SettingsScreen() {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
-    const switchTrackColor = useMemo(() => ({ false: colors.text.disabled, true: colors.primary }), [colors]);
+    const switchTrackColor = useMemo(() => ({ false: colors.text.disabled, true: colors.secondary }), [colors]);
     const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
@@ -209,7 +211,7 @@ export default function SettingsScreen() {
             <ScrollView contentContainerStyle={styles.content}>
                 <View style={styles.settingRow}>
                     <View style={styles.settingLabel}>
-                        <Ionicons name="moon" size={20} color={colors.primary} />
+                        <Ionicons name="moon" size={20} color={colors.secondary} />
                         <View style={styles.ml12}>
                             <Text style={styles.settingTitle}>Dark Mode</Text>
                             <Text style={styles.settingDesc}>Use a dark color theme across the app</Text>
@@ -226,7 +228,7 @@ export default function SettingsScreen() {
                 <CollapsibleSection title="Floating Bubble">
                     <View style={styles.settingRow}>
                         <View style={styles.settingLabel}>
-                            <Ionicons name="alert-circle" size={20} color={colors.primary} />
+                            <Ionicons name="alert-circle" size={20} color={colors.secondary} />
                             <View style={styles.ml12}>
                                 <Text style={styles.settingTitle}>Show Bubble</Text>
                                 <Text style={styles.settingDesc}>Display urgent task badge when app is in the background</Text>
@@ -253,13 +255,13 @@ export default function SettingsScreen() {
                                 onPress={() => setTasksDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
-                                <Ionicons name="chevron-down" size={18} color={colors.primary} />
+                                <Ionicons name="chevron-down" size={18} color={colors.secondary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.volumeButton}
                                 onPress={() => setTasksVolumeVisible(true)}
                             >
-                                <Ionicons name="volume-high" size={20} color={colors.primary} />
+                                <Ionicons name="volume-high" size={20} color={colors.secondary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
@@ -281,13 +283,13 @@ export default function SettingsScreen() {
                                 onPress={() => setPomodoroDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{pomodoroSoundType}</Text>
-                                <Ionicons name="chevron-down" size={18} color={colors.primary} />
+                                <Ionicons name="chevron-down" size={18} color={colors.secondary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={styles.volumeButton}
                                 onPress={() => setPomodoroVolumeVisible(true)}
                             >
-                                <Ionicons name="volume-high" size={20} color={colors.primary} />
+                                <Ionicons name="volume-high" size={20} color={colors.secondary} />
                             </TouchableOpacity>
                             <TouchableOpacity
                                 style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
@@ -349,7 +351,7 @@ export default function SettingsScreen() {
                                     {!isDefault && (
                                         <View style={styles.catActions}>
                                             <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
-                                                <Ionicons name="pencil" size={16} color={colors.primary} />
+                                                <Ionicons name="pencil" size={16} color={colors.secondary} />
                                             </TouchableOpacity>
                                             <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
                                                 <Ionicons name="trash" size={16} color={colors.text.error} />
@@ -360,7 +362,7 @@ export default function SettingsScreen() {
                             );
                         })}
                         <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
-                            <Ionicons name="add-circle-outline" size={20} color={colors.primary} />
+                            <Ionicons name="add-circle-outline" size={20} color={colors.secondary} />
                             <Text style={styles.addCatText}>Add Category</Text>
                         </TouchableOpacity>
                     </View>
@@ -369,7 +371,7 @@ export default function SettingsScreen() {
                 <CollapsibleSection title="Data">
                     <View style={styles.settingBlock}>
                         <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
-                            <Ionicons name="download-outline" size={20} color={colors.primary} />
+                            <Ionicons name="download-outline" size={20} color={colors.secondary} />
                             <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Export Data</Text>
                                 <Text style={styles.settingDesc}>Save tasks & categories to a JSON backup file</Text>
@@ -378,7 +380,7 @@ export default function SettingsScreen() {
                         </TouchableOpacity>
                         <View style={styles.dataDivider} />
                         <TouchableOpacity style={styles.dataRow} onPress={handleImport}>
-                            <Ionicons name="push-outline" size={20} color={colors.primary} />
+                            <Ionicons name="push-outline" size={20} color={colors.secondary} />
                             <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Import Data</Text>
                                 <Text style={styles.settingDesc}>Restore from a backup file (replaces current data)</Text>
@@ -389,7 +391,7 @@ export default function SettingsScreen() {
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         {!isSignedIn ? (
                             <View style={styles.cloudSignInWrapper}>
-                                <Ionicons name="cloud-outline" size={32} color={colors.primary} />
+                                <Ionicons name="cloud-outline" size={32} color={colors.secondary} />
                                 <Text style={styles.settingTitleCentered}>Google Drive Backup</Text>
                                 <Text style={styles.settingDescCentered}>Automatically back up your tasks to Google Drive</Text>
                                 <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
@@ -400,7 +402,7 @@ export default function SettingsScreen() {
                         ) : (
                             <>
                                 <View style={styles.cloudUserRow}>
-                                    <Ionicons name="person-circle-outline" size={24} color={colors.primary} />
+                                    <Ionicons name="person-circle-outline" size={24} color={colors.secondary} />
                                     <Text style={styles.cloudUserEmail} numberOfLines={1}>{userEmail}</Text>
                                     <TouchableOpacity onPress={handleGoogleSignOut}>
                                         <Text style={styles.signOutText}>Sign Out</Text>
@@ -409,7 +411,7 @@ export default function SettingsScreen() {
                                 <View style={styles.dataDivider} />
                                 <View style={styles.dataRowSpaceBetween}>
                                     <View style={styles.syncRow}>
-                                        <Ionicons name="sync-outline" size={20} color={colors.primary} />
+                                        <Ionicons name="sync-outline" size={20} color={colors.secondary} />
                                         <Text style={styles.autoBackupTitle}>Auto-backup</Text>
                                     </View>
                                     <Switch
@@ -427,9 +429,9 @@ export default function SettingsScreen() {
                                 <View style={styles.dataDivider} />
                                 <TouchableOpacity style={styles.dataRow} onPress={handleCloudBackup} disabled={backupStatus === 'backing-up'}>
                                     {backupStatus === 'backing-up' ? (
-                                        <ActivityIndicator size="small" color={colors.primary} />
+                                        <ActivityIndicator size="small" color={colors.secondary} />
                                     ) : (
-                                        <Ionicons name="cloud-upload-outline" size={20} color={colors.primary} />
+                                        <Ionicons name="cloud-upload-outline" size={20} color={colors.secondary} />
                                     )}
                                     <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Back Up Now</Text>
@@ -439,9 +441,9 @@ export default function SettingsScreen() {
                                 <View style={styles.dataDivider} />
                                 <TouchableOpacity style={styles.dataRow} onPress={handleOpenRestorePicker} disabled={backupStatus === 'restoring'}>
                                     {backupStatus === 'restoring' ? (
-                                        <ActivityIndicator size="small" color={colors.primary} />
+                                        <ActivityIndicator size="small" color={colors.secondary} />
                                     ) : (
-                                        <Ionicons name="cloud-download-outline" size={20} color={colors.primary} />
+                                        <Ionicons name="cloud-download-outline" size={20} color={colors.secondary} />
                                     )}
                                     <View style={styles.ml12flex}>
                                         <Text style={styles.settingTitle}>Restore from Backup</Text>
@@ -456,7 +458,7 @@ export default function SettingsScreen() {
                 <CollapsibleSection title="Troubleshooting">
                     <View style={styles.settingRow}>
                         <View style={styles.settingLabel}>
-                            <Ionicons name="bug" size={20} color={colors.primary} />
+                            <Ionicons name="bug" size={20} color={colors.secondary} />
                             <View style={styles.ml12}>
                                 <Text style={styles.settingTitle}>Debug Mode</Text>
                                 <Text style={styles.settingDesc}>Show new task list design (preview)</Text>
@@ -473,7 +475,7 @@ export default function SettingsScreen() {
 
                 <CollapsibleSection title="About">
                     <View style={styles.infoBox}>
-                        <Text style={styles.infoText}>DragonFlow v1.0</Text>
+                        <Text style={styles.infoText}>DragonFlow v{APP_VERSION} ({ANDROID_VERSION_CODE})</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
                         <Text style={styles.infoSubtext}>Build: {BUILD_TIMESTAMP}</Text>
                     </View>
@@ -519,7 +521,7 @@ export default function SettingsScreen() {
                     <View style={styles.restoreContent}>
                         <Text style={styles.restoreTitle}>Restore from Backup</Text>
                         {loadingBackups ? (
-                            <ActivityIndicator size="large" color={colors.primary} style={styles.restoreLoader} />
+                            <ActivityIndicator size="large" color={colors.secondary} style={styles.restoreLoader} />
                         ) : availableBackups.length === 0 ? (
                             <Text style={styles.noBackupsText}>No backups found on Google Drive.</Text>
                         ) : (
@@ -552,7 +554,7 @@ export default function SettingsScreen() {
                                                         <Ionicons
                                                             name={isSelected ? 'radio-button-on' : 'radio-button-off'}
                                                             size={20}
-                                                            color={isSelected ? colors.primary : colors.text.disabled}
+                                                            color={isSelected ? colors.secondary : colors.text.disabled}
                                                         />
                                                         <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
                                                             {date}{taskLabel}
@@ -635,7 +637,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         paddingVertical: 10,
         fontSize: 16,
         fontWeight: '600',
-        color: c.primary,
+        color: c.secondary,
         width: 80,
         textAlign: 'center',
     },
@@ -658,7 +660,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         paddingVertical: 12,
         marginTop: 4,
     },
-    addCatText: { fontSize: 14, fontWeight: '600', color: c.primary },
+    addCatText: { fontSize: 14, fontWeight: '600', color: c.secondary },
     dataRow: {
         flexDirection: 'row',
         alignItems: 'center',
@@ -688,7 +690,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         flexDirection: 'row',
         alignItems: 'center',
         gap: 8,
-        backgroundColor: c.primary,
+        backgroundColor: c.secondary,
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 10,
@@ -745,12 +747,12 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         backgroundColor: c.overlay.accentSoft,
     },
     restoreRowText: { fontSize: 15, color: c.text.body, fontWeight: '500' },
-    restoreRowTextSelected: { fontSize: 15, color: c.primary, fontWeight: '500' },
+    restoreRowTextSelected: { fontSize: 15, color: c.secondary, fontWeight: '500' },
     restoreBtnRow: { flexDirection: 'row', justifyContent: 'flex-end', gap: 15, marginTop: 8 },
     cancelBtn: { padding: 12 },
     cancelBtnText: { color: c.text.placeholder, fontWeight: 'bold', fontSize: 15 },
     restoreBtn: {
-        backgroundColor: c.primary,
+        backgroundColor: c.secondary,
         paddingHorizontal: 20,
         paddingVertical: 12,
         borderRadius: 10,
@@ -761,7 +763,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',
         borderWidth: 1, borderColor: c.border.muted, backgroundColor: c.surfaceAlt.light,
     },
-    weekDayBtnActive: { backgroundColor: c.primary, borderColor: c.primary },
+    weekDayBtnActive: { backgroundColor: c.secondary, borderColor: c.secondary },
     weekDayText: { fontSize: 14, fontWeight: '600', color: c.text.subtle },
     weekDayTextActive: { color: c.white },
     ml12: { marginLeft: 12 },
@@ -788,7 +790,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     soundDropdownButtonText: {
         fontSize: 15,
         fontWeight: '600',
-        color: c.primary,
+        color: c.secondary,
     },
     volumeButton: {
         width: 40,
@@ -797,7 +799,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         justifyContent: 'center',
         alignItems: 'center',
         borderWidth: 1,
-        borderColor: c.primary,
+        borderColor: c.secondary,
     },
     playButton: {
         backgroundColor: c.secondary,
