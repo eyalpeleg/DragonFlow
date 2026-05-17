@@ -97,6 +97,7 @@ interface TaskStore {
     pomodoroModeIdx: number | null;
     pomodoroPausedSecondsLeft: number | null;
     pomodoroNotifId: string | null;
+    pomodoroVisible: boolean;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -138,6 +139,7 @@ interface TaskStore {
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
+    setPomodoroVisible: (visible: boolean) => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
     setDarkMode: (enabled: boolean) => void;
@@ -165,6 +167,7 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroModeIdx: null,
             pomodoroPausedSecondsLeft: null,
             pomodoroNotifId: null,
+            pomodoroVisible: false,
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -400,6 +403,8 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroPausedSecondsLeft: null,
                 pomodoroNotifId: null,
             }),
+
+            setPomodoroVisible: (visible) => set({ pomodoroVisible: visible }),
 
             setCustomTimerSeconds: (seconds) => set({
                 customTimerSeconds: seconds,

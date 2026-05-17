@@ -1,5 +1,6 @@
 import React, { useMemo, useState } from 'react';
 import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
+import { useTaskStore } from '../store/appStore';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 
@@ -16,8 +17,6 @@ export function makePomodoroModes(c: AppColors): readonly PomodoroMode[] {
 export type PomodoroModeIdx = 0 | 1 | 2 | 3;
 
 interface Props {
-    isVisible: boolean;
-    onClose: () => void;
     modeIdx: PomodoroModeIdx;
     secondsLeft: number;
     running: boolean;
@@ -31,10 +30,12 @@ interface Props {
 }
 
 export default function PomodoroTimer({
-    isVisible, onClose,
     modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
     onSelectMode, onSetCustomTimerSeconds, onStart, onPause, onReset,
 }: Props) {
+    const isVisible = useTaskStore((s) => s.pomodoroVisible);
+    const setPomodoroVisible = useTaskStore((s) => s.setPomodoroVisible);
+    const onClose = () => setPomodoroVisible(false);
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
