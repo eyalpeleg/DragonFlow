@@ -50,3 +50,4 @@ app-example
 .claude/plans/
 build*.apk
 *.apk
+distro/

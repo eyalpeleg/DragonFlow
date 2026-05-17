@@ -17,6 +17,8 @@ import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
+const APP_VERSION = Constants.expoConfig?.version ?? '?';
+const ANDROID_VERSION_CODE = Constants.expoConfig?.android?.versionCode ?? '?';
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
 
@@ -473,7 +475,7 @@ export default function SettingsScreen() {
 
                 <CollapsibleSection title="About">
                     <View style={styles.infoBox}>
-                        <Text style={styles.infoText}>DragonFlow v1.0</Text>
+                        <Text style={styles.infoText}>DragonFlow v{APP_VERSION} ({ANDROID_VERSION_CODE})</Text>
                         <Text style={styles.infoSubtext}>Personal task management</Text>
                         <Text style={styles.infoSubtext}>Build: {BUILD_TIMESTAMP}</Text>
                     </View>
