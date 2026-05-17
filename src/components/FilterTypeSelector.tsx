@@ -22,8 +22,7 @@ const FILTER_TYPES: { type: FilterType; label: string; icon: string; description
 
 export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props) {
     const colors = useColors();
-    const debugMode = useTaskStore((s) => s.debugModeEnabled);
-    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
+    const styles = useMemo(() => makeStyles(colors), [colors]);
 
     const statusCount = useTaskStore((s) => s.statusFilters.size);
     const categoryCount = useTaskStore((s) => s.categoryFilters.size);
@@ -92,10 +91,10 @@ export default function FilterTypeSelector({ isOpen, onClose, onSelect }: Props)
     );
 }
 
-const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: debug ? c.overlay.debug.filterType : c.overlay.scrim,
+        backgroundColor: c.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {

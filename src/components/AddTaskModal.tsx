@@ -25,8 +25,7 @@ interface Props {
 
 export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const colors = useColors();
-    const debugMode = useTaskStore((s) => s.debugModeEnabled);
-    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const recurringTrackColor = useMemo(() => ({ true: colors.primary }), [colors]);
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
@@ -271,8 +270,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     );
 }
 
-const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: debug ? c.overlay.debug.addTask : c.overlay.scrimStrong, justifyContent: 'flex-end' },
+const makeStyles = (c: AppColors) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-end' },
     content: { backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20, maxHeight: '92%' },
     contentInner: { padding: 20 },
     modalTitle: { fontSize: 20, fontWeight: 'bold', marginBottom: 15, color: c.text.primary },

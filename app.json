@@ -21,7 +21,8 @@
       "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
-      "package": "com.plgsw.dragonflow"
+      "package": "com.plgsw.dragonflow",
+      "versionCode": 1
     },
     "androidNavigationBar": {
       "barStyle": "dark-content",

@@ -23,8 +23,7 @@ const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcomin
 
 export default function FilterModal({ isOpen, filterType, onClose, onSave }: Props) {
     const colors = useColors();
-    const debugMode = useTaskStore((s) => s.debugModeEnabled);
-    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const priorityColors = useMemo<Record<PriorityLevel, string>>(() => colors.priority, [colors]);
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
@@ -163,10 +162,10 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
     );
 }
 
-const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: debug ? c.overlay.debug.filterModal : c.overlay.scrim,
+        backgroundColor: c.overlay.scrim,
         justifyContent: 'flex-end',
     },
     modal: {

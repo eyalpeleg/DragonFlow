@@ -55,9 +55,9 @@ function formatRelativeTime(isoString: string | null): string {
 
 export default function SettingsScreen() {
     const colors = useColors();
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode } = useTaskStore();
-    const styles = useMemo(() => makeStyles(colors, debugModeEnabled), [colors, debugModeEnabled]);
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const switchTrackColor = useMemo(() => ({ false: colors.text.disabled, true: colors.primary }), [colors]);
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -582,7 +582,7 @@ export default function SettingsScreen() {
     );
 }
 
-const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     container: { flex: 1, backgroundColor: c.background },
     header: {
         backgroundColor: c.primary,
@@ -703,7 +703,7 @@ const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
     lastBackupValue: { fontSize: 12, color: c.text.muted, fontWeight: '600' },
     restoreOverlay: {
         flex: 1,
-        backgroundColor: debug ? c.overlay.debug.settingsModal : c.overlay.scrimStrong,
+        backgroundColor: c.overlay.scrimStrong,
         justifyContent: 'flex-end',
     },
     restoreContent: {

@@ -3,7 +3,6 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View, PanResponder } from 'r
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
-import { useTaskStore } from '../store/appStore';
 
 const BUTTON_SIZE = 40;
 const SLIDER_HEIGHT = 200;
@@ -18,8 +17,7 @@ interface Props {
 
 export default function VolumeControl({ visible, volume, onVolumeChange, onClose, onPlayPreview }: Props) {
     const colors = useColors();
-    const debugMode = useTaskStore((s) => s.debugModeEnabled);
-    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
+    const styles = useMemo(() => makeStyles(colors), [colors]);
     const [tempVolume, setTempVolume] = useState(volume);
     const startYRef = React.useRef(0);
 
@@ -103,10 +101,10 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
     );
 }
 
-const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: debug ? c.overlay.debug.volumeControl : c.overlay.scrimSoft,
+        backgroundColor: c.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },
