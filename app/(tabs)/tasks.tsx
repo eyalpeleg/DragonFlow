@@ -190,6 +190,29 @@ export default function TasksScreen() {
         return () => backHandler.remove(); // Cleanup on unmount or showArchive change
     }, [showArchive]);
 
+    // Close any open modal when the bubble opens the app or the app foregrounds.
+    // Activity uses singleTask launchMode, so the screen isn't remounted and
+    // local modal state would otherwise persist across background/foreground.
+    useEffect(() => {
+        const closeAllModals = () => {
+            setAddModalVisible(false);
+            setEditTask(null);
+            setStatsTask(null);
+            setPomodoroVisible(false);
+            setFilterModalOpen(false);
+            setFilterTypeSelectorOpen(false);
+            setSelectedFilterType(null);
+        };
+        const unsubscribeOpenFocus = FloatingBubble.onOpenFocus(closeAllModals);
+        const appStateSub = AppState.addEventListener('change', (nextState) => {
+            if (nextState === 'active') closeAllModals();
+        });
+        return () => {
+            unsubscribeOpenFocus();
+            appStateSub.remove();
+        };
+    }, []);
+
     // Show bubble countdown when app goes to background; stop it when app returns
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {

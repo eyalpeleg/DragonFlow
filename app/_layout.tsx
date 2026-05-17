@@ -22,6 +22,12 @@ export default function RootLayout() {
             if (!ok) FloatingBubble.requestOverlayPermission();
         }).catch(() => {});
 
+        // Cold-start: AppState 'change' listener won't fire 'active' because
+        // we already are 'active'. Hide the bubble service explicitly — if
+        // Pomodoro is running, its component will re-establish the bubble
+        // when the app next backgrounds.
+        FloatingBubble.hide();
+
         // Cloud backup initialization
         backupService.initializeBackup().catch(() => {});
         const unsubscribeBackup = backupService.setupAutoBackup();
