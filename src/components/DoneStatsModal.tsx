@@ -25,7 +25,8 @@ function formatDuration(ms: number): string {
 
 export default function DoneStatsModal({ task, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const debugMode = useTaskStore((s) => s.debugModeEnabled);
+    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
     const insets = useSafeAreaInsets();
     const updateCompletionComment = useTaskStore((s) => s.updateCompletionComment);
     const [comment, setComment] = useState('');
@@ -120,8 +121,8 @@ export default function DoneStatsModal({ task, onClose }: Props) {
     );
 }
 
-const makeStyles = (c: AppColors) => StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'flex-end' },
+const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: debug ? c.overlay.debug.doneStats : c.overlay.scrimDeep, justifyContent: 'flex-end' },
     sheet: {
         backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
         padding: 20, paddingBottom: 36,

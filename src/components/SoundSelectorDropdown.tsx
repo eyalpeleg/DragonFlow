@@ -3,6 +3,7 @@ import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
+import { useTaskStore } from '../store/appStore';
 import { SoundType } from '../types';
 
 interface Props {
@@ -15,7 +16,8 @@ interface Props {
 
 export default function SoundSelectorDropdown({ visible, options, selectedValue, onSelect, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const debugMode = useTaskStore((s) => s.debugModeEnabled);
+    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
     const handleSelect = (option: SoundType) => {
         onSelect(option);
         onClose();
@@ -64,10 +66,10 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
     );
 }
 
-const makeStyles = (c: AppColors) => StyleSheet.create({
+const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
     overlay: {
         flex: 1,
-        backgroundColor: c.overlay.scrimSoft,
+        backgroundColor: debug ? c.overlay.debug.soundSelector : c.overlay.scrimSoft,
         justifyContent: 'center',
         alignItems: 'center',
     },

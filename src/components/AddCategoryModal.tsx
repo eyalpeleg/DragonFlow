@@ -12,7 +12,8 @@ interface Props {
 
 export default function AddCategoryModal({ visible, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const debugMode = useTaskStore((s) => s.debugModeEnabled);
+    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
     const { categories, addCategory } = useTaskStore();
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(PRESET_PALETTE[0]);
@@ -87,8 +88,8 @@ export default function AddCategoryModal({ visible, onClose }: Props) {
     );
 }
 
-const makeStyles = (c: AppColors) => StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: debug ? c.overlay.debug.addCategory : c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
     sheet: { backgroundColor: c.surface, borderRadius: 16, padding: 20, width: '85%' },
     title: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 14 },
     input: {

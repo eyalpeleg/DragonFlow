@@ -49,6 +49,19 @@ export const lightColors = {
         accentSoft: 'rgba(79,55,139,0.06)',
         accentMedium: 'rgba(79,55,139,0.08)',
         accentStrong: 'rgba(79,55,139,0.1)',
+        debug: {
+            pomodoro:      'rgba(229,57,53,0.55)',
+            addTask:       'rgba(255,152,0,0.55)',
+            editTask:      'rgba(255,193,7,0.55)',
+            filterModal:   'rgba(76,175,80,0.55)',
+            filterType:    'rgba(0,188,212,0.55)',
+            doneStats:     'rgba(33,150,243,0.55)',
+            editCategory:  'rgba(156,39,176,0.55)',
+            addCategory:   'rgba(233,30,99,0.55)',
+            soundSelector: 'rgba(255,64,129,0.55)',
+            volumeControl: 'rgba(205,220,57,0.55)',
+            settingsModal: 'rgba(0,150,136,0.55)',
+        },
     },
 
     accent: {
@@ -136,6 +149,19 @@ export const darkColors: AppColors = {
         accentSoft: 'rgba(170,125,201,0.10)',
         accentMedium: 'rgba(170,125,201,0.14)',
         accentStrong: 'rgba(170,125,201,0.20)',
+        debug: {
+            pomodoro:      'rgba(229,57,53,0.55)',
+            addTask:       'rgba(255,152,0,0.55)',
+            editTask:      'rgba(255,193,7,0.55)',
+            filterModal:   'rgba(76,175,80,0.55)',
+            filterType:    'rgba(0,188,212,0.55)',
+            doneStats:     'rgba(33,150,243,0.55)',
+            editCategory:  'rgba(156,39,176,0.55)',
+            addCategory:   'rgba(233,30,99,0.55)',
+            soundSelector: 'rgba(255,64,129,0.55)',
+            volumeControl: 'rgba(205,220,57,0.55)',
+            settingsModal: 'rgba(0,150,136,0.55)',
+        },
     },
 
     accent: {

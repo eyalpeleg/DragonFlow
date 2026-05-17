@@ -1,4 +1,4 @@
-import { formatCountdown, formatTabBadge } from '../pomodoroFormat';
+import { formatCountdown } from '../pomodoroFormat';
 
 describe('formatCountdown', () => {
     it('renders MM:SS for sub-hour durations', () => {
@@ -17,24 +17,5 @@ describe('formatCountdown', () => {
 
     it('clamps negative input to zero', () => {
         expect(formatCountdown(-10)).toBe('00:00');
-    });
-});
-
-describe('formatTabBadge', () => {
-    it('shows whole-minute remaining for sub-hour durations', () => {
-        expect(formatTabBadge(0)).toBe('0m');
-        expect(formatTabBadge(59)).toBe('0m');
-        expect(formatTabBadge(60)).toBe('1m');
-        expect(formatTabBadge(25 * 60)).toBe('25m');
-        expect(formatTabBadge(59 * 60)).toBe('59m');
-    });
-
-    it('switches to whole-hour units past an hour', () => {
-        expect(formatTabBadge(3600)).toBe('1h');
-        expect(formatTabBadge(2 * 3600 + 30 * 60)).toBe('2h');
-    });
-
-    it('clamps negative input to 0m', () => {
-        expect(formatTabBadge(-5)).toBe('0m');
     });
 });

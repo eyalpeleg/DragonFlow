@@ -35,9 +35,10 @@ export default function PomodoroTimer({
 }: Props) {
     const isVisible = useTaskStore((s) => s.pomodoroVisible);
     const setPomodoroVisible = useTaskStore((s) => s.setPomodoroVisible);
+    const debugMode = useTaskStore((s) => s.debugModeEnabled);
     const onClose = () => setPomodoroVisible(false);
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = useMemo(() => makeStyles(colors, debugMode), [colors, debugMode]);
     const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
     const customModeColor = colors.secondary;
 
@@ -209,8 +210,8 @@ export default function PomodoroTimer({
     );
 }
 
-const makeStyles = (c: AppColors) => StyleSheet.create({
-    overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-start', paddingTop: 80 },
+const makeStyles = (c: AppColors, debug: boolean) => StyleSheet.create({
+    overlay: { flex: 1, backgroundColor: debug ? c.overlay.debug.pomodoro : c.overlay.scrimStrong, justifyContent: 'flex-start', paddingTop: 80 },
     sheet: { backgroundColor: c.surface, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, marginBottom: 16 },
     title: { fontSize: 20, fontWeight: 'bold', color: c.text.primary, marginBottom: 16 },

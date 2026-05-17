@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import { Tabs } from 'expo-router';
-import React, { useMemo } from 'react';
+import React from 'react';
 import { Platform, StyleSheet, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import PomodoroMiniBar from '@/src/components/PomodoroMiniBar';
@@ -8,7 +8,6 @@ import PomodoroTimer from '@/src/components/PomodoroTimer';
 import { usePomodoroController } from '@/src/hooks/usePomodoroController';
 import { useTaskStore } from '@/src/store/appStore';
 import { useColors } from '@/src/styles/useColors';
-import { formatTabBadge } from '@/src/utils/pomodoroFormat';
 
 export default function TabLayout() {
     const colors = useColors();
@@ -18,11 +17,6 @@ export default function TabLayout() {
     const controller = usePomodoroController();
     const { modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
         handleStart, handlePause, handleReset, handleSelectMode, handleSetCustomTimerSeconds } = controller;
-
-    const pomodoroBadge = useMemo(() => {
-        if (!running && !isPaused) return undefined;
-        return formatTabBadge(secondsLeft);
-    }, [running, isPaused, secondsLeft]);
 
     return (
         <View style={styles.root}>
@@ -59,8 +53,6 @@ export default function TabLayout() {
                         tabBarIcon: ({ color, size }) => (
                             <Ionicons name="hourglass" color={color} size={size} />
                         ),
-                        tabBarBadge: pomodoroBadge,
-                        tabBarBadgeStyle: { backgroundColor: colors.secondary, color: colors.white, fontSize: 10 },
                     }}
                     listeners={{
                         tabPress: (e) => {

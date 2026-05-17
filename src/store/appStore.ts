@@ -135,6 +135,7 @@ interface TaskStore {
     setCategoryFilters: (filters: Set<string>) => void;
     setPriorityFilters: (filters: Set<PriorityLevel>) => void;
     setDueDateFilters: (filters: Set<'overdue' | 'today' | 'upcoming'>) => void;
+    clearAllFilters: () => void;
     setFocusMode: (enabled: boolean) => void;
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
@@ -380,6 +381,13 @@ export const useTaskStore = create<TaskStore>()(
             setPriorityFilters: (filters) => set({ priorityFilters: filters }),
 
             setDueDateFilters: (filters) => set({ dueDateFilters: filters }),
+
+            clearAllFilters: () => set({
+                statusFilters: new Set(),
+                categoryFilters: new Set(),
+                priorityFilters: new Set(),
+                dueDateFilters: new Set(),
+            }),
 
             setFocusMode: (enabled) => set({ focusMode: enabled }),
 
