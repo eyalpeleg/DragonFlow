@@ -33,7 +33,7 @@ docs/design/            # Architecture, features, decisions
 - Store side effects on task changes: sync notifications, update bubble, schedule reminders
 - Filters use `Set<string>` with custom serialization
 - Modals receive callbacks from parent (`onSubmit`, `onClose`)
-- Icons: Ionicons from `@expo/vector-icons`
+- Icons: Ionicons (default) and AntDesign from `@expo/vector-icons`. Browse and search every available glyph at https://icons.expo.fyi/. `react-icons` is web-only and won't run in React Native — if a task asks for a `react-icons/ai` (AntDesign) glyph, map it to AntDesign in `@expo/vector-icons` instead. AntDesign only ships filled variants for some names (e.g. `pushpin` has no outline) — signal toggled state via color.
 - Styles: inline `StyleSheet.create()` per component
 - Colors/theming via `src/styles/theme.ts` (COLORS, PRESET_PALETTE)
 
