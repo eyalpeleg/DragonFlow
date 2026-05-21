@@ -1,11 +1,13 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
 import { Task, TaskStatus } from '../types';
 import TaskChecklist from './TaskChecklist';
+
+const DOUBLE_TAP_MS = 280;
 
 interface Props {
     task: Task;
@@ -20,7 +22,8 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const statusBarColors = useMemo<Record<TaskStatus, string>>(() => colors.statusSoft, [colors]);
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
+    const togglePin = useTaskStore((s) => s.togglePin);
+    const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [], pinned } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
     const isRecurring = !!recurrence;
@@ -47,10 +50,34 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
         );
     }
 
+    const lastTapRef = useRef<number>(0);
+    const pendingSingleTapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    function handleCardPress() {
+        const now = Date.now();
+        const isDoubleTap = now - lastTapRef.current < DOUBLE_TAP_MS;
+        if (isDoubleTap) {
+            lastTapRef.current = 0;
+            if (pendingSingleTapRef.current) {
+                clearTimeout(pendingSingleTapRef.current);
+                pendingSingleTapRef.current = null;
+            }
+            onEdit(task);
+            return;
+        }
+        lastTapRef.current = now;
+        if (status === 'Done') {
+            pendingSingleTapRef.current = setTimeout(() => {
+                pendingSingleTapRef.current = null;
+                onOpenStats(task);
+            }, DOUBLE_TAP_MS);
+        }
+    }
+
     return (
         <TouchableOpacity
-            activeOpacity={status === 'Done' ? 0.7 : 1}
-            onPress={status === 'Done' ? () => onOpenStats(task) : undefined}
+            activeOpacity={0.7}
+            onPress={handleCardPress}
         >
             <View style={[styles.card, { borderLeftColor: statusBarColors[status] }, status === 'Done' && styles.cardDone]}>
                 <View style={styles.topRow}>
@@ -61,9 +88,15 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 <Ionicons name="stats-chart" size={15} color={colors.primary} />
                             </TouchableOpacity>
                         )}
-                        <TouchableOpacity onPress={() => onEdit(task)} style={styles.actionBtn}>
-                            <Ionicons name="pencil-sharp" size={15} color={colors.text.subtle} />
-                        </TouchableOpacity>
+                        {status !== 'Done' && (
+                            <TouchableOpacity onPress={() => togglePin(id)} style={styles.actionBtn}>
+                                <Ionicons
+                                    name={pinned ? 'pin' : 'pin-outline'}
+                                    size={15}
+                                    color={pinned ? colors.primary : colors.text.subtle}
+                                />
+                            </TouchableOpacity>
+                        )}
                         <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
                             <Ionicons
                                 name={status === 'Done' ? 'archive' : 'trash'}
@@ -157,7 +190,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                 )}
 
                 {status === 'Done' && (
-                    <Text style={styles.tapHint}>Tap card for stats →</Text>
+                    <Text style={styles.tapHint}>Tap for stats · double-tap to edit</Text>
                 )}
             </View>
         </TouchableOpacity>
