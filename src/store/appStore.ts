@@ -34,6 +34,7 @@ const BUILTIN_CATEGORIES: Category[] = [
 export function isUrgent(t: Task, todayStr: string, tomorrowStr: string): boolean {
     if (t.archivedAt) return false;
     if (t.status === 'Done') return false;
+    if (t.pinned) return true;
     if (t.dueDate < todayStr) return true;
     if (t.dueDate === todayStr) return true;
     if (t.dueDate === tomorrowStr && (t.priority === 'Critical' || t.priority === 'High')) return true;
@@ -77,6 +78,7 @@ export interface AddTaskInput {
     dueTime: string;
     subTasks?: SubTask[];
     recurrence?: RecurrenceConfig;
+    pinned?: boolean;
 }
 
 interface TaskStore {
@@ -113,6 +115,7 @@ interface TaskStore {
     archiveTask: (id: string) => void;
     restoreTask: (id: string) => void;
     setStatus: (id: string, status: TaskStatus) => void;
+    togglePin: (id: string) => void;
     setHydrated: (value: boolean) => void;
     addCategory: (name: string, color: string) => void;
     deleteCategory: (id: string) => void;
@@ -191,6 +194,7 @@ export const useTaskStore = create<TaskStore>()(
                     createdAt: Date.now(),
                     subTasks: input.subTasks ?? [],
                     recurrence: input.recurrence,
+                    pinned: input.pinned ?? false,
                 };
                 const tasks = [task, ...s.tasks];
                 syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
@@ -258,6 +262,12 @@ export const useTaskStore = create<TaskStore>()(
                     const reopened = tasks.find((t) => t.id === id);
                     if (reopened) scheduleTaskReminders(reopened).catch(() => {});
                 }
+                return { tasks };
+            }),
+
+            togglePin: (id) => set((s) => {
+                const tasks = s.tasks.map((t) => t.id === id ? { ...t, pinned: !t.pinned } : t);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 return { tasks };
             }),
 

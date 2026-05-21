@@ -44,6 +44,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     const [subTaskInput, setSubTaskInput] = useState('');
     const [editingSubId, setEditingSubId] = useState<string | null>(null);
     const [editingSubTitle, setEditingSubTitle] = useState('');
+    const [pinned, setPinned] = useState(false);
 
     const subTaskInputRef = useRef<TextInput>(null);
 
@@ -67,6 +68,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
             setSubTaskInput('');
             setEditingSubId(null);
             setEditingSubTitle('');
+            setPinned(!!task.pinned);
         }
     }, [task]);
 
@@ -119,7 +121,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
         onSave(task.id, {
             title: title.trim(), description, priority, categoryId,
             dueDate: dueDateStr, dueTime,
-            subTasks, recurrence,
+            subTasks, recurrence, pinned,
         });
     };
 
@@ -191,6 +193,18 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                 <Ionicons name="add" size={14} color={colors.primary} />
                             </TouchableOpacity>
                         </ScrollView>
+
+                        <View style={styles.switchRow}>
+                            <View>
+                                <Text style={styles.label}>Pin to focus</Text>
+                                {pinned && <Text style={styles.switchSub}>Always shows in focus mode</Text>}
+                            </View>
+                            <Switch
+                                value={pinned}
+                                onValueChange={setPinned}
+                                trackColor={recurringTrackColor}
+                            />
+                        </View>
 
                         <View style={styles.switchRow}>
                             <View>

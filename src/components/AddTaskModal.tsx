@@ -44,6 +44,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
     const [dateExpanded, setDateExpanded] = useState(false);
+    const [pinned, setPinned] = useState(false);
 
     const titleInputRef = useRef<TextInput>(null);
     const subTaskInputRef = useRef<TextInput>(null);
@@ -105,7 +106,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         onAdd({
             title: title.trim(), description, priority, categoryId,
             dueDate: dueDateStr, dueTime,
-            subTasks, recurrence,
+            subTasks, recurrence, pinned,
         });
         reset();
         onClose();
@@ -116,6 +117,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         setDueDate(null); setDueTime(defaultTaskTime); setAutoOpenTime(0); setDateExpanded(false);
         setIsRecurring(false); setFrequency('weekly'); setInterval('1');
         setSubTasks([]); setSubTaskInput('');
+        setPinned(false);
     }
 
     function handleClose() {
@@ -170,6 +172,18 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                                     <TimePickerField value={dueTime} onChange={setDueTime} autoOpen={autoOpenTime} />
                                 </View>
                             )}
+                        </View>
+
+                        <View style={styles.switchRow}>
+                            <View>
+                                <Text style={styles.label}>Pin to focus</Text>
+                                {pinned && <Text style={styles.switchSub}>Always shows in focus mode</Text>}
+                            </View>
+                            <Switch
+                                value={pinned}
+                                onValueChange={setPinned}
+                                trackColor={recurringTrackColor}
+                            />
                         </View>
 
                         <View style={styles.switchRow}>

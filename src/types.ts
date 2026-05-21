@@ -41,4 +41,6 @@ export interface Task {
     parentRecurringId?: string;
     // Feature: done stats comment
     completionComment?: string;
+    // Feature: pinned — always treated as urgent (focus mode + bubble)
+    pinned?: boolean;
 }
