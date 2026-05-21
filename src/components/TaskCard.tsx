@@ -1,4 +1,4 @@
-import { Ionicons } from '@expo/vector-icons';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
 import React, { useMemo, useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppColors } from '../styles/theme';
@@ -90,10 +90,10 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         )}
                         {status !== 'Done' && (
                             <TouchableOpacity onPress={() => togglePin(id)} style={styles.actionBtn}>
-                                <Ionicons
-                                    name={pinned ? 'pin' : 'pin-outline'}
+                                <AntDesign
+                                    name="pushpin"
                                     size={15}
-                                    color={pinned ? colors.primary : colors.text.subtle}
+                                    color={pinned ? colors.primary : colors.text.disabled}
                                 />
                             </TouchableOpacity>
                         )}
