@@ -6,24 +6,24 @@ import { AppColors, PriorityLevel } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '../store/appStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask, Task } from '../types';
-import DatePickerField from './DatePickerField';
-import TimePickerField from './TimePickerField';
+import ScheduleEditor from './ScheduleEditor';
 import AddCategoryModal from './AddCategoryModal';
 
 function makeId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
 }
 
-const FREQUENCIES: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly'];
+export type EditFocus = 'subTask';
 
 interface Props {
     isVisible: boolean;
     task: Task | null;
+    initialFocus?: EditFocus;
     onClose: () => void;
     onSave: (id: string, updates: Partial<Task>) => void;
 }
 
-export default function EditTaskModal({ isVisible, task, onClose, onSave }: Props) {
+export default function EditTaskModal({ isVisible, task, initialFocus, onClose, onSave }: Props) {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const recurringTrackColor = useMemo(() => ({ true: colors.primary }), [colors]);
@@ -47,6 +47,11 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
     const [pinned, setPinned] = useState(false);
 
     const subTaskInputRef = useRef<TextInput>(null);
+    const scrollRef = useRef<ScrollView>(null);
+
+    function scrollSubTasksIntoView() {
+        requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
+    }
 
     useEffect(() => {
         if (task) {
@@ -72,6 +77,15 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
         }
     }, [task]);
 
+    useEffect(() => {
+        if (!isVisible || initialFocus !== 'subTask') return;
+        const t = setTimeout(() => {
+            scrollRef.current?.scrollToEnd({ animated: false });
+            subTaskInputRef.current?.focus();
+        }, 350);
+        return () => clearTimeout(t);
+    }, [isVisible, initialFocus]);
+
     function addSubTask() {
         const t = subTaskInput.trim();
         if (!t) {
@@ -81,6 +95,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
         setSubTasks((prev) => [...prev, { id: makeId(), title: t, completed: false }]);
         setSubTaskInput('');
         subTaskInputRef.current?.focus();
+        scrollSubTasksIntoView();
     }
 
     function removeSubTask(id: string) {
@@ -133,8 +148,10 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                 <KeyboardAvoidingView
                     style={styles.overlay}
                     behavior={Platform.OS === 'ios' ? 'padding' : 'height'}
+                    keyboardVerticalOffset={Platform.OS === 'ios' ? insets.top : 0}
                 >
                     <ScrollView
+                        ref={scrollRef}
                         style={styles.content}
                         contentContainerStyle={[styles.contentInner, { paddingBottom: Math.max(20, insets.bottom) }]}
                         keyboardShouldPersistTaps="handled"
@@ -159,17 +176,19 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                             onChangeText={setDescription}
                         />
 
-                        <Text style={styles.label}>Due Date{dueDate ? ' & Time' : ''}</Text>
-                        <View style={styles.dateTimeRow}>
-                            <View style={dueDate ? styles.dateTimeDate : { flex: 1 }}>
-                                <DatePickerField value={dueDate} onChange={setDueDate} onClear={() => setDueDate(null)} />
-                            </View>
-                            {dueDate && (
-                                <View style={styles.dateTimeTime}>
-                                    <TimePickerField value={dueTime} onChange={setDueTime} />
-                                </View>
-                            )}
-                        </View>
+                        <Text style={styles.label}>Schedule</Text>
+                        <ScheduleEditor
+                            dueDate={dueDate}
+                            dueTime={dueTime}
+                            isRecurring={isRecurring}
+                            frequency={frequency}
+                            interval={interval}
+                            onChangeDueDate={setDueDate}
+                            onChangeDueTime={setDueTime}
+                            onChangeIsRecurring={setIsRecurring}
+                            onChangeFrequency={setFrequency}
+                            onChangeInterval={setInterval}
+                        />
 
                         <Text style={styles.label}>Priority</Text>
                         <View style={styles.row}>
@@ -205,40 +224,6 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                 trackColor={recurringTrackColor}
                             />
                         </View>
-
-                        <View style={styles.switchRow}>
-                            <View>
-                                <Text style={styles.label}>Recurring task</Text>
-                                {isRecurring && <Text style={styles.switchSub}>Spawns next occurrence on completion</Text>}
-                            </View>
-                            <Switch
-                                value={isRecurring}
-                                onValueChange={setIsRecurring}
-                                trackColor={recurringTrackColor}
-                            />
-                        </View>
-                        {isRecurring && (
-                            <View style={styles.recurrenceBlock}>
-                                <Text style={styles.sublabel}>Frequency</Text>
-                                <View style={styles.row}>
-                                    {FREQUENCIES.map((f) => (
-                                        <TouchableOpacity key={f} onPress={() => setFrequency(f)}
-                                            style={[styles.chip, frequency === f && { backgroundColor: colors.primary }]}>
-                                            <Text style={[styles.chipText, frequency === f && { color: colors.white }]}>
-                                                {f.charAt(0).toUpperCase() + f.slice(1)}
-                                            </Text>
-                                        </TouchableOpacity>
-                                    ))}
-                                </View>
-                                <Text style={styles.sublabel}>Every N {frequency === 'daily' ? 'days' : frequency === 'weekly' ? 'weeks' : 'months'}</Text>
-                                <TextInput
-                                    style={[styles.input, { width: 60 }]}
-                                    value={interval}
-                                    onChangeText={setInterval}
-                                    keyboardType="number-pad"
-                                />
-                            </View>
-                        )}
 
                         <Text style={styles.label}>Sub-tasks</Text>
                         {subTasks.map((s) => (
@@ -280,6 +265,7 @@ export default function EditTaskModal({ isVisible, task, onClose, onSave }: Prop
                                 placeholder="Add a sub-task"
                                 placeholderTextColor={colors.text.placeholder}
                                 onSubmitEditing={addSubTask}
+                                onFocus={scrollSubTasksIntoView}
                                 blurOnSubmit={false}
                                 returnKeyType="next"
                             />
@@ -309,12 +295,8 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     input: { borderBottomWidth: 1, borderBottomColor: c.border.light, paddingVertical: 10, marginBottom: 15, fontSize: 16, color: c.text.primary },
     textArea: { height: 60 },
     label: { fontSize: 14, fontWeight: 'bold', color: c.text.subtle, marginTop: 10, marginBottom: 8 },
-    sublabel: { fontSize: 12, fontWeight: '600', color: c.text.weak, marginBottom: 6 },
     row: { flexDirection: 'row', flexWrap: 'wrap', gap: 8, marginBottom: 12 },
     categoryRow: { flexDirection: 'row', marginBottom: 8 },
-    dateTimeRow: { flexDirection: 'row', gap: 10, marginBottom: 4 },
-    dateTimeDate: { flex: 2 },
-    dateTimeTime: { flex: 1 },
     chip: { paddingHorizontal: 12, paddingVertical: 6, borderRadius: 20, backgroundColor: c.surfaceAlt.soft, marginRight: 6 },
     chipText: { fontSize: 12, fontWeight: '600', color: c.text.body },
     addCatChip: {
@@ -324,7 +306,6 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     },
     switchRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between', marginTop: 8, marginBottom: 4 },
     switchSub: { fontSize: 11, color: c.text.light, marginTop: 2 },
-    recurrenceBlock: { backgroundColor: c.surfaceAlt.offWhite, borderRadius: 10, padding: 12, marginBottom: 8 },
     subTaskInputRow: { flexDirection: 'row', gap: 8, alignItems: 'center', marginTop: 4 },
     subTaskInput: { flex: 1, marginBottom: 0, paddingVertical: 8, fontSize: 14 },
     subTaskRow: { flexDirection: 'row', alignItems: 'center', gap: 8, paddingVertical: 4 },

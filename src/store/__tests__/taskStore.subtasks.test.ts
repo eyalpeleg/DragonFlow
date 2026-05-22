@@ -27,9 +27,9 @@ jest.mock('../../modules/FloatingBubble', () => ({
 }));
 
 import { useTaskStore } from '../appStore';
-import type { Task } from '../../types';
+import type { SubTask, Task } from '../../types';
 
-function makeTask(id: string, title: string): Task {
+function makeTask(id: string, title: string, subTasks: SubTask[] = []): Task {
     return {
         id,
         title,
@@ -40,47 +40,43 @@ function makeTask(id: string, title: string): Task {
         dueTime: '08:00',
         status: 'Ready',
         createdAt: Date.now(),
-        subTasks: [],
+        subTasks,
     };
 }
 
 describe('store subtask actions', () => {
     beforeEach(() => {
         useTaskStore.setState({
-            tasks: [makeTask('t1', 'Task one'), makeTask('t2', 'Task two')],
+            tasks: [
+                makeTask('t1', 'Task one', [
+                    { id: 'sa', title: 'sub a', completed: false },
+                    { id: 'sb', title: 'sub b', completed: false },
+                ]),
+                makeTask('t2', 'Task two', [
+                    { id: 'sc', title: 'sub c', completed: false },
+                ]),
+            ],
         });
     });
 
-    it('add → toggle → remove roundtrip on one task does not affect sibling task', () => {
-        const { addSubTask, toggleSubTask, removeSubTask } = useTaskStore.getState();
+    it('toggle → remove on one task does not affect sibling task', () => {
+        const { toggleSubTask, removeSubTask } = useTaskStore.getState();
 
-        addSubTask('t1', 'sub a');
-        addSubTask('t1', 'sub b');
-
-        const afterAdd = useTaskStore.getState().tasks;
-        const t1Subs = afterAdd.find((t) => t.id === 't1')!.subTasks!;
-        const t2Subs = afterAdd.find((t) => t.id === 't2')!.subTasks!;
-        expect(t1Subs).toHaveLength(2);
-        expect(t1Subs.map((s) => s.title)).toEqual(['sub a', 'sub b']);
-        expect(t1Subs.every((s) => s.completed === false)).toBe(true);
-        expect(t2Subs).toHaveLength(0);
-
-        const subAId = t1Subs[0].id;
-        const subBId = t1Subs[1].id;
-        toggleSubTask('t1', subAId);
+        toggleSubTask('t1', 'sa');
 
         const afterToggle = useTaskStore.getState().tasks;
         const t1Toggled = afterToggle.find((t) => t.id === 't1')!.subTasks!;
-        expect(t1Toggled.find((s) => s.id === subAId)!.completed).toBe(true);
-        expect(t1Toggled.find((s) => s.id === subBId)!.completed).toBe(false);
+        const t2Toggled = afterToggle.find((t) => t.id === 't2')!.subTasks!;
+        expect(t1Toggled.find((s) => s.id === 'sa')!.completed).toBe(true);
+        expect(t1Toggled.find((s) => s.id === 'sb')!.completed).toBe(false);
+        expect(t2Toggled.find((s) => s.id === 'sc')!.completed).toBe(false);
 
-        removeSubTask('t1', subAId);
+        removeSubTask('t1', 'sa');
 
         const afterRemove = useTaskStore.getState().tasks;
         const t1Final = afterRemove.find((t) => t.id === 't1')!.subTasks!;
         const t2Final = afterRemove.find((t) => t.id === 't2')!.subTasks!;
-        expect(t1Final).toHaveLength(1);
-        expect(t1Final[0].id).toBe(subBId);
-        expect(t2Final).toHaveLength(0);
+        expect(t1Final.map((s) => s.id)).toEqual(['sb']);
+        expect(t2Final.map((s) => s.id)).toEqual(['sc']);
     });
 });

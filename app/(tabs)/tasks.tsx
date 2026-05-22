@@ -5,7 +5,7 @@ import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
 import DoneStatsModal from '@/src/components/DoneStatsModal';
-import EditTaskModal from '@/src/components/EditTaskModal';
+import EditTaskModal, { EditFocus } from '@/src/components/EditTaskModal';
 import FilterModal from '@/src/components/FilterModal';
 import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import TaskCard from '@/src/components/TaskCard';
@@ -28,6 +28,7 @@ export default function TasksScreen() {
     const archivedTasks = useArchivedTasks();
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
+    const [editFocus, setEditFocus] = useState<EditFocus | undefined>(undefined);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
     const [showArchive, setShowArchive] = useState(false);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
@@ -56,6 +57,7 @@ export default function TasksScreen() {
         const closeAllModals = () => {
             setAddModalVisible(false);
             setEditTask(null);
+            setEditFocus(undefined);
             setStatsTask(null);
             setFilterModalOpen(false);
             setFilterTypeSelectorOpen(false);
@@ -71,19 +73,24 @@ export default function TasksScreen() {
         };
     }, []);
 
+    const openEdit = useCallback((task: Task, focus?: EditFocus) => {
+        setEditFocus(focus);
+        setEditTask(task);
+    }, []);
+
     const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
         <TaskCard
             task={item}
             onStatusChange={setStatus}
-            onEdit={setEditTask}
+            onEdit={openEdit}
             onArchive={archiveTask}
             onOpenStats={setStatsTask}
         />
-    ), [setStatus, archiveTask]);
+    ), [setStatus, archiveTask, openEdit]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={setEditTask} />
-    ), [restoreTask, deleteTask]);
+        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={(t) => openEdit(t)} />
+    ), [restoreTask, deleteTask, openEdit]);
 
     function handleFilterToggle() {
         setFilterTypeSelectorOpen(true);
@@ -102,6 +109,12 @@ export default function TasksScreen() {
     function handleEditSave(id: string, updates: Partial<Task>) {
         updateTask(id, updates);
         setEditTask(null);
+        setEditFocus(undefined);
+    }
+
+    function handleEditClose() {
+        setEditTask(null);
+        setEditFocus(undefined);
     }
 
     const handleFilterSave = (filterType: FilterType, selectedSet: Set<string>) => {
@@ -200,6 +213,8 @@ export default function TasksScreen() {
                             </View>
                         }
                         renderItem={renderTask}
+                        keyboardShouldPersistTaps="handled"
+                        automaticallyAdjustKeyboardInsets
                     />
                 </>
             )}
@@ -226,7 +241,8 @@ export default function TasksScreen() {
             <EditTaskModal
                 isVisible={editTask !== null}
                 task={editTask}
-                onClose={() => setEditTask(null)}
+                initialFocus={editFocus}
+                onClose={handleEditClose}
                 onSave={handleEditSave}
             />
 

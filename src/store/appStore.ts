@@ -121,7 +121,6 @@ interface TaskStore {
     deleteCategory: (id: string) => void;
     updateCategory: (id: string, updates: { name?: string; color?: string }) => boolean;
     toggleSubTask: (taskId: string, subTaskId: string) => void;
-    addSubTask: (taskId: string, title: string) => void;
     removeSubTask: (taskId: string, subTaskId: string) => void;
     renameSubTask: (taskId: string, subTaskId: string, title: string) => void;
     updateCompletionComment: (taskId: string, comment: string) => void;
@@ -328,14 +327,6 @@ export const useTaskStore = create<TaskStore>()(
                             st.id === subTaskId ? { ...st, completed: !st.completed } : st
                         ),
                     };
-                }),
-            })),
-
-            addSubTask: (taskId, title) => set((s) => ({
-                tasks: s.tasks.map((t) => {
-                    if (t.id !== taskId) return t;
-                    const newSub: SubTask = { id: makeId(), title, completed: false };
-                    return { ...t, subTasks: [...(t.subTasks ?? []), newSub] };
                 }),
             })),
 

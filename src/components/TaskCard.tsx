@@ -6,13 +6,14 @@ import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
 import { Task, TaskStatus } from '../types';
 import TaskChecklist from './TaskChecklist';
+import type { EditFocus } from './EditTaskModal';
 
 const DOUBLE_TAP_MS = 280;
 
 interface Props {
     task: Task;
     onStatusChange: (id: string, status: TaskStatus) => void;
-    onEdit: (task: Task) => void;
+    onEdit: (task: Task, focus?: EditFocus) => void;
     onArchive: (id: string) => void;
     onOpenStats: (task: Task) => void;
 }
@@ -130,12 +131,12 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                     {isDueToday ? 'Today' : isDueTomorrow ? 'Tomorrow' : displayDate}
                                 </Text>
                                 {isRecurring && (
-                                    <Ionicons name="repeat" size={12} color={colors.text.light} style={styles.recurIcon} />
+                                    <AntDesign name="sync" size={12} color={colors.text.light} style={styles.recurIcon} />
                                 )}
                             </View>
                         )}
                         {!displayDate && isRecurring && (
-                            <Ionicons name="repeat" size={12} color={colors.text.light} />
+                            <AntDesign name="sync" size={12} color={colors.text.light} />
                         )}
                     </View>
                     {status === 'Ready' && (
@@ -186,6 +187,7 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         subTasks={subTasks}
                         taskStatus={status}
                         onAllDone={handleAllSubTasksDone}
+                        onRequestAddSubTask={() => onEdit(task, 'subTask')}
                     />
                 )}
 
