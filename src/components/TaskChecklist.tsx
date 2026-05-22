@@ -11,15 +11,14 @@ interface Props {
     subTasks: SubTask[];
     taskStatus: string;
     onAllDone: () => void;
+    onRequestAddSubTask?: () => void;
 }
 
-export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone }: Props) {
+export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone, onRequestAddSubTask }: Props) {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
-    const { toggleSubTask, addSubTask, removeSubTask, renameSubTask } = useTaskStore();
+    const { toggleSubTask, removeSubTask, renameSubTask } = useTaskStore();
     const [expanded, setExpanded] = useState(false);
-    const [adding, setAdding] = useState(false);
-    const [newTitle, setNewTitle] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
 
@@ -35,14 +34,6 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
         if (willBeCompleted && othersDone === total - 1 && taskStatus !== 'Done') {
             setTimeout(() => onAllDone(), 150);
         }
-    }
-
-    function handleAdd() {
-        const trimmed = newTitle.trim();
-        if (!trimmed) return;
-        addSubTask(taskId, trimmed);
-        setNewTitle('');
-        setAdding(false);
     }
 
     function handleRemove(sub: SubTask) {
@@ -130,31 +121,11 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                         </View>
                     ))}
 
-                    {taskStatus !== 'Done' && (
-                        adding ? (
-                            <View style={styles.addRow}>
-                                <TextInput
-                                    style={styles.addInput}
-                                    value={newTitle}
-                                    onChangeText={setNewTitle}
-                                    placeholder="Sub-task title"
-                                    autoFocus
-                                    onSubmitEditing={handleAdd}
-                                    returnKeyType="done"
-                                />
-                                <TouchableOpacity onPress={handleAdd} style={styles.addConfirmBtn}>
-                                    <Ionicons name="checkmark" size={16} color={colors.white} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => { setAdding(false); setNewTitle(''); }}>
-                                    <Ionicons name="close" size={16} color={colors.text.light} style={{ padding: 4 }} />
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            <TouchableOpacity style={styles.addTrigger} onPress={() => setAdding(true)}>
-                                <Ionicons name="add" size={14} color={colors.primary} />
-                                <Text style={styles.addTriggerText}>Add sub-task</Text>
-                            </TouchableOpacity>
-                        )
+                    {taskStatus !== 'Done' && onRequestAddSubTask && (
+                        <TouchableOpacity style={styles.addTrigger} onPress={onRequestAddSubTask}>
+                            <Ionicons name="add" size={14} color={colors.primary} />
+                            <Text style={styles.addTriggerText}>Add sub-task</Text>
+                        </TouchableOpacity>
                     )}
                 </View>
             )}
@@ -176,9 +147,6 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     subTitleDone: { textDecorationLine: 'line-through', color: c.text.veryLight },
     editInput: { borderBottomWidth: 1, borderBottomColor: c.border.medium, paddingVertical: 2 },
     removeBtn: { padding: 4 },
-    addRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: c.border.medium, fontSize: 13, paddingVertical: 4 },
-    addConfirmBtn: { backgroundColor: c.primary, borderRadius: 12, padding: 4 },
     addTrigger: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
     addTriggerText: { fontSize: 12, color: c.primary },
 });
