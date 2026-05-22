@@ -7,8 +7,15 @@ GoogleSignin.configure({
 
 export async function loadStoredAuth(): Promise<GoogleAuthTokens | null> {
     try {
-        const user = GoogleSignin.getCurrentUser();
-        if (!user) return null;
+        let user = GoogleSignin.getCurrentUser();
+        if (!user) {
+            // After a cold start the in-memory currentUser is empty even though
+            // the native SDK still has cached credentials. signInSilently()
+            // rehydrates the session without showing UI.
+            const res = await GoogleSignin.signInSilently();
+            if (res.type !== 'success') return null;
+            user = res.data;
+        }
         const tokens = await GoogleSignin.getTokens();
         return {
             accessToken: tokens.accessToken,
@@ -54,12 +61,15 @@ export async function signOut(): Promise<void> {
 }
 
 export async function getValidToken(): Promise<string> {
-    const user = GoogleSignin.getCurrentUser();
-    if (!user) throw new AuthError('Not signed in');
     try {
+        if (!GoogleSignin.getCurrentUser()) {
+            const res = await GoogleSignin.signInSilently();
+            if (res.type !== 'success') throw new AuthError('Not signed in');
+        }
         const tokens = await GoogleSignin.getTokens();
         return tokens.accessToken;
-    } catch {
+    } catch (e) {
+        if (e instanceof AuthError) throw e;
         throw new AuthError('Session expired. Please sign in again.');
     }
 }
