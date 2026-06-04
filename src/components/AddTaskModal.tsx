@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import { Animated, Easing, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, PriorityLevel } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -42,8 +42,32 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [pinned, setPinned] = useState(false);
 
     const titleInputRef = useRef<TextInput>(null);
+    const descriptionInputRef = useRef<TextInput>(null);
     const subTaskInputRef = useRef<TextInput>(null);
     const scrollRef = useRef<ScrollView>(null);
+    const scheduleY = useRef(0);
+    const priorityY = useRef(0);
+    const [openDateToken, setOpenDateToken] = useState(0);
+    const selectedPulse = useRef(new Animated.Value(0)).current;
+
+    function blinkSelected() {
+        selectedPulse.setValue(0);
+        Animated.sequence([
+            Animated.timing(selectedPulse, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+            Animated.timing(selectedPulse, { toValue: 0, duration: 220, easing: Easing.in(Easing.quad),  useNativeDriver: true }),
+            Animated.timing(selectedPulse, { toValue: 1, duration: 220, easing: Easing.out(Easing.quad), useNativeDriver: true }),
+            Animated.timing(selectedPulse, { toValue: 0, duration: 260, easing: Easing.in(Easing.quad),  useNativeDriver: true }),
+        ]).start();
+    }
+
+    function handleTimeSelected() {
+        requestAnimationFrame(() => {
+            scrollRef.current?.scrollTo({ y: Math.max(0, priorityY.current - 12), animated: true });
+            blinkSelected();
+        });
+    }
+
+    const selectedScale = selectedPulse.interpolate({ inputRange: [0, 1], outputRange: [1, 1.15] });
 
     function scrollSubTasksIntoView() {
         requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
@@ -75,7 +99,15 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     }
 
     function handleTitleSubmit() {
+        descriptionInputRef.current?.focus();
+    }
+
+    function handleDescriptionSubmit() {
         Keyboard.dismiss();
+        requestAnimationFrame(() => {
+            scrollRef.current?.scrollTo({ y: Math.max(0, scheduleY.current - 12), animated: true });
+            setOpenDateToken((n) => n + 1);
+        });
     }
 
     function handleDateChange(date: Date | null) {
@@ -145,20 +177,28 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             style={styles.input}
                             value={title}
                             onChangeText={setTitle}
-                            returnKeyType="done"
+                            returnKeyType="next"
+                            blurOnSubmit={false}
                             onSubmitEditing={handleTitleSubmit}
                         />
 
                         <TextInput
+                            ref={descriptionInputRef}
                             placeholder="Add a description"
                             placeholderTextColor={colors.text.placeholder}
                             style={[styles.input, styles.textArea]}
                             multiline
                             value={description}
                             onChangeText={setDescription}
+                            returnKeyType="next"
+                            submitBehavior="blurAndSubmit"
+                            onSubmitEditing={handleDescriptionSubmit}
                         />
 
-                        <Text style={styles.label}>Schedule</Text>
+                        <Text
+                            style={styles.label}
+                            onLayout={(e) => { scheduleY.current = e.nativeEvent.layout.y; }}
+                        >Schedule</Text>
                         <ScheduleEditor
                             dueDate={dueDate}
                             dueTime={dueTime}
@@ -170,6 +210,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             onChangeIsRecurring={setIsRecurring}
                             onChangeFrequency={setFrequency}
                             onChangeInterval={setInterval}
+                            openDateToken={openDateToken}
+                            onTimeSelected={handleTimeSelected}
                         />
 
                         <View style={styles.switchRow}>
@@ -184,14 +226,26 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             />
                         </View>
 
-                        <Text style={styles.label}>Priority</Text>
+                        <Text
+                            style={styles.label}
+                            onLayout={(e) => { priorityY.current = e.nativeEvent.layout.y; }}
+                        >Priority</Text>
                         <View style={styles.row}>
-                            {priorities.map((p) => (
-                                <TouchableOpacity key={p} onPress={() => setPriority(p)}
-                                    style={[styles.chip, priority === p && { backgroundColor: colors.priority[p] }]}>
-                                    <Text style={[styles.chipText, priority === p && { color: colors.white }]}>{p}</Text>
-                                </TouchableOpacity>
-                            ))}
+                            {priorities.map((p) => {
+                                const selected = priority === p;
+                                const chipStyle = [styles.chip, selected && { backgroundColor: colors.priority[p] }];
+                                const textStyle = [styles.chipText, selected && { color: colors.white }];
+                                return (
+                                    <Animated.View
+                                        key={p}
+                                        style={selected ? { transform: [{ scale: selectedScale }] } : undefined}
+                                    >
+                                        <TouchableOpacity onPress={() => setPriority(p)} style={chipStyle}>
+                                            <Text style={textStyle}>{p}</Text>
+                                        </TouchableOpacity>
+                                    </Animated.View>
+                                );
+                            })}
                         </View>
 
                         <Text style={styles.label}>Category</Text>

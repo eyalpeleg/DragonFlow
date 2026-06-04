@@ -59,7 +59,7 @@ export default function SettingsScreen() {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const switchTrackColor = useMemo(() => ({ false: colors.text.disabled, true: colors.secondary }), [colors]);
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -317,6 +317,20 @@ export default function SettingsScreen() {
                                 keyboardType="numbers-and-punctuation"
                             />
                             <Text style={styles.timeFormat}>24-hour format</Text>
+                        </View>
+                    </View>
+                    <View style={[styles.settingBlock, styles.settingBlockGap]}>
+                        <View style={styles.reflectRow}>
+                            <View style={styles.reflectLabel}>
+                                <Text style={styles.settingTitle}>Prompt for reflection when marking Done</Text>
+                                <Text style={styles.settingDesc}>Open the reflection note immediately after marking a task done.</Text>
+                            </View>
+                            <Switch
+                                value={reflectOnDone}
+                                onValueChange={setReflectOnDone}
+                                trackColor={switchTrackColor}
+                                thumbColor={colors.white}
+                            />
                         </View>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
@@ -758,6 +772,8 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 10,
     },
     restoreBtnText: { color: c.white, fontWeight: 'bold', fontSize: 15 },
+    reflectRow: { flexDirection: 'row', alignItems: 'center', justifyContent: 'space-between' },
+    reflectLabel: { flex: 1, marginRight: 12 },
     weekDayRow: { flexDirection: 'row', gap: 10, marginTop: 12 },
     weekDayBtn: {
         flex: 1, paddingVertical: 8, borderRadius: 8, alignItems: 'center',

@@ -60,12 +60,11 @@ describe('isUrgent / computeBubbleScore parity', () => {
         makeTask({ id: 'tomorrow-low',           dueDate: TOMORROW,     priority: 'Low' }),
         makeTask({ id: 'later-critical',         dueDate: '2026-05-20', priority: 'Critical' }),
         makeTask({ id: 'done-overdue',           dueDate: '2026-05-10', priority: 'High', status: 'Done' }),
-        makeTask({ id: 'archived-today',         dueDate: TODAY,        priority: 'Critical', archivedAt: 1 }),
+        makeTask({ id: 'done-today',             dueDate: TODAY,        priority: 'Critical', status: 'Done' }),
         makeTask({ id: 'no-due-date',            dueDate: '',           priority: 'Critical' }),
         makeTask({ id: 'pinned-later',           dueDate: '2026-05-25', priority: 'Low',  pinned: true }),
         makeTask({ id: 'pinned-no-date',         dueDate: '',           priority: 'Low',  pinned: true }),
         makeTask({ id: 'pinned-done',            dueDate: '2026-05-25', priority: 'Low',  pinned: true, status: 'Done' }),
-        makeTask({ id: 'pinned-archived',        dueDate: '2026-05-25', priority: 'Low',  pinned: true, archivedAt: 1 }),
     ];
 
     // 'no-due-date' is treated as urgent because '' < todayStr is true.
@@ -93,9 +92,9 @@ describe('isUrgent / computeBubbleScore parity', () => {
         expect(focusList.map((t) => t.id).sort()).toEqual([...expectedUrgentIds].sort());
     });
 
-    it('Done and archived tasks are never urgent', () => {
+    it('Done tasks are never urgent', () => {
         expect(isUrgent(fixture.find((t) => t.id === 'done-overdue')!, TODAY, TOMORROW)).toBe(false);
-        expect(isUrgent(fixture.find((t) => t.id === 'archived-today')!, TODAY, TOMORROW)).toBe(false);
+        expect(isUrgent(fixture.find((t) => t.id === 'done-today')!, TODAY, TOMORROW)).toBe(false);
     });
 
     it('tomorrow + Medium/Low is not urgent; tomorrow + Critical/High is urgent', () => {
@@ -110,8 +109,7 @@ describe('isUrgent / computeBubbleScore parity', () => {
         expect(isUrgent(fixture.find((t) => t.id === 'pinned-no-date')!, TODAY, TOMORROW)).toBe(true);
     });
 
-    it('pinned + Done or pinned + archived is never urgent', () => {
+    it('pinned + Done is never urgent', () => {
         expect(isUrgent(fixture.find((t) => t.id === 'pinned-done')!, TODAY, TOMORROW)).toBe(false);
-        expect(isUrgent(fixture.find((t) => t.id === 'pinned-archived')!, TODAY, TOMORROW)).toBe(false);
     });
 });

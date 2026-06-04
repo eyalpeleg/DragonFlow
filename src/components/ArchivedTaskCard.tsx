@@ -17,12 +17,12 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, priority, categoryId, dueDate, archivedAt } = task;
+    const { id, title, priority, categoryId, dueDate, completedTime } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
 
-    const archivedDate = archivedAt
-        ? new Date(archivedAt).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
+    const completedDate = completedTime
+        ? new Date(completedTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : '';
 
     function handleDelete() {
@@ -45,8 +45,8 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
                         <Ionicons name="pencil-sharp" size={13} color={colors.white} />
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.restoreBtn} onPress={() => onRestore(id)}>
-                        <Ionicons name="refresh-outline" size={13} color={colors.white} />
-                        <Text style={styles.restoreText}>Restore</Text>
+                        <Ionicons name="arrow-undo-outline" size={13} color={colors.white} />
+                        <Text style={styles.restoreText}>Reopen</Text>
                     </TouchableOpacity>
                     <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
                         <Ionicons name="trash" size={15} color={colors.white} />
@@ -64,7 +64,7 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
                         Due {new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })}
                     </Text>
                 )}
-                {archivedDate && <Text style={styles.archivedText}>Archived {archivedDate}</Text>}
+                {completedDate && <Text style={styles.archivedText}>Completed {completedDate}</Text>}
             </View>
         </View>
     );

@@ -10,6 +10,7 @@ import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
 import { backupService } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
 import { useColorMode } from '@/src/styles/useColors';
+import UndoSnackbar from '@/src/components/UndoSnackbar';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -111,6 +112,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
             <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
             <Slot />
+            <UndoSnackbar />
             {splashVisible && (
                 <Animated.View
                     pointerEvents="none"

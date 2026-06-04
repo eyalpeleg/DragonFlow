@@ -33,7 +33,6 @@ export interface Task {
     createdAt: number;
     startTime?: number;
     completedTime?: number;
-    archivedAt?: number;
     // Feature: sub-tasks
     subTasks?: SubTask[];
     // Feature: recurring

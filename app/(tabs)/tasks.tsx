@@ -23,7 +23,8 @@ const appIcon = require('@/assets/images/dragonflow3.png');
 export default function TasksScreen() {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
-    const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
+    const { addTask, updateTask, deleteTask, setStatus, hasHydrated } = useTaskStore();
+    const reflectOnDone = useTaskStore((s) => s.reflectOnDone);
     const tasks = useSortedFilteredTasks();
     const archivedTasks = useArchivedTasks();
     const [addModalVisible, setAddModalVisible] = useState(false);
@@ -34,6 +35,14 @@ export default function TasksScreen() {
     const [filterModalOpen, setFilterModalOpen] = useState(false);
     const [filterTypeSelectorOpen, setFilterTypeSelectorOpen] = useState(false);
     const [selectedFilterType, setSelectedFilterType] = useState<FilterType | null>(null);
+
+    const lastDoneUndo = useTaskStore((s) => s.lastDoneUndo);
+    useEffect(() => {
+        if (statsTask && lastDoneUndo === null) {
+            const stillDone = useTaskStore.getState().tasks.find((t) => t.id === statsTask.id);
+            if (!stillDone || stillDone.status !== 'Done') setStatsTask(null);
+        }
+    }, [lastDoneUndo, statsTask]);
 
     const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
@@ -78,19 +87,30 @@ export default function TasksScreen() {
         setEditTask(task);
     }, []);
 
+    const handleStatusChange = useCallback((id: string, status: TaskStatus) => {
+        const prior = useTaskStore.getState().tasks.find((t) => t.id === id);
+        setStatus(id, status);
+        if (status === 'Done' && prior && prior.status !== 'Done' && reflectOnDone) {
+            const updated = useTaskStore.getState().tasks.find((t) => t.id === id);
+            if (updated) setStatsTask(updated);
+        }
+    }, [setStatus, reflectOnDone]);
+
     const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
         <TaskCard
             task={item}
-            onStatusChange={setStatus}
+            onStatusChange={handleStatusChange}
             onEdit={openEdit}
-            onArchive={archiveTask}
+            onDelete={deleteTask}
             onOpenStats={setStatsTask}
         />
-    ), [setStatus, archiveTask, openEdit]);
+    ), [handleStatusChange, deleteTask, openEdit]);
+
+    const reopenTask = useCallback((id: string) => setStatus(id, 'In Progress'), [setStatus]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={(t) => openEdit(t)} />
-    ), [restoreTask, deleteTask, openEdit]);
+        <ArchivedTaskCard task={item} onRestore={reopenTask} onDelete={deleteTask} onEdit={(t) => openEdit(t)} />
+    ), [reopenTask, deleteTask, openEdit]);
 
     function handleFilterToggle() {
         setFilterTypeSelectorOpen(true);

@@ -1,13 +1,12 @@
 import { AntDesign, Ionicons } from '@expo/vector-icons';
 import DateTimePicker from '@react-native-community/datetimepicker';
-import React, { useMemo, useState } from 'react';
+import React, { useEffect, useMemo, useState } from 'react';
 import { Modal, Platform, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { RecurrenceFrequency } from '../types';
-import TimePickerField from './TimePickerField';
 
-type EditorSection = 'date' | 'time' | 'recurrence' | null;
+type EditorSection = 'recurrence' | null;
 
 interface Props {
     dueDate: Date | null;
@@ -20,16 +19,12 @@ interface Props {
     onChangeIsRecurring: (v: boolean) => void;
     onChangeFrequency: (f: RecurrenceFrequency) => void;
     onChangeInterval: (i: string) => void;
+    openDateToken?: number; // bump to open the date picker with today pre-selected
+    onTimeSelected?: () => void; // fires after user commits a time via the picker
 }
 
 const FREQUENCIES: RecurrenceFrequency[] = ['daily', 'weekly', 'monthly'];
 const INTERVAL_OPTIONS = Array.from({ length: 10 }, (_, i) => i + 1); // 1..10
-
-function addDays(d: Date, n: number): Date {
-    const x = new Date(d);
-    x.setDate(x.getDate() + n);
-    return x;
-}
 
 function intervalUnitLabel(f: RecurrenceFrequency, n: number): string {
     const plural = n !== 1;
@@ -41,22 +36,23 @@ function intervalUnitLabel(f: RecurrenceFrequency, n: number): string {
 export default function ScheduleEditor({
     dueDate, dueTime, isRecurring, frequency, interval,
     onChangeDueDate, onChangeDueTime, onChangeIsRecurring, onChangeFrequency, onChangeInterval,
+    openDateToken, onTimeSelected,
 }: Props) {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const [editor, setEditor] = useState<EditorSection>(null);
     const [showNativeDatePicker, setShowNativeDatePicker] = useState(false);
+    const [showNativeTimePicker, setShowNativeTimePicker] = useState(false);
     const [intervalPickerOpen, setIntervalPickerOpen] = useState(false);
+
+    useEffect(() => {
+        if (openDateToken && openDateToken > 0) {
+            setShowNativeDatePicker(true);
+        }
+    }, [openDateToken]);
 
     function toggleEditor(next: EditorSection) {
         setEditor((cur) => (cur === next ? null : next));
-        if (next !== 'date') setShowNativeDatePicker(false);
-    }
-
-    function handleQuickPick(d: Date) {
-        onChangeDueDate(d);
-        setShowNativeDatePicker(false);
-        setEditor(null);
     }
 
     function handleClearDate() {
@@ -69,8 +65,25 @@ export default function ScheduleEditor({
         setShowNativeDatePicker(false);
         if (d) {
             onChangeDueDate(d);
-            setEditor(null);
+            setShowNativeTimePicker(true);
         }
+    }
+
+    function handleNativeTimeChange(d?: Date) {
+        setShowNativeTimePicker(false);
+        if (d) {
+            const hh = String(d.getHours()).padStart(2, '0');
+            const mm = String(d.getMinutes()).padStart(2, '0');
+            onChangeDueTime(`${hh}:${mm}`);
+            onTimeSelected?.();
+        }
+    }
+
+    function timeToDate(time: string): Date {
+        const [h, m] = time.split(':').map(Number);
+        const d = new Date();
+        d.setHours(h || 0, m || 0, 0, 0);
+        return d;
     }
 
     const dateLabel = dueDate
@@ -85,17 +98,17 @@ export default function ScheduleEditor({
         <View>
             <View style={styles.pillRow}>
                 <TouchableOpacity
-                    onPress={() => toggleEditor('date')}
-                    style={[styles.pill, editor === 'date' && styles.pillActive, !dueDate && styles.pillDim]}
+                    onPress={() => setShowNativeDatePicker(true)}
+                    style={[styles.pill, !dueDate && styles.pillDim]}
                     accessibilityRole="button"
                     accessibilityLabel="Due date"
                 >
                     <Ionicons
                         name="calendar"
                         size={14}
-                        color={editor === 'date' ? colors.white : (dueDate ? colors.primary : colors.text.disabled)}
+                        color={dueDate ? colors.primary : colors.text.disabled}
                     />
-                    <Text style={[styles.pillText, editor === 'date' && styles.pillTextActive, !dueDate && styles.pillTextDim]}>
+                    <Text style={[styles.pillText, !dueDate && styles.pillTextDim]}>
                         {dateLabel}
                     </Text>
                 </TouchableOpacity>
@@ -103,17 +116,13 @@ export default function ScheduleEditor({
                 {dueDate && (
                     <>
                         <TouchableOpacity
-                            onPress={() => toggleEditor('time')}
-                            style={[styles.pill, editor === 'time' && styles.pillActive]}
+                            onPress={() => setShowNativeTimePicker(true)}
+                            style={styles.pill}
                             accessibilityRole="button"
                             accessibilityLabel="Due time"
                         >
-                            <Ionicons
-                                name="time"
-                                size={14}
-                                color={editor === 'time' ? colors.white : colors.primary}
-                            />
-                            <Text style={[styles.pillText, editor === 'time' && styles.pillTextActive]}>{dueTime}</Text>
+                            <Ionicons name="time" size={14} color={colors.primary} />
+                            <Text style={styles.pillText}>{dueTime}</Text>
                         </TouchableOpacity>
 
                         <TouchableOpacity
@@ -144,52 +153,47 @@ export default function ScheduleEditor({
                 )}
             </View>
 
-            {editor === 'date' && (
+            {showNativeDatePicker && (Platform.OS === 'ios' ? (
                 <View style={styles.editorPanel}>
-                    <View style={styles.chipsRow}>
-                        <TouchableOpacity style={styles.chip} onPress={() => handleQuickPick(new Date())}>
-                            <Text style={styles.chipText}>Today</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.chip} onPress={() => handleQuickPick(addDays(new Date(), 1))}>
-                            <Text style={styles.chipText}>Tomorrow</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.chip} onPress={() => handleQuickPick(addDays(new Date(), 7))}>
-                            <Text style={styles.chipText}>Next Week</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={[styles.chip, styles.otherChip]} onPress={() => setShowNativeDatePicker(true)}>
-                            <Ionicons name="calendar-outline" size={14} color={colors.primary} />
-                            <Text style={[styles.chipText, { color: colors.primary }]}>Other…</Text>
-                        </TouchableOpacity>
-                    </View>
-                    {showNativeDatePicker && (Platform.OS === 'ios' ? (
-                        <View style={{ marginTop: 8 }}>
-                            <DateTimePicker
-                                value={dueDate ?? new Date()}
-                                mode="date"
-                                display="inline"
-                                minimumDate={new Date()}
-                                onChange={(_, d) => handleNativePickerChange(d)}
-                                themeVariant="light"
-                                accentColor={colors.primary}
-                            />
-                        </View>
-                    ) : (
-                        <DateTimePicker
-                            value={dueDate ?? new Date()}
-                            mode="date"
-                            display="default"
-                            minimumDate={new Date()}
-                            onChange={(_, d) => handleNativePickerChange(d)}
-                        />
-                    ))}
+                    <DateTimePicker
+                        value={dueDate ?? new Date()}
+                        mode="date"
+                        display="inline"
+                        minimumDate={new Date()}
+                        onChange={(_, d) => handleNativePickerChange(d)}
+                        themeVariant="light"
+                        accentColor={colors.primary}
+                    />
                 </View>
-            )}
+            ) : (
+                <DateTimePicker
+                    value={dueDate ?? new Date()}
+                    mode="date"
+                    display="default"
+                    minimumDate={new Date()}
+                    onChange={(_, d) => handleNativePickerChange(d)}
+                />
+            ))}
 
-            {editor === 'time' && dueDate && (
+            {showNativeTimePicker && dueDate && (Platform.OS === 'ios' ? (
                 <View style={styles.editorPanel}>
-                    <TimePickerField value={dueTime} onChange={onChangeDueTime} />
+                    <DateTimePicker
+                        value={timeToDate(dueTime)}
+                        mode="time"
+                        display="spinner"
+                        onChange={(_, d) => handleNativeTimeChange(d)}
+                        themeVariant="light"
+                        accentColor={colors.primary}
+                    />
                 </View>
-            )}
+            ) : (
+                <DateTimePicker
+                    value={timeToDate(dueTime)}
+                    mode="time"
+                    display="default"
+                    onChange={(_, d) => handleNativeTimeChange(d)}
+                />
+            ))}
 
             {editor === 'recurrence' && dueDate && (
                 <View style={styles.editorPanel}>
@@ -304,7 +308,6 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     chipActive: { backgroundColor: c.primary },
     chipText: { fontSize: 12, fontWeight: '600', color: c.text.body },
     chipTextActive: { color: c.white },
-    otherChip: { backgroundColor: c.overlay.accentMedium },
     sublabel: { fontSize: 12, fontWeight: '600', color: c.text.weak, marginTop: 10, marginBottom: 6 },
     intervalSentence: {
         flexDirection: 'row', alignItems: 'center', gap: 8, marginTop: 10,

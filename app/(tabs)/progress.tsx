@@ -73,8 +73,6 @@ export default function ProgressScreen() {
         );
     }
 
-    const activeTasks = tasks.filter((t) => !t.archivedAt);
-
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -100,10 +98,10 @@ export default function ProgressScreen() {
             </View>
 
             {view === 'today' ? (
-                <TodayView activeTasks={activeTasks} categories={categories} />
+                <TodayView activeTasks={tasks} categories={categories} />
             ) : (
                 <WeekView
-                    activeTasks={activeTasks}
+                    activeTasks={tasks}
                     categories={categories}
                     firstDayOfWeek={firstDayOfWeek}
                     weekOffset={weekOffset}

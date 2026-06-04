@@ -14,11 +14,11 @@ interface Props {
     task: Task;
     onStatusChange: (id: string, status: TaskStatus) => void;
     onEdit: (task: Task, focus?: EditFocus) => void;
-    onArchive: (id: string) => void;
+    onDelete: (id: string) => void;
     onOpenStats: (task: Task) => void;
 }
 
-export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
+export default function TaskCard({ task, onStatusChange, onEdit, onDelete, onOpenStats }: Props) {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const statusBarColors = useMemo<Record<TaskStatus, string>>(() => colors.statusSoft, [colors]);
@@ -39,6 +39,17 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
     const displayDate = dueDate
         ? new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : null;
+
+    function handleDeletePress() {
+        Alert.alert(
+            'Delete Task',
+            `Delete "${title}"? This cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => onDelete(id) },
+            ]
+        );
+    }
 
     function handleAllSubTasksDone() {
         Alert.alert(
@@ -98,12 +109,8 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                 />
                             </TouchableOpacity>
                         )}
-                        <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
-                            <Ionicons
-                                name={status === 'Done' ? 'archive' : 'trash'}
-                                size={15}
-                                color={status === 'Done' ? colors.text.light : colors.text.error}
-                            />
+                        <TouchableOpacity onPress={handleDeletePress} style={styles.actionBtn}>
+                            <Ionicons name="trash" size={15} color={colors.text.error} />
                         </TouchableOpacity>
                     </View>
                 </View>

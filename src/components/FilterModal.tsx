@@ -16,7 +16,7 @@ interface Props {
     onSave: (filterType: FilterType, selectedSet: Set<string>) => void;
 }
 
-const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Paused', 'Done'];
+const STATUS_OPTIONS: TaskStatus[] = ['Ready', 'In Progress', 'Paused'];
 const PRIORITY_OPTIONS: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 const DUE_DATE_OPTIONS: ('overdue' | 'today' | 'upcoming')[] = ['overdue', 'today', 'upcoming'];
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };

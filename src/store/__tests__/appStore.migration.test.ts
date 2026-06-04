@@ -208,7 +208,8 @@ describe('appStore persist.merge — filter Set rehydration & stripped keys', ()
 
         expect(state.statusFilters).toBeInstanceOf(Set);
         expect(state.statusFilters.has('Ready')).toBe(true);
-        expect(state.statusFilters.has('Done')).toBe(true);
+        // 'Done' is stripped on migration to v3 — Done tasks no longer appear on the main list.
+        expect(state.statusFilters.has('Done' as never)).toBe(false);
 
         expect(state.priorityFilters.has('High')).toBe(true);
 
