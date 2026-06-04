@@ -323,7 +323,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         flex: 1, backgroundColor: c.overlay.scrim, alignItems: 'center', justifyContent: 'center',
     },
     dropdownCard: {
-        backgroundColor: c.surface, borderRadius: 12, paddingVertical: 6,
+        backgroundColor: c.surfaceElevated, borderRadius: 12, paddingVertical: 6,
         minWidth: 120, maxHeight: 320,
         shadowColor: '#000', shadowOpacity: 0.2, shadowRadius: 12, shadowOffset: { width: 0, height: 4 },
         elevation: 8,

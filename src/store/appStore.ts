@@ -530,7 +530,7 @@ export const useTaskStore = create<TaskStore>()(
                 debugModeEnabled: state.debugModeEnabled,
                 darkMode: state.darkMode,
                 reflectOnDone: state.reflectOnDone,
-                _schemaVersion: 3,
+                _schemaVersion: 4,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
@@ -590,6 +590,14 @@ export const useTaskStore = create<TaskStore>()(
                     }
                 }
 
+                if (schemaVersion < 4) {
+                    // Filter UI is now category-only. Wipe the now-unreachable filter sets
+                    // so previously-persisted ones don't silently filter the main list.
+                    p.statusFilters = [];
+                    p.priorityFilters = [];
+                    p.dueDateFilters = [];
+                }
+
                 // Always ensure Default exists (orphan-task fallback). For other built-ins,
                 // only re-add if the user hasn't explicitly deleted them.
                 const deletedBuiltinCategoryIds: string[] = p.deletedBuiltinCategoryIds ?? [];
@@ -611,7 +619,7 @@ export const useTaskStore = create<TaskStore>()(
                 return {
                     ...current,
                     ...persistedFiltered,
-                    _schemaVersion: 3,
+                    _schemaVersion: 4,
                     tasks,
                     categories,
                     deletedBuiltinCategoryIds,

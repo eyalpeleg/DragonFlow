@@ -723,7 +723,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         justifyContent: 'flex-end',
     },
     restoreContent: {
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceElevated,
         borderTopLeftRadius: 20,
         borderTopRightRadius: 20,
         padding: 20,

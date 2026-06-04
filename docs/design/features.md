@@ -31,6 +31,8 @@
 | iOS floating bubble | Idea | Equivalent of Android overlay for iOS |
 | App Store / Play Store publish | Planned | Bundle ID ready (`com.plgsw.dragonflow`) |
 | Widgets | Idea | Home screen widget showing today's tasks |
+| Backup sign-in prompt | Idea | On startup, if not signed in to Google Drive backup, alert with a CTA that deep-links to Settings → Backup/Sign-in to prevent data loss on uninstall |
+| Filter → Category | Idea | Replace the general Filter UI with a Category selector — categories are the only thing users filter by, giving a "projects/lists" view |
 | | | |
 
 > Add new ideas to the Planned table as they come up.

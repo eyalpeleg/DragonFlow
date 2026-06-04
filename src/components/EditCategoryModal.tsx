@@ -96,7 +96,7 @@ export default function EditCategoryModal({ visible, category, onClose }: Props)
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
-    sheet: { backgroundColor: c.surface, borderRadius: 16, padding: 20, width: '85%' },
+    sheet: { backgroundColor: c.surfaceElevated, borderRadius: 16, padding: 20, width: '85%' },
     title: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 14 },
     input: {
         borderWidth: 1, borderColor: c.border.medium, borderRadius: 8,

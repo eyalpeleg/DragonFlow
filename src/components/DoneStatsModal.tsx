@@ -123,7 +123,7 @@ export default function DoneStatsModal({ task, onClose }: Props) {
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'flex-end' },
     sheet: {
-        backgroundColor: c.surface, borderTopLeftRadius: 20, borderTopRightRadius: 20,
+        backgroundColor: c.surfaceElevated, borderTopLeftRadius: 20, borderTopRightRadius: 20,
         padding: 20, paddingBottom: 36,
     },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, alignSelf: 'center', marginBottom: 16 },
@@ -131,7 +131,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     completedOn: { fontSize: 12, color: c.text.placeholder, marginBottom: 16 },
     statsRow: { flexDirection: 'row', gap: 10, flexWrap: 'wrap', marginBottom: 20 },
     statBox: {
-        flex: 1, minWidth: 90, backgroundColor: c.background, borderRadius: 12,
+        flex: 1, minWidth: 90, backgroundColor: c.surfaceAlt.muted, borderRadius: 12,
         padding: 12, alignItems: 'center',
     },
     statValue: { fontSize: 20, fontWeight: '700', color: c.text.primary },

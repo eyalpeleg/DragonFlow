@@ -7,15 +7,13 @@ import TaskReflectionCard from '@/src/components/TaskReflectionCard';
 import DoneStatsModal from '@/src/components/DoneStatsModal';
 import EditTaskModal, { EditFocus } from '@/src/components/EditTaskModal';
 import FilterModal from '@/src/components/FilterModal';
-import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import TaskCard from '@/src/components/TaskCard';
-import { AppColors, PriorityLevel } from '@/src/styles/theme';
+import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { Task, TaskStatus } from '@/src/types';
 
-type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
@@ -33,8 +31,6 @@ export default function TasksScreen() {
     const [statsTask, setStatsTask] = useState<Task | null>(null);
     const [showArchive, setShowArchive] = useState(false);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
-    const [filterTypeSelectorOpen, setFilterTypeSelectorOpen] = useState(false);
-    const [selectedFilterType, setSelectedFilterType] = useState<FilterType | null>(null);
 
     const lastDoneUndo = useTaskStore((s) => s.lastDoneUndo);
     useEffect(() => {
@@ -44,14 +40,11 @@ export default function TasksScreen() {
         }
     }, [lastDoneUndo, statsTask]);
 
-    const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
-    const priorityFilters = useTaskStore((s) => s.priorityFilters);
-    const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
     const focusMode = useTaskStore((s) => s.focusMode);
     const setFocusMode = useTaskStore((s) => s.setFocusMode);
-    const totalFilterCount = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size;
-    const hasActiveFilters = totalFilterCount > 0;
+    const categoryFilterCount = categoryFilters.size;
+    const hasCategoryFilter = categoryFilterCount > 0;
 
     useEffect(() => {
         if (!showArchive) return;
@@ -69,8 +62,6 @@ export default function TasksScreen() {
             setEditFocus(undefined);
             setStatsTask(null);
             setFilterModalOpen(false);
-            setFilterTypeSelectorOpen(false);
-            setSelectedFilterType(null);
         };
         const unsubscribeOpenFocus = FloatingBubble.onOpenFocus(closeAllModals);
         const appStateSub = AppState.addEventListener('change', (nextState) => {
@@ -119,17 +110,11 @@ export default function TasksScreen() {
     ), [reopenTask, deleteTask, openEdit]);
 
     function handleFilterToggle() {
-        setFilterTypeSelectorOpen(true);
-    }
-
-    function handleFilterPress(filterType: FilterType) {
-        setSelectedFilterType(filterType);
         setFilterModalOpen(true);
     }
 
     function handleFilterModalClose() {
         setFilterModalOpen(false);
-        setSelectedFilterType(null);
     }
 
     function handleEditSave(id: string, updates: Partial<Task>) {
@@ -143,12 +128,8 @@ export default function TasksScreen() {
         setEditFocus(undefined);
     }
 
-    const handleFilterSave = (filterType: FilterType, selectedSet: Set<string>) => {
-        const setFilters = useTaskStore.getState();
-        if (filterType === 'status') setFilters.setStatusFilters(selectedSet as Set<TaskStatus>);
-        if (filterType === 'category') setFilters.setCategoryFilters(selectedSet);
-        if (filterType === 'priority') setFilters.setPriorityFilters(selectedSet as Set<PriorityLevel>);
-        if (filterType === 'dueDate') setFilters.setDueDateFilters(selectedSet as Set<'overdue' | 'today' | 'upcoming'>);
+    const handleFilterSave = (_filterType: string, selectedSet: Set<string>) => {
+        useTaskStore.getState().setCategoryFilters(selectedSet);
     };
 
     if (!hasHydrated) {
@@ -180,15 +161,19 @@ export default function TasksScreen() {
                         </TouchableOpacity>
                     )}
                     {!showArchive && (
-                        <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
+                        <TouchableOpacity
+                            style={styles.filterBtn}
+                            onPress={handleFilterToggle}
+                            accessibilityLabel="Filter by category"
+                        >
                             <Ionicons
-                                name={hasActiveFilters ? 'funnel' : 'funnel-outline'}
+                                name={hasCategoryFilter ? 'folder' : 'folder-outline'}
                                 size={20}
                                 color={colors.white}
                             />
-                            {totalFilterCount > 0 && (
+                            {categoryFilterCount > 0 && (
                                 <View style={styles.filterBadge}>
-                                    <Text style={styles.filterBadgeText}>{totalFilterCount}</Text>
+                                    <Text style={styles.filterBadgeText}>{categoryFilterCount}</Text>
                                 </View>
                             )}
                         </TouchableOpacity>
@@ -245,15 +230,9 @@ export default function TasksScreen() {
                 </>
             )}
 
-            <FilterTypeSelector
-                isOpen={filterTypeSelectorOpen}
-                onClose={() => setFilterTypeSelectorOpen(false)}
-                onSelect={handleFilterPress}
-            />
-
             <FilterModal
                 isOpen={filterModalOpen}
-                filterType={selectedFilterType}
+                filterType="category"
                 onClose={handleFilterModalClose}
                 onSave={handleFilterSave}
             />

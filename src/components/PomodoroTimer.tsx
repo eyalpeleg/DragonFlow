@@ -211,7 +211,7 @@ export default function PomodoroTimer({
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-start', paddingTop: 80 },
-    sheet: { backgroundColor: c.surface, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
+    sheet: { backgroundColor: c.surfaceElevated, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, marginBottom: 16 },
     title: { fontSize: 20, fontWeight: 'bold', color: c.text.primary, marginBottom: 16 },
     modeRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },

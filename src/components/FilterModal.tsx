@@ -106,11 +106,11 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                             return (
                                 <TouchableOpacity
                                     key={option}
-                                    style={[styles.option, isSelected && { backgroundColor: color + '15' }]}
+                                    style={[styles.option, isSelected && styles.optionSelected]}
                                     onPress={() => handleToggle(option)}
                                 >
                                     {isSelected && (
-                                        <Ionicons name="checkmark" size={20} color={color} style={{ marginRight: 10 }} />
+                                        <Ionicons name="checkmark" size={20} color={colors.primary} style={{ marginRight: 10 }} />
                                     )}
                                     {!isSelected && <View style={styles.placeholder} />}
                                     {filterType === 'priority' && (
@@ -132,7 +132,7 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
                                     <Text
                                         style={[
                                             styles.optionText,
-                                            isSelected && { color, fontWeight: '700' },
+                                            isSelected && styles.optionTextSelected,
                                         ]}
                                     >
                                         {label}
@@ -169,7 +169,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         justifyContent: 'flex-end',
     },
     modal: {
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceElevated,
         borderTopLeftRadius: 16,
         borderTopRightRadius: 16,
         maxHeight: '80%',
@@ -193,10 +193,12 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 8,
         marginVertical: 4,
     },
+    optionSelected: { backgroundColor: c.overlay.accentStrong },
     placeholder: { width: 20, marginRight: 10 },
     priorityDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
     categoryDot: { width: 10, height: 10, borderRadius: 5, marginRight: 10 },
     optionText: { fontSize: 14, color: c.text.muted, fontWeight: '500' },
+    optionTextSelected: { color: c.text.primary, fontWeight: '700' },
     footer: {
         flexDirection: 'row',
         gap: 10,

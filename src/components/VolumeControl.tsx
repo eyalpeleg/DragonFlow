@@ -109,7 +109,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceElevated,
         borderRadius: 16,
         padding: 24,
         width: '85%',

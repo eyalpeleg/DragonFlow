@@ -194,7 +194,7 @@ describe('appStore persist.merge — built-in category re-add', () => {
 });
 
 describe('appStore persist.merge — filter Set rehydration & stripped keys', () => {
-    it('rehydrates status/priority/dueDate filters from persisted arrays into Sets', async () => {
+    it('wipes status/priority/dueDate filters on migration to v4; rehydrates them as empty Sets', async () => {
         await hydrateWith({
             tasks: [],
             categories: [{ id: 'default', name: 'Default', color: '#607D8B' }],
@@ -206,17 +206,18 @@ describe('appStore persist.merge — filter Set rehydration & stripped keys', ()
         });
         const state = useTaskStore.getState();
 
+        // Filter UI is now category-only; persisted filters of other types are wiped on v4 migration.
         expect(state.statusFilters).toBeInstanceOf(Set);
-        expect(state.statusFilters.has('Ready')).toBe(true);
-        // 'Done' is stripped on migration to v3 — Done tasks no longer appear on the main list.
-        expect(state.statusFilters.has('Done' as never)).toBe(false);
+        expect(state.statusFilters.size).toBe(0);
 
-        expect(state.priorityFilters.has('High')).toBe(true);
+        expect(state.priorityFilters).toBeInstanceOf(Set);
+        expect(state.priorityFilters.size).toBe(0);
 
-        expect(state.dueDateFilters.has('today')).toBe(true);
-        expect(state.dueDateFilters.has('overdue')).toBe(true);
+        expect(state.dueDateFilters).toBeInstanceOf(Set);
+        expect(state.dueDateFilters.size).toBe(0);
 
         // categoryFilters is intentionally reset on rehydrate.
+        expect(state.categoryFilters).toBeInstanceOf(Set);
         expect(state.categoryFilters.size).toBe(0);
     });
 
