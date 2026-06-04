@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useRef } from 'react';
-import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
+import React, { useRef, useState } from 'react';
+import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
@@ -16,6 +16,8 @@ interface Props {
     onOpenStats: (task: Task) => void;
 }
 
+type ActionKey = 'retrospect' | 'edit' | 'reopen' | 'delete';
+
 export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, onOpenStats }: Props) {
     const colors = useColors();
     const styles = makeStyles(colors);
@@ -23,6 +25,7 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
     const { id, title, priority, categoryId, dueDate, completedTime } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
+    const [menuOpen, setMenuOpen] = useState(false);
 
     const completedDate = completedTime
         ? new Date(completedTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
@@ -40,7 +43,7 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
         lastTapRef.current = now;
     }
 
-    function handleDelete() {
+    function confirmDelete() {
         Alert.alert(
             'Delete Task',
             `Permanently delete "${title}"? This cannot be undone.`,
@@ -50,6 +53,31 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
             ]
         );
     }
+
+    function handleAction(action: ActionKey) {
+        setMenuOpen(false);
+        switch (action) {
+            case 'retrospect':
+                onOpenStats(task);
+                break;
+            case 'edit':
+                onEdit(task);
+                break;
+            case 'reopen':
+                onRestore(id);
+                break;
+            case 'delete':
+                confirmDelete();
+                break;
+        }
+    }
+
+    const actions: { key: ActionKey; label: string; icon: keyof typeof Ionicons.glyphMap; danger?: boolean }[] = [
+        { key: 'retrospect', label: 'Retrospect', icon: 'stats-chart' },
+        { key: 'edit', label: 'Edit', icon: 'pencil-sharp' },
+        { key: 'reopen', label: 'Reopen', icon: 'arrow-undo-outline' },
+        { key: 'delete', label: 'Delete', icon: 'trash', danger: true },
+    ];
 
     return (
         <Pressable
@@ -61,28 +89,14 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
         <View style={[styles.card, { borderLeftColor: categoryColor }]}>
             <View style={styles.topRow}>
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
-                <View style={styles.actions}>
-                    <Pressable
-                        style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.7 }]}
-                        onPress={() => onEdit(task)}
-                    >
-                        <Ionicons name="pencil-sharp" size={13} color={colors.white} />
-                    </Pressable>
-                    <Pressable
-                        style={({ pressed }) => [styles.restoreBtn, pressed && { opacity: 0.7 }]}
-                        onPress={() => onRestore(id)}
-                    >
-                        <Ionicons name="arrow-undo-outline" size={13} color={colors.white} />
-                        <Text style={styles.restoreText}>Reopen</Text>
-                    </Pressable>
-                    <Pressable
-                        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.7 }]}
-                        onPress={handleDelete}
-                    >
-                        <Ionicons name="trash" size={15} color={colors.white} />
-                        <Text style={styles.deleteText}>Delete</Text>
-                    </Pressable>
-                </View>
+                <Pressable
+                    style={({ pressed }) => [styles.actionsBtn, pressed && { opacity: 0.7 }]}
+                    onPress={() => setMenuOpen(true)}
+                    accessibilityLabel="Task actions"
+                    hitSlop={8}
+                >
+                    <Ionicons name="ellipsis-horizontal" size={18} color={colors.text.muted} />
+                </Pressable>
             </View>
             <View style={styles.meta}>
                 <Text style={[styles.priority, { color: colors.priority[priority] }]}>{priority}</Text>
@@ -96,6 +110,30 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
                 )}
                 {completedDate && <Text style={styles.archivedText}>Completed {completedDate}</Text>}
             </View>
+
+            <Modal visible={menuOpen} transparent animationType="fade" onRequestClose={() => setMenuOpen(false)}>
+                <Pressable style={styles.overlay} onPress={() => setMenuOpen(false)}>
+                    <Pressable style={styles.menu} onPress={(e) => e.stopPropagation()}>
+                        <Text style={styles.menuTitle} numberOfLines={1}>{title}</Text>
+                        {actions.map((a) => (
+                            <Pressable
+                                key={a.key}
+                                style={({ pressed }) => [styles.menuItem, pressed && { opacity: 0.7 }]}
+                                onPress={() => handleAction(a.key)}
+                            >
+                                <Ionicons
+                                    name={a.icon}
+                                    size={18}
+                                    color={a.danger ? colors.text.error : colors.text.secondary}
+                                />
+                                <Text style={[styles.menuItemText, a.danger && { color: colors.text.error }]}>
+                                    {a.label}
+                                </Text>
+                            </Pressable>
+                        ))}
+                    </Pressable>
+                </Pressable>
+            </Modal>
         </View>
         </Pressable>
     );
@@ -109,25 +147,50 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     title: { fontSize: 14, fontWeight: '600', color: c.text.muted, flex: 1, marginRight: 8 },
-    actions: { flexDirection: 'row', gap: 6 },
-    editBtn: {
+    actionsBtn: {
         width: 28, height: 28, borderRadius: 14,
-        backgroundColor: c.text.weak, alignItems: 'center', justifyContent: 'center',
+        alignItems: 'center', justifyContent: 'center',
     },
-    restoreBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: c.status['In Progress'], paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
-    },
-    restoreText: { color: c.white, fontSize: 11, fontWeight: '700' },
-    deleteBtn: {
-        flexDirection: 'row', alignItems: 'center', gap: 4,
-        backgroundColor: c.text.error, paddingHorizontal: 10, paddingVertical: 4, borderRadius: 12,
-    },
-    deleteText: { color: c.white, fontSize: 11, fontWeight: '700' },
     meta: { flexDirection: 'row', alignItems: 'center', gap: 8, flexWrap: 'wrap' },
     priority: { fontSize: 11, fontWeight: '700' },
     catChip: { paddingHorizontal: 7, paddingVertical: 2, borderRadius: 10 },
     catChipText: { fontSize: 10, color: c.white, fontWeight: '600' },
     metaText: { fontSize: 11, color: c.text.placeholder },
     archivedText: { fontSize: 11, color: c.text.veryLight, fontStyle: 'italic' },
+    overlay: {
+        flex: 1,
+        backgroundColor: c.overlay.scrimSoft,
+        justifyContent: 'center',
+        alignItems: 'center',
+    },
+    menu: {
+        backgroundColor: c.surfaceElevated,
+        borderRadius: 12,
+        paddingVertical: 8,
+        width: '70%',
+        maxWidth: 320,
+        boxShadow: '0px 4px 8px rgba(0,0,0,0.15)',
+    },
+    menuTitle: {
+        fontSize: 13,
+        fontWeight: '700',
+        color: c.text.muted,
+        paddingHorizontal: 16,
+        paddingVertical: 8,
+        borderBottomWidth: 1,
+        borderBottomColor: c.border.subtle,
+        marginBottom: 4,
+    },
+    menuItem: {
+        flexDirection: 'row',
+        alignItems: 'center',
+        gap: 12,
+        paddingHorizontal: 16,
+        paddingVertical: 12,
+    },
+    menuItemText: {
+        fontSize: 15,
+        color: c.text.secondary,
+        fontWeight: '500',
+    },
 });
