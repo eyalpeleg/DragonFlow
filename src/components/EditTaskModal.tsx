@@ -168,7 +168,7 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
                         />
 
                         <TextInput
-                            placeholder="Description (optional)"
+                            placeholder="Details (optional)"
                             placeholderTextColor={colors.text.placeholder}
                             style={[styles.input, styles.textArea]}
                             multiline

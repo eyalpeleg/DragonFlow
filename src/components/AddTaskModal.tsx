@@ -184,7 +184,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
 
                         <TextInput
                             ref={descriptionInputRef}
-                            placeholder="Add a description"
+                            placeholder="Add details"
                             placeholderTextColor={colors.text.placeholder}
                             style={[styles.input, styles.textArea]}
                             multiline
