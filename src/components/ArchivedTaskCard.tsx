@@ -73,7 +73,7 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     card: {
         backgroundColor: c.surfaceAlt.offWhite, padding: 12, marginVertical: 4, marginHorizontal: 12,
-        borderRadius: 10, borderLeftWidth: 4, opacity: 0.85,
+        borderRadius: 10, borderLeftWidth: 4,
         elevation: 1, shadowColor: c.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
     },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
