@@ -1,19 +1,22 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
+import React, { useMemo, useRef } from 'react';
 import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
 import { Task } from '../types';
 
+const DOUBLE_TAP_MS = 280;
+
 interface Props {
     task: Task;
     onRestore: (id: string) => void;
     onDelete: (id: string) => void;
     onEdit: (task: Task) => void;
+    onOpenStats: (task: Task) => void;
 }
 
-export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: Props) {
+export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, onOpenStats }: Props) {
     const colors = useColors();
     const styles = useMemo(() => makeStyles(colors), [colors]);
     const categories = useTaskStore((s) => s.categories);
@@ -24,6 +27,18 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
     const completedDate = completedTime
         ? new Date(completedTime).toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : '';
+
+    const lastTapRef = useRef<number>(0);
+
+    function handleCardPress() {
+        const now = Date.now();
+        if (now - lastTapRef.current < DOUBLE_TAP_MS) {
+            lastTapRef.current = 0;
+            onOpenStats(task);
+            return;
+        }
+        lastTapRef.current = now;
+    }
 
     function handleDelete() {
         Alert.alert(
@@ -37,6 +52,12 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
     }
 
     return (
+        <TouchableOpacity
+            activeOpacity={0.85}
+            onPress={handleCardPress}
+            accessibilityLabel="Open task retrospective"
+            accessibilityHint="Double-tap to view stats and reflection"
+        >
         <View style={[styles.card, { borderLeftColor: categoryColor }]}>
             <View style={styles.topRow}>
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
@@ -67,6 +88,7 @@ export default function ArchivedTaskCard({ task, onRestore, onDelete, onEdit }: 
                 {completedDate && <Text style={styles.archivedText}>Completed {completedDate}</Text>}
             </View>
         </View>
+        </TouchableOpacity>
     );
 }
 

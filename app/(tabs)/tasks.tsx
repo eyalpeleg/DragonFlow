@@ -3,7 +3,7 @@ import React, { useCallback, useEffect, useMemo, useState } from 'react';
 import { ActivityIndicator, AppState, BackHandler, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
-import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
+import TaskReflectionCard from '@/src/components/TaskReflectionCard';
 import DoneStatsModal from '@/src/components/DoneStatsModal';
 import EditTaskModal, { EditFocus } from '@/src/components/EditTaskModal';
 import FilterModal from '@/src/components/FilterModal';
@@ -109,7 +109,13 @@ export default function TasksScreen() {
     const reopenTask = useCallback((id: string) => setStatus(id, 'In Progress'), [setStatus]);
 
     const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <ArchivedTaskCard task={item} onRestore={reopenTask} onDelete={deleteTask} onEdit={(t) => openEdit(t)} />
+        <TaskReflectionCard
+            task={item}
+            onRestore={reopenTask}
+            onDelete={deleteTask}
+            onEdit={(t) => openEdit(t)}
+            onOpenStats={setStatsTask}
+        />
     ), [reopenTask, deleteTask, openEdit]);
 
     function handleFilterToggle() {
