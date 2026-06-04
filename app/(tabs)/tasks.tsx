@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, BackHandler, FlatList, ListRenderItem, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
 import TaskReflectionCard from '@/src/components/TaskReflectionCard';
@@ -18,9 +19,19 @@ import { Task, TaskStatus } from '@/src/types';
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 
+const handleFilterSave = (_filterType: string, selectedSet: Set<string>) => {
+    useTaskStore.getState().setCategoryFilters(selectedSet);
+};
+
+function getTodayAndTomorrow(): { today: string; tomorrow: string } {
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    return { today, tomorrow };
+}
+
 export default function TasksScreen() {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const { addTask, updateTask, deleteTask, setStatus, hasHydrated } = useTaskStore();
     const reflectOnDone = useTaskStore((s) => s.reflectOnDone);
     const tasks = useSortedFilteredTasks();
@@ -31,14 +42,6 @@ export default function TasksScreen() {
     const [statsTask, setStatsTask] = useState<Task | null>(null);
     const [showArchive, setShowArchive] = useState(false);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
-
-    const lastDoneUndo = useTaskStore((s) => s.lastDoneUndo);
-    useEffect(() => {
-        if (statsTask && lastDoneUndo === null) {
-            const stillDone = useTaskStore.getState().tasks.find((t) => t.id === statsTask.id);
-            if (!stillDone || stillDone.status !== 'Done') setStatsTask(null);
-        }
-    }, [lastDoneUndo, statsTask]);
 
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
     const focusMode = useTaskStore((s) => s.focusMode);
@@ -73,33 +76,37 @@ export default function TasksScreen() {
         };
     }, []);
 
-    const openEdit = useCallback((task: Task, focus?: EditFocus) => {
+    const openEdit = (task: Task, focus?: EditFocus) => {
         setEditFocus(focus);
         setEditTask(task);
-    }, []);
+    };
 
-    const handleStatusChange = useCallback((id: string, status: TaskStatus) => {
+    const handleStatusChange = (id: string, status: TaskStatus) => {
         const prior = useTaskStore.getState().tasks.find((t) => t.id === id);
         setStatus(id, status);
         if (status === 'Done' && prior && prior.status !== 'Done' && reflectOnDone) {
             const updated = useTaskStore.getState().tasks.find((t) => t.id === id);
             if (updated) setStatsTask(updated);
         }
-    }, [setStatus, reflectOnDone]);
+    };
 
-    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
+    const { today, tomorrow } = getTodayAndTomorrow();
+
+    const renderTask: ListRenderItem<Task> = ({ item }) => (
         <TaskCard
             task={item}
+            today={today}
+            tomorrow={tomorrow}
             onStatusChange={handleStatusChange}
             onEdit={openEdit}
             onDelete={deleteTask}
             onOpenStats={setStatsTask}
         />
-    ), [handleStatusChange, deleteTask, openEdit]);
+    );
 
-    const reopenTask = useCallback((id: string) => setStatus(id, 'In Progress'), [setStatus]);
+    const reopenTask = (id: string) => setStatus(id, 'In Progress');
 
-    const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
+    const renderArchivedTask: ListRenderItem<Task> = ({ item }) => (
         <TaskReflectionCard
             task={item}
             onRestore={reopenTask}
@@ -107,7 +114,7 @@ export default function TasksScreen() {
             onEdit={(t) => openEdit(t)}
             onOpenStats={setStatsTask}
         />
-    ), [reopenTask, deleteTask, openEdit]);
+    );
 
     function handleFilterToggle() {
         setFilterModalOpen(true);
@@ -128,10 +135,6 @@ export default function TasksScreen() {
         setEditFocus(undefined);
     }
 
-    const handleFilterSave = (_filterType: string, selectedSet: Set<string>) => {
-        useTaskStore.getState().setCategoryFilters(selectedSet);
-    };
-
     if (!hasHydrated) {
         return (
             <SafeAreaView style={styles.containerCentered}>
@@ -149,8 +152,8 @@ export default function TasksScreen() {
                 </View>
                 <View style={styles.headerActions}>
                     {!showArchive && (
-                        <TouchableOpacity
-                            style={focusMode ? styles.focusBtnActive : styles.focusBtn}
+                        <Pressable
+                            style={({ pressed }) => [focusMode ? styles.focusBtnActive : styles.focusBtn, pressed && { opacity: 0.7 }]}
                             onPress={() => setFocusMode(!focusMode)}
                         >
                             <Ionicons
@@ -158,11 +161,11 @@ export default function TasksScreen() {
                                 size={20}
                                 color={focusMode ? colors.primary : colors.white}
                             />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                     {!showArchive && (
-                        <TouchableOpacity
-                            style={styles.filterBtn}
+                        <Pressable
+                            style={({ pressed }) => [styles.filterBtn, pressed && { opacity: 0.7 }]}
                             onPress={handleFilterToggle}
                             accessibilityLabel="Filter by category"
                         >
@@ -176,10 +179,10 @@ export default function TasksScreen() {
                                     <Text style={styles.filterBadgeText}>{categoryFilterCount}</Text>
                                 </View>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
-                    <TouchableOpacity
-                        style={showArchive ? styles.archiveBtnActive : styles.archiveBtn}
+                    <Pressable
+                        style={({ pressed }) => [showArchive ? styles.archiveBtnActive : styles.archiveBtn, pressed && { opacity: 0.7 }]}
                         onPress={() => setShowArchive((v) => !v)}
                     >
                         <Ionicons
@@ -187,11 +190,15 @@ export default function TasksScreen() {
                             size={20}
                             color={showArchive ? colors.primary : colors.white}
                         />
-                    </TouchableOpacity>
+                    </Pressable>
                     {!showArchive && (
-                        <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)} accessibilityLabel="Add task">
+                        <Pressable
+                            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
+                            onPress={() => setAddModalVisible(true)}
+                            accessibilityLabel="Add task"
+                        >
                             <Ionicons name="add" size={24} color={colors.white} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
             </View>
@@ -231,6 +238,7 @@ export default function TasksScreen() {
             )}
 
             <FilterModal
+                key={`filter-${filterModalOpen ? 'open' : 'closed'}`}
                 isOpen={filterModalOpen}
                 filterType="category"
                 onClose={handleFilterModalClose}
@@ -238,12 +246,14 @@ export default function TasksScreen() {
             />
 
             <AddTaskModal
+                key={`add-${addModalVisible ? 'open' : 'closed'}`}
                 isVisible={addModalVisible}
                 onClose={() => setAddModalVisible(false)}
                 onAdd={addTask}
             />
 
             <EditTaskModal
+                key={`edit-${editTask?.id ?? 'none'}`}
                 isVisible={editTask !== null}
                 task={editTask}
                 initialFocus={editFocus}
@@ -252,6 +262,7 @@ export default function TasksScreen() {
             />
 
             <DoneStatsModal
+                key={`stats-${statsTask?.id ?? 'none'}`}
                 task={statsTask}
                 onClose={() => setStatsTask(null)}
             />

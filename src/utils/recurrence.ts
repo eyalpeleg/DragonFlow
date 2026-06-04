@@ -50,9 +50,3 @@ export function buildNextOccurrence(completed: Task): Task {
     };
 }
 
-export function recurrenceLabel(task: Task): string {
-    if (!task.recurrence) return '';
-    const { frequency, interval } = task.recurrence;
-    if (interval === 1) return `Repeats ${frequency}`;
-    return `Every ${interval} ${frequency === 'daily' ? 'days' : frequency === 'weekly' ? 'weeks' : 'months'}`;
-}

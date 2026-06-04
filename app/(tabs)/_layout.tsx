@@ -7,22 +7,24 @@ import PomodoroMiniBar from '@/src/components/PomodoroMiniBar';
 import PomodoroTimer from '@/src/components/PomodoroTimer';
 import { usePomodoroController } from '@/src/hooks/usePomodoroController';
 import { useTaskStore } from '@/src/store/appStore';
-import { useColors } from '@/src/styles/useColors';
+import { useColorMode, useColors } from '@/src/styles/useColors';
 
 export default function TabLayout() {
     const colors = useColors();
+    const mode = useColorMode();
     const insets = useSafeAreaInsets();
     const tabBarHeight = (Platform.OS === 'ios' ? 49 : 56) + insets.bottom + 4;
     const setPomodoroVisible = useTaskStore((s) => s.setPomodoroVisible);
     const controller = usePomodoroController();
     const { modeIdx, secondsLeft, running, isPaused, customTimerSeconds,
         handleStart, handlePause, handleReset, handleSelectMode, handleSetCustomTimerSeconds } = controller;
+    const activeTintColor = mode === 'light' ? '#5e3d8a' : colors.primary;
 
     return (
         <View style={styles.root}>
             <Tabs
                 screenOptions={{
-                    tabBarActiveTintColor: colors.primary,
+                    tabBarActiveTintColor: activeTintColor,
                     tabBarInactiveTintColor: colors.text.weak,
                     headerShown: false,
                     tabBarStyle: { paddingBottom: 4, backgroundColor: colors.surface, borderTopColor: colors.border.light },

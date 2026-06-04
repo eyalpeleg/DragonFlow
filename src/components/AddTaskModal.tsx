@@ -1,17 +1,69 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Animated, Easing, Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Easing, FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, PriorityLevel } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore, AddTaskInput } from '../store/appStore';
 import { RecurrenceConfig, RecurrenceFrequency, SubTask } from '../types';
-import ScheduleEditor from './ScheduleEditor';
+import ScheduleEditor, { ScheduleEditorHandle } from './ScheduleEditor';
 import AddCategoryModal from './AddCategoryModal';
 import { suggestDueTime } from '../utils/dueTime';
 
 function makeId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+const pressedOpacity = { opacity: 0.7 } as const;
+const categoryKeyExtractor = (item: { id: string }) => item.id;
+const subTaskKeyExtractor = (item: SubTask) => item.id;
+
+interface Category {
+    id: string;
+    name: string;
+    color: string;
+}
+
+interface CategoryRowProps {
+    item: Category;
+    selectedId: string;
+    onSelect: (id: string) => void;
+    whiteColor: string;
+    styles: ReturnType<typeof makeStyles>;
+}
+
+function CategoryRow({ item, selectedId, onSelect, whiteColor, styles }: CategoryRowProps) {
+    const selected = selectedId === item.id;
+    return (
+        <Pressable
+            onPress={() => onSelect(item.id)}
+            style={({ pressed }) => [styles.chip, selected && { backgroundColor: item.color }, pressed && pressedOpacity]}
+        >
+            <Text style={[styles.chipText, selected && { color: whiteColor }]}>{item.name}</Text>
+        </Pressable>
+    );
+}
+
+interface SubTaskRowProps {
+    item: SubTask;
+    onRemove: (id: string) => void;
+    iconColor: string;
+    styles: ReturnType<typeof makeStyles>;
+}
+
+function SubTaskRow({ item, onRemove, iconColor, styles }: SubTaskRowProps) {
+    return (
+        <View style={styles.subTaskRow}>
+            <Ionicons name="ellipse-outline" size={14} color={iconColor} />
+            <Text style={styles.subTaskTitle} numberOfLines={1}>{item.title}</Text>
+            <Pressable
+                onPress={() => onRemove(item.id)}
+                style={({ pressed }) => pressed && pressedOpacity}
+            >
+                <Ionicons name="close" size={14} color={iconColor} />
+            </Pressable>
+        </View>
+    );
 }
 
 interface Props {
@@ -22,8 +74,8 @@ interface Props {
 
 export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const recurringTrackColor = useMemo(() => ({ true: colors.primary }), [colors]);
+    const styles = makeStyles(colors);
+    const recurringTrackColor = { true: colors.primary };
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
@@ -36,7 +88,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [isRecurring, setIsRecurring] = useState(false);
     const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
-    const [interval, setInterval] = useState('1');
+    const [interval, setIntervalValue] = useState('1');
     const [subTasks, setSubTasks] = useState<SubTask[]>([]);
     const [subTaskInput, setSubTaskInput] = useState('');
     const [pinned, setPinned] = useState(false);
@@ -47,8 +99,8 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     const scrollRef = useRef<ScrollView>(null);
     const scheduleY = useRef(0);
     const priorityY = useRef(0);
-    const [openDateToken, setOpenDateToken] = useState(0);
-    const selectedPulse = useRef(new Animated.Value(0)).current;
+    const scheduleEditorRef = useRef<ScheduleEditorHandle>(null);
+    const [selectedPulse] = useState(() => new Animated.Value(0));
 
     function blinkSelected() {
         selectedPulse.setValue(0);
@@ -74,13 +126,10 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
     }
 
     useEffect(() => {
-
-        if (isVisible) {
-            setDueTime(defaultTaskTime);
-            setTimeout(() => titleInputRef.current?.focus(), 300);
-        }
-
-    }, [isVisible, defaultTaskTime]);
+        if (!isVisible) return;
+        const t = setTimeout(() => titleInputRef.current?.focus(), 300);
+        return () => clearTimeout(t);
+    }, [isVisible]);
 
     function addSubTask() {
         const t = subTaskInput.trim();
@@ -106,7 +155,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         Keyboard.dismiss();
         requestAnimationFrame(() => {
             scrollRef.current?.scrollTo({ y: Math.max(0, scheduleY.current - 12), animated: true });
-            setOpenDateToken((n) => n + 1);
+            scheduleEditorRef.current?.openDatePicker();
         });
     }
 
@@ -134,24 +183,33 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
             dueDate: dueDateStr, dueTime,
             subTasks, recurrence, pinned,
         });
-        reset();
         onClose();
     };
 
-    function reset() {
-        setTitle(''); setDescription(''); setPriority('Medium'); setCategoryId(DEFAULT_CATEGORY_ID);
-        setDueDate(null); setDueTime(defaultTaskTime);
-        setIsRecurring(false); setFrequency('weekly'); setInterval('1');
-        setSubTasks([]); setSubTaskInput('');
-        setPinned(false);
-    }
-
     function handleClose() {
-        reset();
         onClose();
     }
 
     const priorities: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
+
+    const renderCategory = ({ item }: { item: Category }) => (
+        <CategoryRow
+            item={item}
+            selectedId={categoryId}
+            onSelect={setCategoryId}
+            whiteColor={colors.white}
+            styles={styles}
+        />
+    );
+
+    const renderSubTask = ({ item }: { item: SubTask }) => (
+        <SubTaskRow
+            item={item}
+            onRemove={removeSubTask}
+            iconColor={colors.text.disabled}
+            styles={styles}
+        />
+    );
 
     return (
         <>
@@ -200,6 +258,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             onLayout={(e) => { scheduleY.current = e.nativeEvent.layout.y; }}
                         >Schedule</Text>
                         <ScheduleEditor
+                            ref={scheduleEditorRef}
                             dueDate={dueDate}
                             dueTime={dueTime}
                             isRecurring={isRecurring}
@@ -209,8 +268,7 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                             onChangeDueTime={setDueTime}
                             onChangeIsRecurring={setIsRecurring}
                             onChangeFrequency={setFrequency}
-                            onChangeInterval={setInterval}
-                            openDateToken={openDateToken}
+                            onChangeInterval={setIntervalValue}
                             onTimeSelected={handleTimeSelected}
                         />
 
@@ -240,37 +298,42 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                                         key={p}
                                         style={selected ? { transform: [{ scale: selectedScale }] } : undefined}
                                     >
-                                        <TouchableOpacity onPress={() => setPriority(p)} style={chipStyle}>
+                                        <Pressable
+                                            onPress={() => setPriority(p)}
+                                            style={({ pressed }) => [...chipStyle, pressed && { opacity: 0.7 }]}
+                                        >
                                             <Text style={textStyle}>{p}</Text>
-                                        </TouchableOpacity>
+                                        </Pressable>
                                     </Animated.View>
                                 );
                             })}
                         </View>
 
                         <Text style={styles.label}>Category</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
-                            {categories.map((c) => (
-                                <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
-                                    style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
-                                    <Text style={[styles.chipText, categoryId === c.id && { color: colors.white }]}>{c.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                            <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
-                                <Ionicons name="add" size={14} color={colors.primary} />
-                            </TouchableOpacity>
-                        </ScrollView>
+                        <FlatList
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.categoryRow}
+                            data={categories}
+                            keyExtractor={categoryKeyExtractor}
+                            renderItem={renderCategory}
+                            ListFooterComponent={
+                                <Pressable
+                                    style={({ pressed }) => [styles.addCatChip, pressed && pressedOpacity]}
+                                    onPress={() => setAddCatVisible(true)}
+                                >
+                                    <Ionicons name="add" size={14} color={colors.primary} />
+                                </Pressable>
+                            }
+                        />
 
                         <Text style={styles.label}>Sub-tasks</Text>
-                        {subTasks.map((s) => (
-                            <View key={s.id} style={styles.subTaskRow}>
-                                <Ionicons name="ellipse-outline" size={14} color={colors.text.disabled} />
-                                <Text style={styles.subTaskTitle} numberOfLines={1}>{s.title}</Text>
-                                <TouchableOpacity onPress={() => removeSubTask(s.id)}>
-                                    <Ionicons name="close" size={14} color={colors.text.disabled} />
-                                </TouchableOpacity>
-                            </View>
-                        ))}
+                        <FlatList
+                            data={subTasks}
+                            keyExtractor={subTaskKeyExtractor}
+                            scrollEnabled={false}
+                            renderItem={renderSubTask}
+                        />
                         <View style={styles.subTaskInputRow}>
                             <Ionicons name="add" size={18} color={colors.primary} />
                             <TextInput
@@ -288,12 +351,18 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
                         </View>
 
                         <View style={[styles.buttonRow, { marginTop: 20 }]}>
-                            <TouchableOpacity onPress={() => { reset(); onClose(); }} style={styles.cancelBtn}>
+                            <Pressable
+                                onPress={onClose}
+                                style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                            >
                                 <Text style={styles.cancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleSubmit} style={[styles.saveBtn, !title.trim() && styles.saveBtnDisabled]}>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleSubmit}
+                                style={({ pressed }) => [styles.saveBtn, !title.trim() && styles.saveBtnDisabled, pressed && { opacity: 0.7 }]}
+                            >
                                 <Text style={styles.saveText}>Save Task</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>

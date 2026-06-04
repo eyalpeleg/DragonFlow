@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useEffect, useMemo, useRef, useState } from 'react';
-import { Keyboard, KeyboardAvoidingView, Modal, Platform, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { FlatList, Keyboard, KeyboardAvoidingView, Modal, Platform, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors, PriorityLevel } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -11,6 +11,99 @@ import AddCategoryModal from './AddCategoryModal';
 
 function makeId(): string {
     return Date.now().toString(36) + Math.random().toString(36).slice(2, 6);
+}
+
+const pressedOpacity = { opacity: 0.7 } as const;
+const pressedOpacitySoft = { opacity: 0.6 } as const;
+const editFlexStyle = { flex: 1 } as const;
+const categoryKeyExtractor = (item: { id: string }) => item.id;
+const subTaskKeyExtractor = (item: SubTask) => item.id;
+
+interface CategoryItem {
+    id: string;
+    name: string;
+    color: string;
+}
+
+interface CategoryRowProps {
+    item: CategoryItem;
+    selectedId: string;
+    onSelect: (id: string) => void;
+    whiteColor: string;
+    styles: ReturnType<typeof makeStyles>;
+}
+
+function CategoryRow({ item, selectedId, onSelect, whiteColor, styles }: CategoryRowProps) {
+    const selected = selectedId === item.id;
+    return (
+        <Pressable
+            onPress={() => onSelect(item.id)}
+            style={({ pressed }) => [styles.chip, selected && { backgroundColor: item.color }, pressed && pressedOpacity]}
+        >
+            <Text style={[styles.chipText, selected && { color: whiteColor }]}>{item.name}</Text>
+        </Pressable>
+    );
+}
+
+interface SubTaskRowProps {
+    item: SubTask;
+    editingSubId: string | null;
+    editingSubTitle: string;
+    onStartEdit: (sub: SubTask) => void;
+    onCommitEdit: () => void;
+    onCancelEdit: () => void;
+    onChangeEditTitle: (text: string) => void;
+    onRemove: (id: string) => void;
+    doneColor: string;
+    disabledColor: string;
+    styles: ReturnType<typeof makeStyles>;
+}
+
+function SubTaskRow({
+    item, editingSubId, editingSubTitle, onStartEdit, onCommitEdit, onCancelEdit, onChangeEditTitle, onRemove, doneColor, disabledColor, styles,
+}: SubTaskRowProps) {
+    const isEditing = editingSubId === item.id;
+    return (
+        <View style={styles.subTaskRow}>
+            <Ionicons
+                name={item.completed ? 'checkmark-circle' : 'ellipse-outline'}
+                size={14}
+                color={item.completed ? doneColor : disabledColor}
+            />
+            {isEditing ? (
+                <TextInput
+                    style={[styles.subTaskTitle, styles.subTaskEditInput, item.completed && styles.subTaskDone]}
+                    value={editingSubTitle}
+                    onChangeText={onChangeEditTitle}
+                    autoFocus
+                    selectTextOnFocus
+                    onSubmitEditing={onCommitEdit}
+                    returnKeyType="done"
+                />
+            ) : (
+                <Pressable
+                    style={({ pressed }) => [editFlexStyle, pressed && pressedOpacitySoft]}
+                    onPress={() => onStartEdit(item)}
+                >
+                    <Text style={[styles.subTaskTitle, item.completed && styles.subTaskDone]} numberOfLines={1}>
+                        {item.title}
+                    </Text>
+                </Pressable>
+            )}
+            <Pressable
+                onPress={() => (isEditing ? onCancelEdit() : onRemove(item.id))}
+                style={({ pressed }) => pressed && pressedOpacity}
+            >
+                <Ionicons name="close" size={14} color={disabledColor} />
+            </Pressable>
+        </View>
+    );
+}
+
+function parseTaskDueDate(dueDate: string | undefined): Date | null {
+    if (!dueDate) return null;
+    const parsed = new Date(dueDate + 'T00:00:00');
+    return isNaN(parsed.getTime()) ? null : parsed;
 }
 
 export type EditFocus = 'subTask';
@@ -25,26 +118,26 @@ interface Props {
 
 export default function EditTaskModal({ isVisible, task, initialFocus, onClose, onSave }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const recurringTrackColor = useMemo(() => ({ true: colors.primary }), [colors]);
+    const styles = makeStyles(colors);
+    const recurringTrackColor = { true: colors.primary };
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const defaultTaskTime = useTaskStore((s) => s.defaultTaskTime);
-    const [title, setTitle] = useState('');
-    const [description, setDescription] = useState('');
-    const [priority, setPriority] = useState<PriorityLevel>('Medium');
-    const [categoryId, setCategoryId] = useState(DEFAULT_CATEGORY_ID);
-    const [dueDate, setDueDate] = useState<Date | null>(new Date());
-    const [dueTime, setDueTime] = useState(defaultTaskTime);
+    const [title, setTitle] = useState(task?.title ?? '');
+    const [description, setDescription] = useState(task?.description ?? '');
+    const [priority, setPriority] = useState<PriorityLevel>(task?.priority ?? 'Medium');
+    const [categoryId, setCategoryId] = useState(task?.categoryId ?? DEFAULT_CATEGORY_ID);
+    const [dueDate, setDueDate] = useState<Date | null>(() => parseTaskDueDate(task?.dueDate));
+    const [dueTime, setDueTime] = useState(task?.dueTime ?? defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
-    const [isRecurring, setIsRecurring] = useState(false);
-    const [frequency, setFrequency] = useState<RecurrenceFrequency>('weekly');
-    const [interval, setInterval] = useState('1');
-    const [subTasks, setSubTasks] = useState<SubTask[]>([]);
+    const [isRecurring, setIsRecurring] = useState(!!task?.recurrence);
+    const [frequency, setFrequency] = useState<RecurrenceFrequency>(task?.recurrence?.frequency ?? 'weekly');
+    const [interval, setIntervalValue] = useState(String(task?.recurrence?.interval ?? 1));
+    const [subTasks, setSubTasks] = useState<SubTask[]>(task?.subTasks ?? []);
     const [subTaskInput, setSubTaskInput] = useState('');
     const [editingSubId, setEditingSubId] = useState<string | null>(null);
     const [editingSubTitle, setEditingSubTitle] = useState('');
-    const [pinned, setPinned] = useState(false);
+    const [pinned, setPinned] = useState(!!task?.pinned);
 
     const subTaskInputRef = useRef<TextInput>(null);
     const scrollRef = useRef<ScrollView>(null);
@@ -52,30 +145,6 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
     function scrollSubTasksIntoView() {
         requestAnimationFrame(() => scrollRef.current?.scrollToEnd({ animated: true }));
     }
-
-    useEffect(() => {
-        if (task) {
-            setTitle(task.title);
-            setDescription(task.description);
-            setPriority(task.priority);
-            setCategoryId(task.categoryId);
-            if (task.dueDate) {
-                const parsed = new Date(task.dueDate + 'T00:00:00');
-                setDueDate(isNaN(parsed.getTime()) ? null : parsed);
-            } else {
-                setDueDate(null);
-            }
-            setDueTime(task.dueTime ?? '08:00');
-            setIsRecurring(!!task.recurrence);
-            setFrequency(task.recurrence?.frequency ?? 'weekly');
-            setInterval(String(task.recurrence?.interval ?? 1));
-            setSubTasks(task.subTasks ?? []);
-            setSubTaskInput('');
-            setEditingSubId(null);
-            setEditingSubTitle('');
-            setPinned(!!task.pinned);
-        }
-    }, [task]);
 
     useEffect(() => {
         if (!isVisible || initialFocus !== 'subTask') return;
@@ -142,6 +211,32 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
 
     const priorities: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 
+    const renderCategory = ({ item }: { item: CategoryItem }) => (
+        <CategoryRow
+            item={item}
+            selectedId={categoryId}
+            onSelect={setCategoryId}
+            whiteColor={colors.white}
+            styles={styles}
+        />
+    );
+
+    const renderSubTask = ({ item }: { item: SubTask }) => (
+        <SubTaskRow
+            item={item}
+            editingSubId={editingSubId}
+            editingSubTitle={editingSubTitle}
+            onStartEdit={startEditSub}
+            onCommitEdit={commitEditSub}
+            onCancelEdit={cancelEditSub}
+            onChangeEditTitle={setEditingSubTitle}
+            onRemove={removeSubTask}
+            doneColor={colors.status['Done']}
+            disabledColor={colors.text.disabled}
+            styles={styles}
+        />
+    );
+
     return (
         <>
             <Modal visible={isVisible} animationType="slide" transparent onRequestClose={onClose}>
@@ -187,31 +282,39 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
                             onChangeDueTime={setDueTime}
                             onChangeIsRecurring={setIsRecurring}
                             onChangeFrequency={setFrequency}
-                            onChangeInterval={setInterval}
+                            onChangeInterval={setIntervalValue}
                         />
 
                         <Text style={styles.label}>Priority</Text>
                         <View style={styles.row}>
                             {priorities.map((p) => (
-                                <TouchableOpacity key={p} onPress={() => setPriority(p)}
-                                    style={[styles.chip, priority === p && { backgroundColor: colors.priority[p] }]}>
+                                <Pressable
+                                    key={p}
+                                    onPress={() => setPriority(p)}
+                                    style={({ pressed }) => [styles.chip, priority === p && { backgroundColor: colors.priority[p] }, pressed && { opacity: 0.7 }]}
+                                >
                                     <Text style={[styles.chipText, priority === p && { color: colors.white }]}>{p}</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
 
                         <Text style={styles.label}>Category</Text>
-                        <ScrollView horizontal showsHorizontalScrollIndicator={false} style={styles.categoryRow}>
-                            {categories.map((c) => (
-                                <TouchableOpacity key={c.id} onPress={() => setCategoryId(c.id)}
-                                    style={[styles.chip, categoryId === c.id && { backgroundColor: c.color }]}>
-                                    <Text style={[styles.chipText, categoryId === c.id && { color: colors.white }]}>{c.name}</Text>
-                                </TouchableOpacity>
-                            ))}
-                            <TouchableOpacity style={styles.addCatChip} onPress={() => setAddCatVisible(true)}>
-                                <Ionicons name="add" size={14} color={colors.primary} />
-                            </TouchableOpacity>
-                        </ScrollView>
+                        <FlatList
+                            horizontal
+                            showsHorizontalScrollIndicator={false}
+                            style={styles.categoryRow}
+                            data={categories}
+                            keyExtractor={categoryKeyExtractor}
+                            renderItem={renderCategory}
+                            ListFooterComponent={
+                                <Pressable
+                                    style={({ pressed }) => [styles.addCatChip, pressed && pressedOpacity]}
+                                    onPress={() => setAddCatVisible(true)}
+                                >
+                                    <Ionicons name="add" size={14} color={colors.primary} />
+                                </Pressable>
+                            }
+                        />
 
                         <View style={styles.switchRow}>
                             <View>
@@ -226,35 +329,12 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
                         </View>
 
                         <Text style={styles.label}>Sub-tasks</Text>
-                        {subTasks.map((s) => (
-                            <View key={s.id} style={styles.subTaskRow}>
-                                <Ionicons
-                                    name={s.completed ? 'checkmark-circle' : 'ellipse-outline'}
-                                    size={14}
-                                    color={s.completed ? colors.status['Done'] : colors.text.disabled}
-                                />
-                                {editingSubId === s.id ? (
-                                    <TextInput
-                                        style={[styles.subTaskTitle, styles.subTaskEditInput, s.completed && styles.subTaskDone]}
-                                        value={editingSubTitle}
-                                        onChangeText={setEditingSubTitle}
-                                        autoFocus
-                                        selectTextOnFocus
-                                        onSubmitEditing={commitEditSub}
-                                        returnKeyType="done"
-                                    />
-                                ) : (
-                                    <TouchableOpacity style={{ flex: 1 }} onPress={() => startEditSub(s)} activeOpacity={0.6}>
-                                        <Text style={[styles.subTaskTitle, s.completed && styles.subTaskDone]} numberOfLines={1}>
-                                            {s.title}
-                                        </Text>
-                                    </TouchableOpacity>
-                                )}
-                                <TouchableOpacity onPress={() => (editingSubId === s.id ? cancelEditSub() : removeSubTask(s.id))}>
-                                    <Ionicons name="close" size={14} color={colors.text.disabled} />
-                                </TouchableOpacity>
-                            </View>
-                        ))}
+                        <FlatList
+                            data={subTasks}
+                            keyExtractor={subTaskKeyExtractor}
+                            scrollEnabled={false}
+                            renderItem={renderSubTask}
+                        />
                         <View style={styles.subTaskInputRow}>
                             <Ionicons name="add" size={18} color={colors.primary} />
                             <TextInput
@@ -272,12 +352,18 @@ export default function EditTaskModal({ isVisible, task, initialFocus, onClose, 
                         </View>
 
                         <View style={[styles.buttonRow, { marginTop: 20 }]}>
-                            <TouchableOpacity onPress={onClose} style={styles.cancelBtn}>
+                            <Pressable
+                                onPress={onClose}
+                                style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                            >
                                 <Text style={styles.cancelText}>Cancel</Text>
-                            </TouchableOpacity>
-                            <TouchableOpacity onPress={handleSave} style={[styles.saveBtn, !title.trim() && styles.saveBtnDisabled]}>
+                            </Pressable>
+                            <Pressable
+                                onPress={handleSave}
+                                style={({ pressed }) => [styles.saveBtn, !title.trim() && styles.saveBtnDisabled, pressed && { opacity: 0.7 }]}
+                            >
                                 <Text style={styles.saveText}>Save Changes</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </ScrollView>
                 </KeyboardAvoidingView>

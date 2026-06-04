@@ -1,4 +1,11 @@
 export * from './types';
 export { useBackupStore } from './backupStore';
 export * as googleAuth from './googleAuth';
-export * as backupService from './backupService';
+export {
+    initializeBackup,
+    performBackup,
+    listAvailableBackups,
+    performRestore,
+    setupAutoBackup,
+    onAppBackground,
+} from './backupService';

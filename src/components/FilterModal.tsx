@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, Pressable, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { FlatList, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors, PriorityLevel } from '../styles/theme';
@@ -21,10 +21,53 @@ const PRIORITY_OPTIONS: PriorityLevel[] = ['Critical', 'High', 'Medium', 'Low'];
 const DUE_DATE_OPTIONS: ('overdue' | 'today' | 'upcoming')[] = ['overdue', 'today', 'upcoming'];
 const DUE_DATE_LABELS = { overdue: 'Overdue', today: 'Today', upcoming: 'Upcoming' };
 
+const pressedOpacity = { opacity: 0.7 } as const;
+const checkmarkStyle = { marginRight: 10 } as const;
+const optionKeyExtractor = (item: string) => item;
+
+interface FilterRowProps {
+    option: string;
+    isSelected: boolean;
+    color: string;
+    label: string;
+    filterType: FilterType | null;
+    onToggle: (value: string) => void;
+    primaryColor: string;
+    styles: ReturnType<typeof makeStyles>;
+}
+
+function FilterRow({ option, isSelected, color, label, filterType, onToggle, primaryColor, styles }: FilterRowProps) {
+    return (
+        <Pressable
+            style={({ pressed }) => [styles.option, isSelected && styles.optionSelected, pressed && pressedOpacity]}
+            onPress={() => onToggle(option)}
+        >
+            {isSelected && (
+                <Ionicons name="checkmark" size={20} color={primaryColor} style={checkmarkStyle} />
+            )}
+            {!isSelected && <View style={styles.placeholder} />}
+            {filterType === 'priority' && (
+                <View style={[styles.priorityDot, { backgroundColor: color }]} />
+            )}
+            {filterType === 'category' && (
+                <View style={[styles.categoryDot, { backgroundColor: color }]} />
+            )}
+            <Text
+                style={[
+                    styles.optionText,
+                    isSelected && styles.optionTextSelected,
+                ]}
+            >
+                {label}
+            </Text>
+        </Pressable>
+    );
+}
+
 export default function FilterModal({ isOpen, filterType, onClose, onSave }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const priorityColors = useMemo<Record<PriorityLevel, string>>(() => colors.priority, [colors]);
+    const styles = makeStyles(colors);
+    const priorityColors: Record<PriorityLevel, string> = colors.priority;
     const insets = useSafeAreaInsets();
     const categories = useTaskStore((s) => s.categories);
     const statusFilters = useTaskStore((s) => s.statusFilters);
@@ -32,28 +75,25 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
     const priorityFilters = useTaskStore((s) => s.priorityFilters);
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
 
-    const currentFilters = useMemo(() => {
+    const currentFilters = (() => {
         if (!filterType) return new Set<string>();
         if (filterType === 'status') return statusFilters as Set<string>;
         if (filterType === 'category') return categoryFilters;
         if (filterType === 'priority') return priorityFilters as Set<string>;
         if (filterType === 'dueDate') return dueDateFilters as Set<string>;
         return new Set<string>();
-    }, [filterType, statusFilters, categoryFilters, priorityFilters, dueDateFilters]);
+    })();
 
     const [selected, setSelected] = useState<Set<string>>(() => new Set(currentFilters));
 
-    useEffect(() => {
-        setSelected(new Set(Array.from(currentFilters)));
-    }, [currentFilters]);
+    const categoryIds: string[] = [];
+    for (const c of categories) categoryIds.push(c.id);
 
-    const getOptions = (): string[] => {
-        if (filterType === 'status') return STATUS_OPTIONS;
-        if (filterType === 'category') return categories.map((c) => c.id);
-        if (filterType === 'priority') return PRIORITY_OPTIONS;
-        if (filterType === 'dueDate') return DUE_DATE_OPTIONS;
-        return [];
-    };
+    let options: string[] = [];
+    if (filterType === 'status') options = STATUS_OPTIONS;
+    else if (filterType === 'category') options = categoryIds;
+    else if (filterType === 'priority') options = PRIORITY_OPTIONS;
+    else if (filterType === 'dueDate') options = DUE_DATE_OPTIONS;
 
     const getLabel = (value: string): string => {
         if (filterType === 'dueDate') return DUE_DATE_LABELS[value as keyof typeof DUE_DATE_LABELS] || value;
@@ -86,75 +126,53 @@ export default function FilterModal({ isOpen, filterType, onClose, onSave }: Pro
         }
     };
 
+    const renderOption = ({ item: option }: { item: string }) => (
+        <FilterRow
+            option={option}
+            isSelected={selected.has(option)}
+            color={getColor(option)}
+            label={getLabel(option)}
+            filterType={filterType}
+            onToggle={handleToggle}
+            primaryColor={colors.primary}
+            styles={styles}
+        />
+    );
+
     return (
         <Modal visible={isOpen} transparent animationType="slide" onRequestClose={onClose}>
             <Pressable style={styles.overlay} onPress={onClose}>
                 <Pressable style={styles.modal} onPress={() => {}}>
                     <View style={styles.header}>
                         <Text style={styles.title}>Filter by {filterType?.charAt(0).toUpperCase()}{filterType?.slice(1)}</Text>
-                        <TouchableOpacity onPress={onClose}>
+                        <Pressable
+                            onPress={onClose}
+                            style={({ pressed }) => pressed && { opacity: 0.7 }}
+                        >
                             <Ionicons name="close" size={24} color={colors.text.secondary} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
-                    <ScrollView contentContainerStyle={styles.content}>
-                        {getOptions().map((option) => {
-                            const isSelected = selected.has(option);
-                            const color = getColor(option);
-                            const label = getLabel(option);
-
-                            return (
-                                <TouchableOpacity
-                                    key={option}
-                                    style={[styles.option, isSelected && styles.optionSelected]}
-                                    onPress={() => handleToggle(option)}
-                                >
-                                    {isSelected && (
-                                        <Ionicons name="checkmark" size={20} color={colors.primary} style={{ marginRight: 10 }} />
-                                    )}
-                                    {!isSelected && <View style={styles.placeholder} />}
-                                    {filterType === 'priority' && (
-                                        <View
-                                            style={[
-                                                styles.priorityDot,
-                                                { backgroundColor: color },
-                                            ]}
-                                        />
-                                    )}
-                                    {filterType === 'category' && (
-                                        <View
-                                            style={[
-                                                styles.categoryDot,
-                                                { backgroundColor: color },
-                                            ]}
-                                        />
-                                    )}
-                                    <Text
-                                        style={[
-                                            styles.optionText,
-                                            isSelected && styles.optionTextSelected,
-                                        ]}
-                                    >
-                                        {label}
-                                    </Text>
-                                </TouchableOpacity>
-                            );
-                        })}
-                    </ScrollView>
+                    <FlatList
+                        contentContainerStyle={styles.content}
+                        data={options}
+                        keyExtractor={optionKeyExtractor}
+                        renderItem={renderOption}
+                    />
 
                     <View style={[styles.footer, { paddingBottom: Math.max(12, insets.bottom) }]}>
-                        <TouchableOpacity
-                            style={styles.clearBtn}
+                        <Pressable
+                            style={({ pressed }) => [styles.clearBtn, pressed && { opacity: 0.7 }]}
                             onPress={handleClearAll}
                         >
                             <Text style={styles.clearBtnText}>Clear All</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={styles.doneBtn}
+                        </Pressable>
+                        <Pressable
+                            style={({ pressed }) => [styles.doneBtn, pressed && { opacity: 0.7 }]}
                             onPress={handleSave}
                         >
                             <Text style={styles.doneBtnText}>Done</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </Pressable>
             </Pressable>

@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useRef } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useRef } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
@@ -18,7 +18,7 @@ interface Props {
 
 export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, onOpenStats }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const categories = useTaskStore((s) => s.categories);
     const { id, title, priority, categoryId, dueDate, completedTime } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
@@ -52,9 +52,9 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
     }
 
     return (
-        <TouchableOpacity
-            activeOpacity={0.85}
+        <Pressable
             onPress={handleCardPress}
+            style={({ pressed }) => pressed && { opacity: 0.85 }}
             accessibilityLabel="Open task retrospective"
             accessibilityHint="Double-tap to view stats and reflection"
         >
@@ -62,17 +62,26 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
             <View style={styles.topRow}>
                 <Text style={styles.title} numberOfLines={1}>{title}</Text>
                 <View style={styles.actions}>
-                    <TouchableOpacity style={styles.editBtn} onPress={() => onEdit(task)}>
+                    <Pressable
+                        style={({ pressed }) => [styles.editBtn, pressed && { opacity: 0.7 }]}
+                        onPress={() => onEdit(task)}
+                    >
                         <Ionicons name="pencil-sharp" size={13} color={colors.white} />
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.restoreBtn} onPress={() => onRestore(id)}>
+                    </Pressable>
+                    <Pressable
+                        style={({ pressed }) => [styles.restoreBtn, pressed && { opacity: 0.7 }]}
+                        onPress={() => onRestore(id)}
+                    >
                         <Ionicons name="arrow-undo-outline" size={13} color={colors.white} />
                         <Text style={styles.restoreText}>Reopen</Text>
-                    </TouchableOpacity>
-                    <TouchableOpacity style={styles.deleteBtn} onPress={handleDelete}>
+                    </Pressable>
+                    <Pressable
+                        style={({ pressed }) => [styles.deleteBtn, pressed && { opacity: 0.7 }]}
+                        onPress={handleDelete}
+                    >
                         <Ionicons name="trash" size={15} color={colors.white} />
                         <Text style={styles.deleteText}>Delete</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
             <View style={styles.meta}>
@@ -88,7 +97,7 @@ export default function TaskReflectionCard({ task, onRestore, onDelete, onEdit, 
                 {completedDate && <Text style={styles.archivedText}>Completed {completedDate}</Text>}
             </View>
         </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 }
 
@@ -96,7 +105,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     card: {
         backgroundColor: c.surfaceAlt.offWhite, padding: 12, marginVertical: 4, marginHorizontal: 12,
         borderRadius: 10, borderLeftWidth: 4,
-        elevation: 1, shadowColor: c.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
     },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },
     title: { fontSize: 14, fontWeight: '600', color: c.text.muted, flex: 1, marginRight: 8 },

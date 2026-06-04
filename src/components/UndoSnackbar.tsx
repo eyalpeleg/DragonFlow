@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useRef } from 'react';
-import { Animated, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useRef, useState } from 'react';
+import { Animated, Pressable, StyleSheet, Text, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -10,13 +10,13 @@ const FADE_MS = 180;
 
 export default function UndoSnackbar() {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const insets = useSafeAreaInsets();
     const lastDoneUndo = useTaskStore((s) => s.lastDoneUndo);
     const undoLastDone = useTaskStore((s) => s.undoLastDone);
     const clearLastDoneUndo = useTaskStore((s) => s.clearLastDoneUndo);
 
-    const opacity = useRef(new Animated.Value(0)).current;
+    const [opacity] = useState(() => new Animated.Value(0));
     const dismissTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
     useEffect(() => {
@@ -46,9 +46,13 @@ export default function UndoSnackbar() {
         >
             <View style={styles.snackbar}>
                 <Text style={styles.message}>Task completed</Text>
-                <TouchableOpacity onPress={undoLastDone} style={styles.action} accessibilityLabel="Undo">
+                <Pressable
+                    onPress={undoLastDone}
+                    style={({ pressed }) => [styles.action, pressed && { opacity: 0.7 }]}
+                    accessibilityLabel="Undo"
+                >
                     <Text style={styles.actionText}>UNDO</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
         </Animated.View>
     );
@@ -71,11 +75,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         paddingVertical: 10,
         marginHorizontal: 16,
         minWidth: 240,
-        elevation: 6,
-        shadowColor: c.shadow,
-        shadowOffset: { width: 0, height: 2 },
-        shadowOpacity: 0.25,
-        shadowRadius: 4,
+        boxShadow: '0px 2px 4px rgba(0,0,0,0.25)',
     },
     message: { color: c.white, fontSize: 14, flex: 1 },
     action: { paddingHorizontal: 12, paddingVertical: 4 },

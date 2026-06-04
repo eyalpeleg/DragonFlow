@@ -1,5 +1,6 @@
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, Alert, Image, Modal, ScrollView, StyleSheet, Switch, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
 import Constants from 'expo-constants';
@@ -13,7 +14,7 @@ import VolumeControl from '@/src/components/VolumeControl';
 import { Category, SoundType } from '@/src/types';
 import { exportToFile, importFromFile } from '@/src/utils/dataTransfer';
 import { playPreviewSound } from '@/src/utils/notifications';
-import { useBackupStore, googleAuth, backupService, BackupMetadata } from '@/src/services/cloudBackup';
+import { useBackupStore, googleAuth, performBackup, listAvailableBackups, performRestore, BackupMetadata } from '@/src/services/cloudBackup';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
@@ -21,17 +22,93 @@ const APP_VERSION = Constants.expoConfig?.version ?? '?';
 const ANDROID_VERSION_CODE = Constants.expoConfig?.android?.versionCode ?? '?';
 const BUILD_TIMESTAMP = new Date(Constants.expoConfig?.extra?.buildTimestamp).toLocaleString();
 const SOUND_TYPE_OPTIONS: SoundType[] = ['AppSound', 'Disabled'];
+const pressedOpacity = { opacity: 0.7 } as const;
+
+const BUCKET_LABEL: Record<'weekly' | 'daily' | 'ongoing', string> = {
+    weekly: 'Weekly',
+    daily: 'Daily',
+    ongoing: 'Ongoing',
+};
+
+interface BackupSection {
+    bucket: 'weekly' | 'daily' | 'ongoing';
+    inBucket: BackupMetadata[];
+}
+
+interface BackupRowProps {
+    backup: BackupMetadata;
+    isSelected: boolean;
+    onSelect: (fileId: string) => void;
+    styles: ReturnType<typeof makeStyles>;
+    accentColor: string;
+    disabledColor: string;
+}
+
+function BackupRow({ backup, isSelected, onSelect, styles, accentColor, disabledColor }: BackupRowProps) {
+    const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
+        month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
+    });
+    const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
+    return (
+        <Pressable
+            style={({ pressed }) => [isSelected ? styles.restoreRowSelected : styles.restoreRow, pressed && pressedOpacity]}
+            onPress={() => onSelect(backup.fileId)}
+        >
+            <Ionicons
+                name={isSelected ? 'radio-button-on' : 'radio-button-off'}
+                size={20}
+                color={isSelected ? accentColor : disabledColor}
+            />
+            <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
+                {date}{taskLabel}
+            </Text>
+        </Pressable>
+    );
+}
+
+interface BackupSectionRowProps {
+    section: BackupSection;
+    selectedBackupId: string | null;
+    onSelect: (fileId: string) => void;
+    styles: ReturnType<typeof makeStyles>;
+    accentColor: string;
+    disabledColor: string;
+}
+
+function BackupSectionRow({ section, selectedBackupId, onSelect, styles, accentColor, disabledColor }: BackupSectionRowProps) {
+    return (
+        <View>
+            <Text style={styles.bucketHeader}>{BUCKET_LABEL[section.bucket]}</Text>
+            {section.inBucket.map((backup) => (
+                <BackupRow
+                    key={backup.fileId}
+                    backup={backup}
+                    isSelected={selectedBackupId === backup.fileId}
+                    onSelect={onSelect}
+                    styles={styles}
+                    accentColor={accentColor}
+                    disabledColor={disabledColor}
+                />
+            ))}
+        </View>
+    );
+}
+
+const backupSectionKeyExtractor = (section: BackupSection) => section.bucket;
 
 function CollapsibleSection({ title, children }: { title: string; children: React.ReactNode }) {
     const colors = useColors();
-    const sectionStyles = useMemo(() => makeSectionStyles(colors), [colors]);
+    const sectionStyles = makeSectionStyles(colors);
     const [expanded, setExpanded] = useState(true);
     return (
         <View style={sectionStyles.wrapper}>
-            <TouchableOpacity style={sectionStyles.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
+            <Pressable
+                style={({ pressed }) => [sectionStyles.header, pressed && { opacity: 0.7 }]}
+                onPress={() => setExpanded((v) => !v)}
+            >
                 <Text style={sectionStyles.title}>{title}</Text>
                 <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={16} color={colors.text.placeholder} />
-            </TouchableOpacity>
+            </Pressable>
             {expanded && children}
         </View>
     );
@@ -55,10 +132,64 @@ function formatRelativeTime(isoString: string | null): string {
     return `${days}d ago`;
 }
 
+type LoadBackupsResult =
+    | { ok: true; backups: BackupMetadata[] }
+    | { ok: false; error: string };
+
+async function loadBackupsSafe(): Promise<LoadBackupsResult> {
+    try {
+        const backups = await listAvailableBackups();
+        return { ok: true, backups };
+    } catch (e: any) {
+        return { ok: false, error: e?.message ?? 'Could not load backups.' };
+    }
+}
+
+async function handleCloudBackup() {
+    try {
+        await performBackup();
+        Alert.alert('Backup Complete', 'Your data has been backed up to Google Drive.');
+    } catch (e: any) {
+        Alert.alert('Backup Failed', e.message ?? 'Something went wrong.');
+    }
+}
+
+async function handleExport() {
+    try {
+        await exportToFile();
+    } catch (e: any) {
+        Alert.alert('Export Failed', e.message ?? 'Something went wrong.');
+    }
+}
+
+function handleImport() {
+    Alert.alert(
+        'Import Data',
+        'This will replace all current tasks with the imported data. Continue?',
+        [
+            { text: 'Cancel', style: 'cancel' },
+            {
+                text: 'Replace',
+                style: 'destructive',
+                onPress: async () => {
+                    try {
+                        const result = await importFromFile();
+                        if (result) {
+                            Alert.alert('Import Complete', `${result.tasksImported} task(s) imported.`);
+                        }
+                    } catch (e: any) {
+                        Alert.alert('Import Failed', e.message ?? 'Something went wrong.');
+                    }
+                },
+            },
+        ]
+    );
+}
+
 export default function SettingsScreen() {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const switchTrackColor = useMemo(() => ({ false: colors.text.disabled, true: colors.secondary }), [colors]);
+    const styles = makeStyles(colors);
+    const switchTrackColor = { false: colors.text.disabled, true: colors.secondary };
     const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
@@ -90,27 +221,17 @@ export default function SettingsScreen() {
         setSignedOut();
     }
 
-    async function handleCloudBackup() {
-        try {
-            await backupService.performBackup();
-            Alert.alert('Backup Complete', 'Your data has been backed up to Google Drive.');
-        } catch (e: any) {
-            Alert.alert('Backup Failed', e.message ?? 'Something went wrong.');
-        }
-    }
-
     async function handleOpenRestorePicker() {
         setLoadingBackups(true);
         setRestorePickerVisible(true);
-        try {
-            const backups = await backupService.listAvailableBackups();
-            setAvailableBackups(backups);
-            if (backups.length > 0) setSelectedBackupId(backups[0].fileId);
-        } catch (e: any) {
-            Alert.alert('Error', e.message ?? 'Could not load backups.');
+        const result = await loadBackupsSafe();
+        setLoadingBackups(false);
+        if (result.ok) {
+            setAvailableBackups(result.backups);
+            if (result.backups.length > 0) setSelectedBackupId(result.backups[0].fileId);
+        } else {
+            Alert.alert('Error', result.error);
             setRestorePickerVisible(false);
-        } finally {
-            setLoadingBackups(false);
         }
     }
 
@@ -127,7 +248,7 @@ export default function SettingsScreen() {
                     style: 'destructive',
                     onPress: async () => {
                         try {
-                            const result = await backupService.performRestore(selectedBackupId);
+                            const result = await performRestore(selectedBackupId);
                             Alert.alert('Restore Complete', `${result.tasksImported} task(s) restored.`);
                         } catch (e: any) {
                             Alert.alert('Restore Failed', e.message ?? 'Something went wrong.');
@@ -135,38 +256,6 @@ export default function SettingsScreen() {
                     },
                 },
             ],
-        );
-    }
-
-    async function handleExport() {
-        try {
-            await exportToFile();
-        } catch (e: any) {
-            Alert.alert('Export Failed', e.message ?? 'Something went wrong.');
-        }
-    }
-
-    function handleImport() {
-        Alert.alert(
-            'Import Data',
-            'This will replace all current tasks with the imported data. Continue?',
-            [
-                { text: 'Cancel', style: 'cancel' },
-                {
-                    text: 'Replace',
-                    style: 'destructive',
-                    onPress: async () => {
-                        try {
-                            const result = await importFromFile();
-                            if (result) {
-                                Alert.alert('Import Complete', `${result.tasksImported} task(s) imported.`);
-                            }
-                        } catch (e: any) {
-                            Alert.alert('Import Failed', e.message ?? 'Something went wrong.');
-                        }
-                    },
-                },
-            ]
         );
     }
 
@@ -188,6 +277,29 @@ export default function SettingsScreen() {
             ]
         );
     }
+
+    const backupSections: BackupSection[] = [];
+    for (const bucket of ['weekly', 'daily', 'ongoing'] as const) {
+        const inBucket: BackupMetadata[] = [];
+        for (const b of availableBackups) {
+            if (b.bucket === bucket) inBucket.push(b);
+        }
+        inBucket.sort(
+            (a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime(),
+        );
+        if (inBucket.length > 0) backupSections.push({ bucket, inBucket });
+    }
+
+    const renderBackupSection = ({ item: section }: { item: BackupSection }) => (
+        <BackupSectionRow
+            section={section}
+            selectedBackupId={selectedBackupId}
+            onSelect={setSelectedBackupId}
+            styles={styles}
+            accentColor={colors.secondary}
+            disabledColor={colors.text.disabled}
+        />
+    );
 
     const handleTimeChange = (text: string) => {
         setTempTime(text);
@@ -250,26 +362,26 @@ export default function SettingsScreen() {
                         <Text style={styles.settingTitle}>Task Reminders Sound</Text>
                         <Text style={styles.settingDesc}>Sound played for task notifications</Text>
                         <View style={styles.soundSelectorRow}>
-                            <TouchableOpacity
-                                style={styles.soundDropdownButton}
+                            <Pressable
+                                style={({ pressed }) => [styles.soundDropdownButton, pressed && { opacity: 0.7 }]}
                                 onPress={() => setTasksDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{tasksSoundType}</Text>
                                 <Ionicons name="chevron-down" size={18} color={colors.secondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.volumeButton}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [styles.volumeButton, pressed && { opacity: 0.7 }]}
                                 onPress={() => setTasksVolumeVisible(true)}
                             >
                                 <Ionicons name="volume-high" size={20} color={colors.secondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled]}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [styles.playButton, tasksSoundType === 'Disabled' && styles.playButtonDisabled, pressed && { opacity: 0.7 }]}
                                 onPress={() => playPreviewSound('ding', tasksSoundType, tasksVolume).catch(console.error)}
                                 disabled={tasksSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={tasksSoundType === 'Disabled' ? colors.text.disabled : colors.white} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
 
@@ -278,26 +390,26 @@ export default function SettingsScreen() {
                         <Text style={styles.settingTitle}>Pomodoro Sound</Text>
                         <Text style={styles.settingDesc}>Sound played when timer completes</Text>
                         <View style={styles.soundSelectorRow}>
-                            <TouchableOpacity
-                                style={styles.soundDropdownButton}
+                            <Pressable
+                                style={({ pressed }) => [styles.soundDropdownButton, pressed && { opacity: 0.7 }]}
                                 onPress={() => setPomodoroDropdownOpen(true)}
                             >
                                 <Text style={styles.soundDropdownButtonText}>{pomodoroSoundType}</Text>
                                 <Ionicons name="chevron-down" size={18} color={colors.secondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={styles.volumeButton}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [styles.volumeButton, pressed && { opacity: 0.7 }]}
                                 onPress={() => setPomodoroVolumeVisible(true)}
                             >
                                 <Ionicons name="volume-high" size={20} color={colors.secondary} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled]}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [styles.playButton, pomodoroSoundType === 'Disabled' && styles.playButtonDisabled, pressed && { opacity: 0.7 }]}
                                 onPress={() => playPreviewSound('bell', pomodoroSoundType, pomodoroVolume).catch(console.error)}
                                 disabled={pomodoroSoundType === 'Disabled'}
                             >
                                 <Ionicons name="musical-note" size={20} color={pomodoroSoundType === 'Disabled' ? colors.text.disabled : colors.white} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     </View>
                 </CollapsibleSection>
@@ -338,15 +450,15 @@ export default function SettingsScreen() {
                         <Text style={styles.settingDesc}>Sets the start of the week in the weekly report</Text>
                         <View style={styles.weekDayRow}>
                             {(['sunday', 'monday'] as const).map((day) => (
-                                <TouchableOpacity
+                                <Pressable
                                     key={day}
-                                    style={[styles.weekDayBtn, firstDayOfWeek === day && styles.weekDayBtnActive]}
+                                    style={({ pressed }) => [styles.weekDayBtn, firstDayOfWeek === day && styles.weekDayBtnActive, pressed && { opacity: 0.7 }]}
                                     onPress={() => setFirstDayOfWeek(day)}
                                 >
                                     <Text style={[styles.weekDayText, firstDayOfWeek === day && styles.weekDayTextActive]}>
                                         {day.charAt(0).toUpperCase() + day.slice(1)}
                                     </Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             ))}
                         </View>
                     </View>
@@ -364,43 +476,58 @@ export default function SettingsScreen() {
                                     )}
                                     {!isDefault && (
                                         <View style={styles.catActions}>
-                                            <TouchableOpacity onPress={() => setEditingCategory(cat)} style={styles.catActionBtn}>
+                                            <Pressable
+                                                onPress={() => setEditingCategory(cat)}
+                                                style={({ pressed }) => [styles.catActionBtn, pressed && { opacity: 0.7 }]}
+                                            >
                                                 <Ionicons name="pencil" size={16} color={colors.secondary} />
-                                            </TouchableOpacity>
-                                            <TouchableOpacity onPress={() => handleDeleteCategory(cat)} style={styles.catActionBtn}>
+                                            </Pressable>
+                                            <Pressable
+                                                onPress={() => handleDeleteCategory(cat)}
+                                                style={({ pressed }) => [styles.catActionBtn, pressed && { opacity: 0.7 }]}
+                                            >
                                                 <Ionicons name="trash" size={16} color={colors.text.error} />
-                                            </TouchableOpacity>
+                                            </Pressable>
                                         </View>
                                     )}
                                 </View>
                             );
                         })}
-                        <TouchableOpacity style={styles.addCatBtn} onPress={() => setAddCatVisible(true)}>
+                        <Pressable
+                            style={({ pressed }) => [styles.addCatBtn, pressed && { opacity: 0.7 }]}
+                            onPress={() => setAddCatVisible(true)}
+                        >
                             <Ionicons name="add-circle-outline" size={20} color={colors.secondary} />
                             <Text style={styles.addCatText}>Add Category</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </CollapsibleSection>
 
                 <CollapsibleSection title="Data">
                     <View style={styles.settingBlock}>
-                        <TouchableOpacity style={styles.dataRow} onPress={handleExport}>
+                        <Pressable
+                            style={({ pressed }) => [styles.dataRow, pressed && { opacity: 0.7 }]}
+                            onPress={handleExport}
+                        >
                             <Ionicons name="download-outline" size={20} color={colors.secondary} />
                             <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Export Data</Text>
                                 <Text style={styles.settingDesc}>Save tasks & categories to a JSON backup file</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={18} color={colors.text.disabled} />
-                        </TouchableOpacity>
+                        </Pressable>
                         <View style={styles.dataDivider} />
-                        <TouchableOpacity style={styles.dataRow} onPress={handleImport}>
+                        <Pressable
+                            style={({ pressed }) => [styles.dataRow, pressed && { opacity: 0.7 }]}
+                            onPress={handleImport}
+                        >
                             <Ionicons name="push-outline" size={20} color={colors.secondary} />
                             <View style={styles.ml12flex}>
                                 <Text style={styles.settingTitle}>Import Data</Text>
                                 <Text style={styles.settingDesc}>Restore from a backup file (replaces current data)</Text>
                             </View>
                             <Ionicons name="chevron-forward" size={18} color={colors.text.disabled} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                     <View style={[styles.settingBlock, styles.settingBlockGap]}>
                         {!isSignedIn ? (
@@ -408,19 +535,25 @@ export default function SettingsScreen() {
                                 <Ionicons name="cloud-outline" size={32} color={colors.secondary} />
                                 <Text style={styles.settingTitleCentered}>Google Drive Backup</Text>
                                 <Text style={styles.settingDescCentered}>Automatically back up your tasks to Google Drive</Text>
-                                <TouchableOpacity style={styles.signInBtn} onPress={handleGoogleSignIn}>
+                                <Pressable
+                                    style={({ pressed }) => [styles.signInBtn, pressed && { opacity: 0.7 }]}
+                                    onPress={handleGoogleSignIn}
+                                >
                                     <Ionicons name="logo-google" size={18} color={colors.white} />
                                     <Text style={styles.signInText}>Sign in with Google</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         ) : (
                             <>
                                 <View style={styles.cloudUserRow}>
                                     <Ionicons name="person-circle-outline" size={24} color={colors.secondary} />
                                     <Text style={styles.cloudUserEmail} numberOfLines={1}>{userEmail}</Text>
-                                    <TouchableOpacity onPress={handleGoogleSignOut}>
+                                    <Pressable
+                                        onPress={handleGoogleSignOut}
+                                        style={({ pressed }) => pressed && { opacity: 0.7 }}
+                                    >
                                         <Text style={styles.signOutText}>Sign Out</Text>
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 </View>
                                 <View style={styles.dataDivider} />
                                 <View style={styles.dataRowSpaceBetween}>
@@ -441,7 +574,11 @@ export default function SettingsScreen() {
                                     <Text style={styles.lastBackupValue}>{formatRelativeTime(lastBackupTime)}</Text>
                                 </View>
                                 <View style={styles.dataDivider} />
-                                <TouchableOpacity style={styles.dataRow} onPress={handleCloudBackup} disabled={backupStatus === 'backing-up'}>
+                                <Pressable
+                                    style={({ pressed }) => [styles.dataRow, pressed && { opacity: 0.7 }]}
+                                    onPress={handleCloudBackup}
+                                    disabled={backupStatus === 'backing-up'}
+                                >
                                     {backupStatus === 'backing-up' ? (
                                         <ActivityIndicator size="small" color={colors.secondary} />
                                     ) : (
@@ -451,9 +588,13 @@ export default function SettingsScreen() {
                                         <Text style={styles.settingTitle}>Back Up Now</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={18} color={colors.text.disabled} />
-                                </TouchableOpacity>
+                                </Pressable>
                                 <View style={styles.dataDivider} />
-                                <TouchableOpacity style={styles.dataRow} onPress={handleOpenRestorePicker} disabled={backupStatus === 'restoring'}>
+                                <Pressable
+                                    style={({ pressed }) => [styles.dataRow, pressed && { opacity: 0.7 }]}
+                                    onPress={handleOpenRestorePicker}
+                                    disabled={backupStatus === 'restoring'}
+                                >
                                     {backupStatus === 'restoring' ? (
                                         <ActivityIndicator size="small" color={colors.secondary} />
                                     ) : (
@@ -463,7 +604,7 @@ export default function SettingsScreen() {
                                         <Text style={styles.settingTitle}>Restore from Backup</Text>
                                     </View>
                                     <Ionicons name="chevron-forward" size={18} color={colors.text.disabled} />
-                                </TouchableOpacity>
+                                </Pressable>
                             </>
                         )}
                     </View>
@@ -497,7 +638,7 @@ export default function SettingsScreen() {
             </ScrollView>
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
-            <EditCategoryModal visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
+            <EditCategoryModal key={editingCategory?.id ?? 'none'} visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
 
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
@@ -539,56 +680,27 @@ export default function SettingsScreen() {
                         ) : availableBackups.length === 0 ? (
                             <Text style={styles.noBackupsText}>No backups found on Google Drive.</Text>
                         ) : (
-                            <ScrollView style={styles.backupScrollView}>
-                                {(['weekly', 'daily', 'ongoing'] as const).map((bucket) => {
-                                    const inBucket = availableBackups
-                                        .filter((b) => b.bucket === bucket)
-                                        .sort(
-                                            (a, b) =>
-                                                new Date(b.modifiedTime).getTime() -
-                                                new Date(a.modifiedTime).getTime(),
-                                        );
-                                    if (inBucket.length === 0) return null;
-                                    const headerLabel = bucket === 'ongoing' ? 'Ongoing' : bucket === 'daily' ? 'Daily' : 'Weekly';
-                                    return (
-                                        <View key={bucket}>
-                                            <Text style={styles.bucketHeader}>{headerLabel}</Text>
-                                            {inBucket.map((backup) => {
-                                                const isSelected = selectedBackupId === backup.fileId;
-                                                const date = new Date(backup.modifiedTime).toLocaleString('en-US', {
-                                                    month: 'short', day: 'numeric', hour: 'numeric', minute: '2-digit',
-                                                });
-                                                const taskLabel = backup.taskCount !== undefined ? ` — ${backup.taskCount} tasks` : '';
-                                                return (
-                                                    <TouchableOpacity
-                                                        key={backup.fileId}
-                                                        style={isSelected ? styles.restoreRowSelected : styles.restoreRow}
-                                                        onPress={() => setSelectedBackupId(backup.fileId)}
-                                                    >
-                                                        <Ionicons
-                                                            name={isSelected ? 'radio-button-on' : 'radio-button-off'}
-                                                            size={20}
-                                                            color={isSelected ? colors.secondary : colors.text.disabled}
-                                                        />
-                                                        <Text style={isSelected ? styles.restoreRowTextSelected : styles.restoreRowText}>
-                                                            {date}{taskLabel}
-                                                        </Text>
-                                                    </TouchableOpacity>
-                                                );
-                                            })}
-                                        </View>
-                                    );
-                                })}
-                            </ScrollView>
+                            <FlatList
+                                style={styles.backupScrollView}
+                                data={backupSections}
+                                keyExtractor={backupSectionKeyExtractor}
+                                renderItem={renderBackupSection}
+                            />
                         )}
                         <View style={styles.restoreBtnRow}>
-                            <TouchableOpacity style={styles.cancelBtn} onPress={() => setRestorePickerVisible(false)}>
+                            <Pressable
+                                style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                                onPress={() => setRestorePickerVisible(false)}
+                            >
                                 <Text style={styles.cancelBtnText}>Cancel</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                             {availableBackups.length > 0 && (
-                                <TouchableOpacity style={styles.restoreBtn} onPress={handleRestore}>
+                                <Pressable
+                                    style={({ pressed }) => [styles.restoreBtn, pressed && { opacity: 0.7 }]}
+                                    onPress={handleRestore}
+                                >
                                     <Text style={styles.restoreBtnText}>Restore</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                         </View>
                     </View>
@@ -618,11 +730,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         flexDirection: 'row',
         justifyContent: 'space-between',
         alignItems: 'center',
-        shadowColor: c.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
     },
     settingLabel: { flexDirection: 'row', alignItems: 'center', flex: 1 },
     settingTitle: { fontSize: 16, fontWeight: '600', color: c.text.primary, marginBottom: 2 },
@@ -633,11 +741,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         backgroundColor: c.surface,
         borderRadius: 12,
         padding: 16,
-        shadowColor: c.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
     },
     settingBlockGap: {
         marginTop: 12,
@@ -692,11 +796,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 12,
         padding: 16,
         alignItems: 'center',
-        shadowColor: c.shadow,
-        shadowOffset: { width: 0, height: 1 },
-        shadowOpacity: 0.05,
-        shadowRadius: 2,
-        elevation: 1,
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
     },
     infoText: { fontSize: 16, fontWeight: '600', color: c.text.primary },
     infoSubtext: { fontSize: 12, color: c.text.placeholder, marginTop: 4 },

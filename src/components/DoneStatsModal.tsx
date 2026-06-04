@@ -1,5 +1,5 @@
-import React, { useEffect, useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useSafeAreaInsets } from 'react-native-safe-area-context';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -25,16 +25,10 @@ function formatDuration(ms: number): string {
 
 export default function DoneStatsModal({ task, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const insets = useSafeAreaInsets();
     const updateCompletionComment = useTaskStore((s) => s.updateCompletionComment);
-    const [comment, setComment] = useState('');
-
-    useEffect(() => {
-        // Reload only when switching tasks; not on every parent re-render that hands us a new task object.
-        if (task) setComment(task.completionComment ?? '');
-        // eslint-disable-next-line react-hooks/exhaustive-deps
-    }, [task?.id]);
+    const [comment, setComment] = useState(task?.completionComment ?? '');
 
     if (!task || task.status !== 'Done') return null;
 
@@ -111,9 +105,12 @@ export default function DoneStatsModal({ task, onClose }: Props) {
                         textAlignVertical="top"
                     />
 
-                    <TouchableOpacity style={styles.closeBtn} onPress={handleClose}>
+                    <Pressable
+                        style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+                        onPress={handleClose}
+                    >
                         <Text style={styles.closeBtnText}>Close</Text>
-                    </TouchableOpacity>
+                    </Pressable>
                 </View>
             </View>
         </Modal>

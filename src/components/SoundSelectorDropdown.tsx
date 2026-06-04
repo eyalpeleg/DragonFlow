@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Modal, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -15,7 +15,7 @@ interface Props {
 
 export default function SoundSelectorDropdown({ visible, options, selectedValue, onSelect, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const handleSelect = (option: SoundType) => {
         onSelect(option);
         onClose();
@@ -27,11 +27,12 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
                 <View style={styles.dropdown}>
                     <Text style={styles.title}>Select Sound Type</Text>
                     {options.map((option) => (
-                        <TouchableOpacity
+                        <Pressable
                             key={option}
-                            style={[
+                            style={({ pressed }) => [
                                 styles.optionRow,
                                 selectedValue === option && styles.optionRowSelected,
+                                pressed && { opacity: 0.7 },
                             ]}
                             onPress={() => handleSelect(option)}
                         >
@@ -51,12 +52,15 @@ export default function SoundSelectorDropdown({ visible, options, selectedValue,
                                     style={styles.checkmark}
                                 />
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     ))}
                     <View style={styles.buttonContainer}>
-                        <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                        <Pressable
+                            style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+                            onPress={onClose}
+                        >
                             <Text style={styles.closeBtnText}>Close</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>
@@ -77,11 +81,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         padding: 20,
         width: '85%',
         maxWidth: 400,
-        shadowColor: c.shadow,
-        shadowOffset: { width: 0, height: 4 },
-        shadowOpacity: 0.15,
-        shadowRadius: 8,
-        elevation: 8,
+        boxShadow: '0px 4px 8px rgba(0,0,0,0.15)',
     },
     title: {
         fontSize: 16,
