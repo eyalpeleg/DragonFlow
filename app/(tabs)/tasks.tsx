@@ -1,47 +1,53 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useCallback, useEffect, useMemo, useState } from 'react';
-import { ActivityIndicator, AppState, BackHandler, FlatList, Image, ListRenderItem, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useEffect, useState } from 'react';
+import { ActivityIndicator, AppState, BackHandler, FlatList, ListRenderItem, Pressable, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import AddTaskModal from '@/src/components/AddTaskModal';
-import ArchivedTaskCard from '@/src/components/ArchivedTaskCard';
+import TaskReflectionCard from '@/src/components/TaskReflectionCard';
 import DoneStatsModal from '@/src/components/DoneStatsModal';
-import EditTaskModal from '@/src/components/EditTaskModal';
+import EditTaskModal, { EditFocus } from '@/src/components/EditTaskModal';
 import FilterModal from '@/src/components/FilterModal';
-import FilterTypeSelector from '@/src/components/FilterTypeSelector';
 import TaskCard from '@/src/components/TaskCard';
-import { AppColors, PriorityLevel } from '@/src/styles/theme';
+import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { Task, TaskStatus } from '@/src/types';
 
-type FilterType = 'status' | 'category' | 'priority' | 'dueDate';
 
 const HEADER_HEIGHT = 56;
 const appIcon = require('@/assets/images/dragonflow3.png');
 
+const handleFilterSave = (_filterType: string, selectedSet: Set<string>) => {
+    useTaskStore.getState().setCategoryFilters(selectedSet);
+};
+
+function getTodayAndTomorrow(): { today: string; tomorrow: string } {
+    const today = new Date().toISOString().slice(0, 10);
+    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
+    return { today, tomorrow };
+}
+
 export default function TasksScreen() {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const { addTask, updateTask, deleteTask, archiveTask, restoreTask, setStatus, hasHydrated } = useTaskStore();
+    const styles = makeStyles(colors);
+    const { addTask, updateTask, deleteTask, setStatus, hasHydrated } = useTaskStore();
+    const reflectOnDone = useTaskStore((s) => s.reflectOnDone);
     const tasks = useSortedFilteredTasks();
     const archivedTasks = useArchivedTasks();
     const [addModalVisible, setAddModalVisible] = useState(false);
     const [editTask, setEditTask] = useState<Task | null>(null);
+    const [editFocus, setEditFocus] = useState<EditFocus | undefined>(undefined);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
     const [showArchive, setShowArchive] = useState(false);
     const [filterModalOpen, setFilterModalOpen] = useState(false);
-    const [filterTypeSelectorOpen, setFilterTypeSelectorOpen] = useState(false);
-    const [selectedFilterType, setSelectedFilterType] = useState<FilterType | null>(null);
 
-    const statusFilters = useTaskStore((s) => s.statusFilters);
     const categoryFilters = useTaskStore((s) => s.categoryFilters);
-    const priorityFilters = useTaskStore((s) => s.priorityFilters);
-    const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
     const focusMode = useTaskStore((s) => s.focusMode);
     const setFocusMode = useTaskStore((s) => s.setFocusMode);
-    const totalFilterCount = statusFilters.size + categoryFilters.size + priorityFilters.size + dueDateFilters.size;
-    const hasActiveFilters = totalFilterCount > 0;
+    const categoryFilterCount = categoryFilters.size;
+    const hasCategoryFilter = categoryFilterCount > 0;
 
     useEffect(() => {
         if (!showArchive) return;
@@ -56,10 +62,9 @@ export default function TasksScreen() {
         const closeAllModals = () => {
             setAddModalVisible(false);
             setEditTask(null);
+            setEditFocus(undefined);
             setStatsTask(null);
             setFilterModalOpen(false);
-            setFilterTypeSelectorOpen(false);
-            setSelectedFilterType(null);
         };
         const unsubscribeOpenFocus = FloatingBubble.onOpenFocus(closeAllModals);
         const appStateSub = AppState.addEventListener('change', (nextState) => {
@@ -71,46 +76,64 @@ export default function TasksScreen() {
         };
     }, []);
 
-    const renderTask: ListRenderItem<Task> = useCallback(({ item }) => (
+    const openEdit = (task: Task, focus?: EditFocus) => {
+        setEditFocus(focus);
+        setEditTask(task);
+    };
+
+    const handleStatusChange = (id: string, status: TaskStatus) => {
+        const prior = useTaskStore.getState().tasks.find((t) => t.id === id);
+        setStatus(id, status);
+        if (status === 'Done' && prior && prior.status !== 'Done' && reflectOnDone) {
+            const updated = useTaskStore.getState().tasks.find((t) => t.id === id);
+            if (updated) setStatsTask(updated);
+        }
+    };
+
+    const { today, tomorrow } = getTodayAndTomorrow();
+
+    const renderTask: ListRenderItem<Task> = ({ item }) => (
         <TaskCard
             task={item}
-            onStatusChange={setStatus}
-            onEdit={setEditTask}
-            onArchive={archiveTask}
+            today={today}
+            tomorrow={tomorrow}
+            onStatusChange={handleStatusChange}
+            onEdit={openEdit}
+            onDelete={deleteTask}
             onOpenStats={setStatsTask}
         />
-    ), [setStatus, archiveTask]);
+    );
 
-    const renderArchivedTask: ListRenderItem<Task> = useCallback(({ item }) => (
-        <ArchivedTaskCard task={item} onRestore={restoreTask} onDelete={deleteTask} onEdit={setEditTask} />
-    ), [restoreTask, deleteTask]);
+    const reopenTask = (id: string) => setStatus(id, 'In Progress');
+
+    const renderArchivedTask: ListRenderItem<Task> = ({ item }) => (
+        <TaskReflectionCard
+            task={item}
+            onRestore={reopenTask}
+            onDelete={deleteTask}
+            onEdit={(t) => openEdit(t)}
+            onOpenStats={setStatsTask}
+        />
+    );
 
     function handleFilterToggle() {
-        setFilterTypeSelectorOpen(true);
-    }
-
-    function handleFilterPress(filterType: FilterType) {
-        setSelectedFilterType(filterType);
         setFilterModalOpen(true);
     }
 
     function handleFilterModalClose() {
         setFilterModalOpen(false);
-        setSelectedFilterType(null);
     }
 
     function handleEditSave(id: string, updates: Partial<Task>) {
         updateTask(id, updates);
         setEditTask(null);
+        setEditFocus(undefined);
     }
 
-    const handleFilterSave = (filterType: FilterType, selectedSet: Set<string>) => {
-        const setFilters = useTaskStore.getState();
-        if (filterType === 'status') setFilters.setStatusFilters(selectedSet as Set<TaskStatus>);
-        if (filterType === 'category') setFilters.setCategoryFilters(selectedSet);
-        if (filterType === 'priority') setFilters.setPriorityFilters(selectedSet as Set<PriorityLevel>);
-        if (filterType === 'dueDate') setFilters.setDueDateFilters(selectedSet as Set<'overdue' | 'today' | 'upcoming'>);
-    };
+    function handleEditClose() {
+        setEditTask(null);
+        setEditFocus(undefined);
+    }
 
     if (!hasHydrated) {
         return (
@@ -129,8 +152,8 @@ export default function TasksScreen() {
                 </View>
                 <View style={styles.headerActions}>
                     {!showArchive && (
-                        <TouchableOpacity
-                            style={focusMode ? styles.focusBtnActive : styles.focusBtn}
+                        <Pressable
+                            style={({ pressed }) => [focusMode ? styles.focusBtnActive : styles.focusBtn, pressed && { opacity: 0.7 }]}
                             onPress={() => setFocusMode(!focusMode)}
                         >
                             <Ionicons
@@ -138,24 +161,28 @@ export default function TasksScreen() {
                                 size={20}
                                 color={focusMode ? colors.primary : colors.white}
                             />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                     {!showArchive && (
-                        <TouchableOpacity style={styles.filterBtn} onPress={handleFilterToggle}>
+                        <Pressable
+                            style={({ pressed }) => [styles.filterBtn, pressed && { opacity: 0.7 }]}
+                            onPress={handleFilterToggle}
+                            accessibilityLabel="Filter by category"
+                        >
                             <Ionicons
-                                name={hasActiveFilters ? 'funnel' : 'funnel-outline'}
+                                name={hasCategoryFilter ? 'folder' : 'folder-outline'}
                                 size={20}
                                 color={colors.white}
                             />
-                            {totalFilterCount > 0 && (
+                            {categoryFilterCount > 0 && (
                                 <View style={styles.filterBadge}>
-                                    <Text style={styles.filterBadgeText}>{totalFilterCount}</Text>
+                                    <Text style={styles.filterBadgeText}>{categoryFilterCount}</Text>
                                 </View>
                             )}
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
-                    <TouchableOpacity
-                        style={showArchive ? styles.archiveBtnActive : styles.archiveBtn}
+                    <Pressable
+                        style={({ pressed }) => [showArchive ? styles.archiveBtnActive : styles.archiveBtn, pressed && { opacity: 0.7 }]}
                         onPress={() => setShowArchive((v) => !v)}
                     >
                         <Ionicons
@@ -163,11 +190,15 @@ export default function TasksScreen() {
                             size={20}
                             color={showArchive ? colors.primary : colors.white}
                         />
-                    </TouchableOpacity>
+                    </Pressable>
                     {!showArchive && (
-                        <TouchableOpacity style={styles.addBtn} onPress={() => setAddModalVisible(true)} accessibilityLabel="Add task">
+                        <Pressable
+                            style={({ pressed }) => [styles.addBtn, pressed && { opacity: 0.7 }]}
+                            onPress={() => setAddModalVisible(true)}
+                            accessibilityLabel="Add task"
+                        >
                             <Ionicons name="add" size={24} color={colors.white} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
             </View>
@@ -200,37 +231,38 @@ export default function TasksScreen() {
                             </View>
                         }
                         renderItem={renderTask}
+                        keyboardShouldPersistTaps="handled"
+                        automaticallyAdjustKeyboardInsets
                     />
                 </>
             )}
 
-            <FilterTypeSelector
-                isOpen={filterTypeSelectorOpen}
-                onClose={() => setFilterTypeSelectorOpen(false)}
-                onSelect={handleFilterPress}
-            />
-
             <FilterModal
+                key={`filter-${filterModalOpen ? 'open' : 'closed'}`}
                 isOpen={filterModalOpen}
-                filterType={selectedFilterType}
+                filterType="category"
                 onClose={handleFilterModalClose}
                 onSave={handleFilterSave}
             />
 
             <AddTaskModal
+                key={`add-${addModalVisible ? 'open' : 'closed'}`}
                 isVisible={addModalVisible}
                 onClose={() => setAddModalVisible(false)}
                 onAdd={addTask}
             />
 
             <EditTaskModal
+                key={`edit-${editTask?.id ?? 'none'}`}
                 isVisible={editTask !== null}
                 task={editTask}
-                onClose={() => setEditTask(null)}
+                initialFocus={editFocus}
+                onClose={handleEditClose}
                 onSave={handleEditSave}
             />
 
             <DoneStatsModal
+                key={`stats-${statsTask?.id ?? 'none'}`}
                 task={statsTask}
                 onClose={() => setStatsTask(null)}
             />

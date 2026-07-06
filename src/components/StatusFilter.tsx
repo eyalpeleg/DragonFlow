@@ -1,5 +1,5 @@
-import React, { useMemo } from 'react';
-import { ScrollView, StyleSheet, Text, TouchableOpacity } from 'react-native';
+import React from 'react';
+import { FlatList, Pressable, StyleSheet, Text } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { TaskStatus } from '../types';
@@ -9,7 +9,9 @@ interface Props {
     onChange: (status: TaskStatus | null) => void;
 }
 
-const CHIPS: { label: string; value: TaskStatus | null }[] = [
+type Chip = { label: string; value: TaskStatus | null };
+
+const CHIPS: Chip[] = [
     { label: 'All',         value: null },
     { label: 'Ready',       value: 'Ready' },
     { label: 'In Progress', value: 'In Progress' },
@@ -19,37 +21,39 @@ const CHIPS: { label: string; value: TaskStatus | null }[] = [
 
 export default function StatusFilter({ active, onChange }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const statusColors = useMemo<Record<string, string>>(() => ({
+    const styles = makeStyles(colors);
+    const statusColors: Record<string, string> = {
         Ready:        colors.status['Ready'],
         'In Progress': colors.status['In Progress'],
         Paused:       colors.status['Paused'],
         Done:         colors.status['Done'],
-    }), [colors]);
+    };
+
+    const renderChip = ({ item: chip }: { item: Chip }) => {
+        const isActive = active === chip.value;
+        const color = chip.value ? statusColors[chip.value] : colors.primary;
+        return (
+            <Pressable
+                style={({ pressed }) => [styles.chip, isActive && { backgroundColor: color, borderColor: color }, pressed && { opacity: 0.7 }]}
+                onPress={() => onChange(chip.value)}
+            >
+                <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
+                    {chip.label}
+                </Text>
+            </Pressable>
+        );
+    };
 
     return (
-        <ScrollView
+        <FlatList
             horizontal
             showsHorizontalScrollIndicator={false}
             style={styles.container}
             contentContainerStyle={styles.content}
-        >
-            {CHIPS.map((chip) => {
-                const isActive = active === chip.value;
-                const color = chip.value ? statusColors[chip.value] : colors.primary;
-                return (
-                    <TouchableOpacity
-                        key={String(chip.value)}
-                        style={[styles.chip, isActive && { backgroundColor: color, borderColor: color }]}
-                        onPress={() => onChange(chip.value)}
-                    >
-                        <Text style={[styles.chipText, isActive && styles.chipTextActive]}>
-                            {chip.label}
-                        </Text>
-                    </TouchableOpacity>
-                );
-            })}
-        </ScrollView>
+            data={CHIPS}
+            keyExtractor={(item) => String(item.value)}
+            renderItem={renderChip}
+        />
     );
 }
 

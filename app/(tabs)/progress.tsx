@@ -1,6 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
-import { ActivityIndicator, FlatList, Image, ScrollView, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { ActivityIndicator, FlatList, Pressable, ScrollView, StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
@@ -15,7 +16,7 @@ type ProgressView = 'today' | 'week';
 
 function StatCard({ label, value, color }: { label: string; value: string | number; color?: string }) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     return (
         <View style={[styles.statCard, color ? { borderTopColor: color, borderTopWidth: 3 } : {}]}>
             <Text style={styles.statValue}>{value}</Text>
@@ -24,9 +25,37 @@ function StatCard({ label, value, color }: { label: string; value: string | numb
     );
 }
 
+function keyExtractTaskId(item: Task): string {
+    return item.id;
+}
+
+function CompletedTasksList({ tasks, categories, styles }: { tasks: Task[]; categories: { id: string; name: string; color: string }[]; styles: ReturnType<typeof makeStyles> }) {
+    const renderItem = ({ item }: { item: Task }) => {
+        const color = getCategoryColor(categories, item.categoryId);
+        const name = getCategoryName(categories, item.categoryId);
+        return (
+            <View style={styles.taskRow}>
+                <View style={[styles.taskDot, { backgroundColor: color }]} />
+                <Text style={styles.taskTitle} numberOfLines={1}>{item.title}</Text>
+                <View style={[styles.catChip, { backgroundColor: color }]}>
+                    <Text style={styles.catChipText}>{name}</Text>
+                </View>
+            </View>
+        );
+    };
+    return (
+        <FlatList
+            data={tasks}
+            keyExtractor={keyExtractTaskId}
+            style={styles.list}
+            renderItem={renderItem}
+        />
+    );
+}
+
 function CategoryBar({ category, count, total, color }: { category: string; count: number; total: number; color: string }) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const pct = total > 0 ? Math.round((count / total) * 100) : 0;
     return (
         <View style={styles.catRow}>
@@ -56,7 +85,7 @@ function getWeekBounds(weekOffset: number, firstDayOfWeek: 'sunday' | 'monday'):
 
 export default function ProgressScreen() {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const tasks = useTaskStore((s) => s.tasks);
     const categories = useTaskStore((s) => s.categories);
     const hasHydrated = useTaskStore((s) => s.hasHydrated);
@@ -73,8 +102,6 @@ export default function ProgressScreen() {
         );
     }
 
-    const activeTasks = tasks.filter((t) => !t.archivedAt);
-
     return (
         <SafeAreaView style={styles.container}>
             <View style={styles.header}>
@@ -85,25 +112,25 @@ export default function ProgressScreen() {
             </View>
 
             <View style={styles.segmentRow}>
-                <TouchableOpacity
-                    style={[styles.segment, view === 'today' && { backgroundColor: colors.primary }]}
+                <Pressable
+                    style={({ pressed }) => [styles.segment, view === 'today' && { backgroundColor: colors.primary }, pressed && { opacity: 0.7 }]}
                     onPress={() => { setView('today'); setWeekOffset(0); }}
                 >
                     <Text style={[styles.segmentText, view === 'today' && { color: colors.white }]}>Today</Text>
-                </TouchableOpacity>
-                <TouchableOpacity
-                    style={[styles.segment, view === 'week' && { backgroundColor: colors.primary }]}
+                </Pressable>
+                <Pressable
+                    style={({ pressed }) => [styles.segment, view === 'week' && { backgroundColor: colors.primary }, pressed && { opacity: 0.7 }]}
                     onPress={() => setView('week')}
                 >
                     <Text style={[styles.segmentText, view === 'week' && { color: colors.white }]}>Weekly</Text>
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             {view === 'today' ? (
-                <TodayView activeTasks={activeTasks} categories={categories} />
+                <TodayView activeTasks={tasks} categories={categories} />
             ) : (
                 <WeekView
-                    activeTasks={activeTasks}
+                    activeTasks={tasks}
                     categories={categories}
                     firstDayOfWeek={firstDayOfWeek}
                     weekOffset={weekOffset}
@@ -116,18 +143,21 @@ export default function ProgressScreen() {
 
 function TodayView({ activeTasks, categories }: { activeTasks: Task[]; categories: { id: string; name: string; color: string }[] }) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
 
     const summary = getDailySummary(activeTasks);
     const completedToday = getTasksCompletedToday(activeTasks);
 
-    const categoryBreakdown = categories
-        .map((cat) => ({
-            category: cat.name,
-            color: cat.color,
-            count: completedToday.filter((t: Task) => t.categoryId === cat.id).length,
-        }))
-        .filter((c) => c.count > 0);
+    const categoryBreakdown: { category: string; color: string; count: number }[] = [];
+    for (const cat of categories) {
+        let count = 0;
+        for (const t of completedToday) {
+            if (t.categoryId === cat.id) count++;
+        }
+        if (count > 0) {
+            categoryBreakdown.push({ category: cat.name, color: cat.color, count });
+        }
+    }
 
     return (
         <>
@@ -144,24 +174,7 @@ function TodayView({ activeTasks, categories }: { activeTasks: Task[]; categorie
                     <Text style={styles.emptyText}>No tasks completed yet today</Text>
                 </View>
             ) : (
-                <FlatList
-                    data={completedToday}
-                    keyExtractor={(item) => item.id}
-                    style={styles.list}
-                    renderItem={({ item }) => {
-                        const color = getCategoryColor(categories, item.categoryId);
-                        const name = getCategoryName(categories, item.categoryId);
-                        return (
-                            <View style={styles.taskRow}>
-                                <View style={[styles.taskDot, { backgroundColor: color }]} />
-                                <Text style={styles.taskTitle} numberOfLines={1}>{item.title}</Text>
-                                <View style={[styles.catChip, { backgroundColor: color }]}>
-                                    <Text style={styles.catChipText}>{name}</Text>
-                                </View>
-                            </View>
-                        );
-                    }}
-                />
+                <CompletedTasksList tasks={completedToday} categories={categories} styles={styles} />
             )}
 
             {categoryBreakdown.length > 0 && (
@@ -188,7 +201,7 @@ interface WeekViewProps {
 
 function WeekView({ activeTasks, categories, firstDayOfWeek, weekOffset, setWeekOffset }: WeekViewProps) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
 
     const { start: weekStart, end: weekEnd } = getWeekBounds(weekOffset, firstDayOfWeek);
     const weekStartMs = weekStart.getTime();
@@ -213,17 +226,20 @@ function WeekView({ activeTasks, categories, firstDayOfWeek, weekOffset, setWeek
     return (
         <>
             <View style={styles.weekNavRow}>
-                <TouchableOpacity style={styles.navBtn} onPress={() => setWeekOffset((o: number) => o - 1)}>
+                <Pressable
+                    style={({ pressed }) => [styles.navBtn, pressed && { opacity: 0.7 }]}
+                    onPress={() => setWeekOffset((o: number) => o - 1)}
+                >
                     <Ionicons name="chevron-back" size={22} color={colors.text.muted} />
-                </TouchableOpacity>
+                </Pressable>
                 <Text style={styles.weekTitle}>{weekTitle}</Text>
-                <TouchableOpacity
-                    style={styles.navBtn}
+                <Pressable
+                    style={({ pressed }) => [styles.navBtn, pressed && { opacity: 0.7 }]}
                     onPress={() => weekOffset < 0 && setWeekOffset((o: number) => o + 1)}
                     disabled={weekOffset === 0}
                 >
                     <Ionicons name="chevron-forward" size={22} color={weekOffset < 0 ? colors.text.muted : colors.text.disabled} />
-                </TouchableOpacity>
+                </Pressable>
             </View>
 
             <ScrollView contentContainerStyle={styles.scroll}>
@@ -295,7 +311,7 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     weekTitle: { fontSize: 15, fontWeight: '700', color: c.text.primary },
     scroll: { paddingBottom: 40 },
     statsRow: { flexDirection: 'row', paddingHorizontal: 12, paddingVertical: 12, gap: 8 },
-    statCard: { flex: 1, backgroundColor: c.surface, borderRadius: 10, padding: 10, alignItems: 'center', shadowColor: c.shadow, shadowOpacity: 0.06, shadowRadius: 4, elevation: 2 },
+    statCard: { flex: 1, backgroundColor: c.surface, borderRadius: 10, padding: 10, alignItems: 'center', boxShadow: '0px 0px 4px rgba(0,0,0,0.06)' },
     statValue: { fontSize: 20, fontWeight: 'bold', color: c.text.primary },
     statLabel: { fontSize: 10, color: c.text.weak, marginTop: 2, textAlign: 'center' },
     sectionTitle: { fontSize: 14, fontWeight: '700', color: c.text.muted, paddingHorizontal: 16, marginTop: 8, marginBottom: 6, textTransform: 'uppercase', letterSpacing: 0.5 },

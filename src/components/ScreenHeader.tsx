@@ -1,5 +1,6 @@
-import React, { useMemo } from 'react';
-import { Image, StyleSheet, Text, View } from 'react-native';
+import React from 'react';
+import { StyleSheet, Text, View } from 'react-native';
+import { Image } from 'expo-image';
 import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 
@@ -13,7 +14,7 @@ interface ScreenHeaderProps {
 
 export default function ScreenHeader({ title, rightContent }: ScreenHeaderProps) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     return (
         <View style={styles.header}>
             <Image source={appIcon} style={styles.headerIcon} />

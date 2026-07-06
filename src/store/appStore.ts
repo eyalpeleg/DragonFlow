@@ -1,5 +1,4 @@
 import AsyncStorage from '@react-native-async-storage/async-storage';
-import { useMemo } from 'react';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { PriorityLevel } from '../styles/theme';
@@ -32,8 +31,8 @@ const BUILTIN_CATEGORIES: Category[] = [
 ];
 
 export function isUrgent(t: Task, todayStr: string, tomorrowStr: string): boolean {
-    if (t.archivedAt) return false;
     if (t.status === 'Done') return false;
+    if (t.pinned) return true;
     if (t.dueDate < todayStr) return true;
     if (t.dueDate === todayStr) return true;
     if (t.dueDate === tomorrowStr && (t.priority === 'Critical' || t.priority === 'High')) return true;
@@ -68,6 +67,14 @@ function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomod
     }
 }
 
+export interface DoneUndoInfo {
+    taskId: string;
+    priorStatus: TaskStatus;
+    priorCompletedTime?: number;
+    generatedOccurrenceId?: string;
+    at: number;
+}
+
 export interface AddTaskInput {
     title: string;
     description: string;
@@ -77,6 +84,7 @@ export interface AddTaskInput {
     dueTime: string;
     subTasks?: SubTask[];
     recurrence?: RecurrenceConfig;
+    pinned?: boolean;
 }
 
 interface TaskStore {
@@ -106,19 +114,22 @@ interface TaskStore {
     customTimerSeconds: number;
     debugModeEnabled: boolean;
     darkMode: boolean;
+    reflectOnDone: boolean;
+    lastDoneUndo: DoneUndoInfo | null;
 
     addTask: (input: AddTaskInput) => void;
     updateTask: (id: string, updates: Partial<Task>) => void;
     deleteTask: (id: string) => void;
-    archiveTask: (id: string) => void;
-    restoreTask: (id: string) => void;
     setStatus: (id: string, status: TaskStatus) => void;
+    undoLastDone: () => void;
+    clearLastDoneUndo: () => void;
+    setReflectOnDone: (enabled: boolean) => void;
+    togglePin: (id: string) => void;
     setHydrated: (value: boolean) => void;
     addCategory: (name: string, color: string) => void;
     deleteCategory: (id: string) => void;
     updateCategory: (id: string, updates: { name?: string; color?: string }) => boolean;
     toggleSubTask: (taskId: string, subTaskId: string) => void;
-    addSubTask: (taskId: string, title: string) => void;
     removeSubTask: (taskId: string, subTaskId: string) => void;
     renameSubTask: (taskId: string, subTaskId: string, title: string) => void;
     updateCompletionComment: (taskId: string, comment: string) => void;
@@ -177,6 +188,8 @@ export const useTaskStore = create<TaskStore>()(
             customTimerSeconds: 0,
             debugModeEnabled: false,
             darkMode: false,
+            reflectOnDone: false,
+            lastDoneUndo: null,
 
             addTask: (input) => set((s) => {
                 const task: Task = {
@@ -191,6 +204,7 @@ export const useTaskStore = create<TaskStore>()(
                     createdAt: Date.now(),
                     subTasks: input.subTasks ?? [],
                     recurrence: input.recurrence,
+                    pinned: input.pinned ?? false,
                 };
                 const tasks = [task, ...s.tasks];
                 syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
@@ -216,24 +230,8 @@ export const useTaskStore = create<TaskStore>()(
                 return { tasks };
             }),
 
-            archiveTask: (id) => set((s) => {
-                cancelTaskReminders(id).catch(() => {});
-                const tasks = s.tasks.map((t) => t.id === id ? { ...t, archivedAt: Date.now() } : t);
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
-                return { tasks };
-            }),
-
-            restoreTask: (id) => set((s) => {
-                const tasks = s.tasks.map((t) => {
-                    if (t.id !== id) return t;
-                    const { archivedAt: _, ...rest } = t;
-                    return rest as Task;
-                });
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
-                return { tasks };
-            }),
-
             setStatus: (id, status) => set((s) => {
+                const prior = s.tasks.find((t) => t.id === id);
                 let tasks = s.tasks.map((t) => {
                     if (t.id !== id) return t;
                     return {
@@ -245,8 +243,10 @@ export const useTaskStore = create<TaskStore>()(
                 });
 
                 const completed = tasks.find((t) => t.id === id);
+                let generatedOccurrenceId: string | undefined;
                 if (status === 'Done' && completed?.recurrence) {
                     const next = buildNextOccurrence(completed);
+                    generatedOccurrenceId = next.id;
                     tasks = [...tasks, next];
                     scheduleTaskReminders(next).catch(() => {});
                 }
@@ -258,6 +258,49 @@ export const useTaskStore = create<TaskStore>()(
                     const reopened = tasks.find((t) => t.id === id);
                     if (reopened) scheduleTaskReminders(reopened).catch(() => {});
                 }
+
+                const isFreshDone = status === 'Done' && prior && prior.status !== 'Done';
+                const lastDoneUndo: DoneUndoInfo | null = isFreshDone
+                    ? {
+                        taskId: id,
+                        priorStatus: prior!.status,
+                        priorCompletedTime: prior!.completedTime,
+                        generatedOccurrenceId,
+                        at: Date.now(),
+                    }
+                    : status === 'Done' ? s.lastDoneUndo : null;
+
+                return { tasks, lastDoneUndo };
+            }),
+
+            undoLastDone: () => set((s) => {
+                const info = s.lastDoneUndo;
+                if (!info) return {};
+                let tasks = s.tasks.map((t) => {
+                    if (t.id !== info.taskId) return t;
+                    return {
+                        ...t,
+                        status: info.priorStatus,
+                        completedTime: info.priorCompletedTime,
+                    };
+                });
+                if (info.generatedOccurrenceId) {
+                    cancelTaskReminders(info.generatedOccurrenceId).catch(() => {});
+                    tasks = tasks.filter((t) => t.id !== info.generatedOccurrenceId);
+                }
+                const restored = tasks.find((t) => t.id === info.taskId);
+                if (restored) scheduleTaskReminders(restored).catch(() => {});
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                return { tasks, lastDoneUndo: null };
+            }),
+
+            clearLastDoneUndo: () => set({ lastDoneUndo: null }),
+
+            setReflectOnDone: (enabled) => set({ reflectOnDone: enabled }),
+
+            togglePin: (id) => set((s) => {
+                const tasks = s.tasks.map((t) => t.id === id ? { ...t, pinned: !t.pinned } : t);
+                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
                 return { tasks };
             }),
 
@@ -318,14 +361,6 @@ export const useTaskStore = create<TaskStore>()(
                             st.id === subTaskId ? { ...st, completed: !st.completed } : st
                         ),
                     };
-                }),
-            })),
-
-            addSubTask: (taskId, title) => set((s) => ({
-                tasks: s.tasks.map((t) => {
-                    if (t.id !== taskId) return t;
-                    const newSub: SubTask = { id: makeId(), title, completed: false };
-                    return { ...t, subTasks: [...(t.subTasks ?? []), newSub] };
                 }),
             })),
 
@@ -493,7 +528,8 @@ export const useTaskStore = create<TaskStore>()(
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
                 darkMode: state.darkMode,
-                _schemaVersion: 2,
+                reflectOnDone: state.reflectOnDone,
+                _schemaVersion: 4,
                 statusFilters: Array.from(state.statusFilters),
                 categoryFilters: Array.from(state.categoryFilters),
                 priorityFilters: Array.from(state.priorityFilters),
@@ -534,13 +570,41 @@ export const useTaskStore = create<TaskStore>()(
                 if (p.pomodoroSoundType !== 'AppSound' && p.pomodoroSoundType !== 'Disabled') p.pomodoroSoundType = 'AppSound';
                 if (p.tasksSoundType !== 'AppSound' && p.tasksSoundType !== 'Disabled') p.tasksSoundType = 'AppSound';
 
+                if (schemaVersion < 3) {
+                    // Done = Archived: drop archivedAt; any task with archivedAt is now Done.
+                    tasks = tasks.map((t: any) => {
+                        const { archivedAt, ...rest } = t;
+                        if (archivedAt !== undefined && archivedAt !== null) {
+                            return {
+                                ...rest,
+                                status: 'Done' as TaskStatus,
+                                completedTime: rest.completedTime ?? archivedAt,
+                            };
+                        }
+                        return rest;
+                    });
+                    // 'Done' is no longer a main-list status filter
+                    if (Array.isArray(p.statusFilters)) {
+                        p.statusFilters = p.statusFilters.filter((s: string) => s !== 'Done');
+                    }
+                }
+
+                if (schemaVersion < 4) {
+                    // Filter UI is now category-only. Wipe the now-unreachable filter sets
+                    // so previously-persisted ones don't silently filter the main list.
+                    p.statusFilters = [];
+                    p.priorityFilters = [];
+                    p.dueDateFilters = [];
+                }
+
                 // Always ensure Default exists (orphan-task fallback). For other built-ins,
                 // only re-add if the user hasn't explicitly deleted them.
                 const deletedBuiltinCategoryIds: string[] = p.deletedBuiltinCategoryIds ?? [];
+                const deletedBuiltinCategoryIdSet = new Set(deletedBuiltinCategoryIds);
                 const existingIds = new Set(categories.map((c) => c.id));
                 for (const bc of BUILTIN_CATEGORIES) {
                     if (existingIds.has(bc.id)) continue;
-                    if (bc.id === DEFAULT_CATEGORY_ID || !deletedBuiltinCategoryIds.includes(bc.id)) {
+                    if (bc.id === DEFAULT_CATEGORY_ID || !deletedBuiltinCategoryIdSet.has(bc.id)) {
                         categories.push({ ...bc });
                     }
                 }
@@ -555,7 +619,7 @@ export const useTaskStore = create<TaskStore>()(
                 return {
                     ...current,
                     ...persistedFiltered,
-                    _schemaVersion: 2,
+                    _schemaVersion: 4,
                     tasks,
                     categories,
                     deletedBuiltinCategoryIds,
@@ -581,9 +645,10 @@ export const useTaskStore = create<TaskStore>()(
                     if (!(state.dueDateFilters instanceof Set)) {
                         state.dueDateFilters = new Set();
                     }
-                    state.tasks
-                        .filter((t) => t.status !== 'Done' && !t.archivedAt)
-                        .forEach((t) => scheduleTaskReminders(t).catch(() => {}));
+                    for (const t of state.tasks) {
+                        if (t.status === 'Done') continue;
+                        scheduleTaskReminders(t).catch(() => {});
+                    }
                 }
                 state?.setHydrated(true);
             },
@@ -599,54 +664,49 @@ export function useSortedFilteredTasks(): Task[] {
     const dueDateFilters = useTaskStore((s) => s.dueDateFilters);
     const focusMode = useTaskStore((s) => s.focusMode);
 
-    return useMemo(() => {
-        const active = tasks.filter((t) => !t.archivedAt);
-        const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
+    const active = tasks.filter((t) => t.status !== 'Done');
+    const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
 
-        const filtered = active.filter((t) => {
-            if (focusMode && !isUrgent(t, todayStr, tomorrowStr)) return false;
-            if (statusFilters.size > 0 && !statusFilters.has(t.status)) return false;
-            if (categoryFilters.size > 0 && !categoryFilters.has(t.categoryId)) return false;
-            if (priorityFilters.size > 0 && !priorityFilters.has(t.priority)) return false;
-            if (dueDateFilters.size > 0) {
-                if (!t.dueDate) return false;
-                const today = new Date().toISOString().slice(0, 10);
-                const dueDate = t.dueDate;
-                const matchesDueDateFilter = Array.from(dueDateFilters).some((filter) => {
-                    if (filter === 'overdue') return t.status !== 'Done' && dueDate < today;
-                    if (filter === 'today') return t.status !== 'Done' && dueDate === today;
-                    if (filter === 'upcoming') return t.status !== 'Done' && dueDate > today;
-                    return false;
-                });
-                if (!matchesDueDateFilter) return false;
-            }
-            return true;
-        });
+    const filtered = active.filter((t) => {
+        if (focusMode && !isUrgent(t, todayStr, tomorrowStr)) return false;
+        if (statusFilters.size > 0 && !statusFilters.has(t.status)) return false;
+        if (categoryFilters.size > 0 && !categoryFilters.has(t.categoryId)) return false;
+        if (priorityFilters.size > 0 && !priorityFilters.has(t.priority)) return false;
+        if (dueDateFilters.size > 0) {
+            if (!t.dueDate) return false;
+            const today = new Date().toISOString().slice(0, 10);
+            const dueDate = t.dueDate;
+            const matchesDueDateFilter = Array.from(dueDateFilters).some((filter) => {
+                if (filter === 'overdue') return t.status !== 'Done' && dueDate < today;
+                if (filter === 'today') return t.status !== 'Done' && dueDate === today;
+                if (filter === 'upcoming') return t.status !== 'Done' && dueDate > today;
+                return false;
+            });
+            if (!matchesDueDateFilter) return false;
+        }
+        return true;
+    });
 
-        return [...filtered].sort((a, b) => {
-            const statusDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
-            if (statusDiff !== 0) return statusDiff;
+    return [...filtered].sort((a, b) => {
+        const statusDiff = STATUS_RANK[a.status] - STATUS_RANK[b.status];
+        if (statusDiff !== 0) return statusDiff;
 
-            const dateA = a.dueDate || '9999-12-31';
-            const dateB = b.dueDate || '9999-12-31';
-            const timeA = a.dueTime || '23:59';
-            const timeB = b.dueTime || '23:59';
-            const dateTimeA = `${dateA}T${timeA}`;
-            const dateTimeB = `${dateB}T${timeB}`;
-            if (dateTimeA !== dateTimeB) return dateTimeA < dateTimeB ? -1 : 1;
+        const dateA = a.dueDate || '9999-12-31';
+        const dateB = b.dueDate || '9999-12-31';
+        const timeA = a.dueTime || '23:59';
+        const timeB = b.dueTime || '23:59';
+        const dateTimeA = `${dateA}T${timeA}`;
+        const dateTimeB = `${dateB}T${timeB}`;
+        if (dateTimeA !== dateTimeB) return dateTimeA < dateTimeB ? -1 : 1;
 
-            const nameCompare = a.title.localeCompare(b.title);
-            if (nameCompare !== 0) return nameCompare;
+        const nameCompare = a.title.localeCompare(b.title);
+        if (nameCompare !== 0) return nameCompare;
 
-            return a.createdAt - b.createdAt;
-        });
-    }, [tasks, statusFilters, categoryFilters, priorityFilters, dueDateFilters, focusMode]);
+        return a.createdAt - b.createdAt;
+    });
 }
 
 export function useArchivedTasks(): Task[] {
     const tasks = useTaskStore((s) => s.tasks);
-    return useMemo(
-        () => tasks.filter((t) => !!t.archivedAt).sort((a, b) => (b.archivedAt ?? 0) - (a.archivedAt ?? 0)),
-        [tasks]
-    );
+    return tasks.filter((t) => t.status === 'Done').sort((a, b) => (b.completedTime ?? 0) - (a.completedTime ?? 0));
 }

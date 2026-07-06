@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
-import { Alert, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Alert, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { useTaskStore } from '../store/appStore';
@@ -11,15 +11,14 @@ interface Props {
     subTasks: SubTask[];
     taskStatus: string;
     onAllDone: () => void;
+    onRequestAddSubTask?: () => void;
 }
 
-export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone }: Props) {
+export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone, onRequestAddSubTask }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const { toggleSubTask, addSubTask, removeSubTask, renameSubTask } = useTaskStore();
+    const styles = makeStyles(colors);
+    const { toggleSubTask, removeSubTask, renameSubTask } = useTaskStore();
     const [expanded, setExpanded] = useState(false);
-    const [adding, setAdding] = useState(false);
-    const [newTitle, setNewTitle] = useState('');
     const [editingId, setEditingId] = useState<string | null>(null);
     const [editingTitle, setEditingTitle] = useState('');
 
@@ -35,14 +34,6 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
         if (willBeCompleted && othersDone === total - 1 && taskStatus !== 'Done') {
             setTimeout(() => onAllDone(), 150);
         }
-    }
-
-    function handleAdd() {
-        const trimmed = newTitle.trim();
-        if (!trimmed) return;
-        addSubTask(taskId, trimmed);
-        setNewTitle('');
-        setAdding(false);
     }
 
     function handleRemove(sub: SubTask) {
@@ -75,25 +66,31 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
     return (
         <View style={styles.container}>
             {/* Progress bar + header */}
-            <TouchableOpacity style={styles.header} onPress={() => setExpanded((v) => !v)} activeOpacity={0.7}>
+            <Pressable
+                style={({ pressed }) => [styles.header, pressed && { opacity: 0.7 }]}
+                onPress={() => setExpanded((v) => !v)}
+            >
                 <View style={styles.progressTrack}>
                     <View style={[styles.progressFill, { width: `${pct * 100}%` }]} />
                 </View>
                 <Text style={styles.progressLabel}>{done}/{total}</Text>
                 <Ionicons name={expanded ? 'chevron-up' : 'chevron-down'} size={14} color={colors.text.light} style={{ marginLeft: 4 }} />
-            </TouchableOpacity>
+            </Pressable>
 
             {expanded && (
                 <View style={styles.list}>
                     {subTasks.map((sub) => (
                         <View key={sub.id} style={styles.row}>
-                            <TouchableOpacity onPress={() => handleToggle(sub)} style={styles.check}>
+                            <Pressable
+                                onPress={() => handleToggle(sub)}
+                                style={({ pressed }) => [styles.check, pressed && { opacity: 0.7 }]}
+                            >
                                 <Ionicons
                                     name={sub.completed ? 'checkmark-circle' : 'ellipse-outline'}
                                     size={20}
                                     color={sub.completed ? colors.status['Done'] : colors.text.disabled}
                                 />
-                            </TouchableOpacity>
+                            </Pressable>
                             {editingId === sub.id ? (
                                 <TextInput
                                     style={[styles.subTitle, styles.editInput, sub.completed && styles.subTitleDone]}
@@ -105,56 +102,44 @@ export default function TaskChecklist({ taskId, subTasks, taskStatus, onAllDone 
                                     returnKeyType="done"
                                 />
                             ) : (
-                                <TouchableOpacity
-                                    style={styles.subTitleTouch}
+                                <Pressable
+                                    style={({ pressed }) => [styles.subTitleTouch, pressed && { opacity: 0.6 }]}
                                     onPress={() => startEdit(sub)}
                                     disabled={taskStatus === 'Done'}
-                                    activeOpacity={0.6}
                                 >
                                     <Text style={[styles.subTitle, sub.completed && styles.subTitleDone]} numberOfLines={2}>
                                         {sub.title}
                                     </Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             )}
                             {taskStatus !== 'Done' && (
                                 editingId === sub.id ? (
-                                    <TouchableOpacity onPress={cancelEdit} style={styles.removeBtn}>
+                                    <Pressable
+                                        onPress={cancelEdit}
+                                        style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.7 }]}
+                                    >
                                         <Ionicons name="close" size={14} color={colors.text.disabled} />
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 ) : (
-                                    <TouchableOpacity onPress={() => handleRemove(sub)} style={styles.removeBtn}>
+                                    <Pressable
+                                        onPress={() => handleRemove(sub)}
+                                        style={({ pressed }) => [styles.removeBtn, pressed && { opacity: 0.7 }]}
+                                    >
                                         <Ionicons name="close" size={14} color={colors.text.disabled} />
-                                    </TouchableOpacity>
+                                    </Pressable>
                                 )
                             )}
                         </View>
                     ))}
 
-                    {taskStatus !== 'Done' && (
-                        adding ? (
-                            <View style={styles.addRow}>
-                                <TextInput
-                                    style={styles.addInput}
-                                    value={newTitle}
-                                    onChangeText={setNewTitle}
-                                    placeholder="Sub-task title"
-                                    autoFocus
-                                    onSubmitEditing={handleAdd}
-                                    returnKeyType="done"
-                                />
-                                <TouchableOpacity onPress={handleAdd} style={styles.addConfirmBtn}>
-                                    <Ionicons name="checkmark" size={16} color={colors.white} />
-                                </TouchableOpacity>
-                                <TouchableOpacity onPress={() => { setAdding(false); setNewTitle(''); }}>
-                                    <Ionicons name="close" size={16} color={colors.text.light} style={{ padding: 4 }} />
-                                </TouchableOpacity>
-                            </View>
-                        ) : (
-                            <TouchableOpacity style={styles.addTrigger} onPress={() => setAdding(true)}>
-                                <Ionicons name="add" size={14} color={colors.primary} />
-                                <Text style={styles.addTriggerText}>Add sub-task</Text>
-                            </TouchableOpacity>
-                        )
+                    {taskStatus !== 'Done' && onRequestAddSubTask && (
+                        <Pressable
+                            style={({ pressed }) => [styles.addTrigger, pressed && { opacity: 0.7 }]}
+                            onPress={onRequestAddSubTask}
+                        >
+                            <Ionicons name="add" size={14} color={colors.primary} />
+                            <Text style={styles.addTriggerText}>Add sub-task</Text>
+                        </Pressable>
                     )}
                 </View>
             )}
@@ -176,9 +161,6 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
     subTitleDone: { textDecorationLine: 'line-through', color: c.text.veryLight },
     editInput: { borderBottomWidth: 1, borderBottomColor: c.border.medium, paddingVertical: 2 },
     removeBtn: { padding: 4 },
-    addRow: { flexDirection: 'row', alignItems: 'center', gap: 6, marginTop: 4 },
-    addInput: { flex: 1, borderBottomWidth: 1, borderBottomColor: c.border.medium, fontSize: 13, paddingVertical: 4 },
-    addConfirmBtn: { backgroundColor: c.primary, borderRadius: 12, padding: 4 },
     addTrigger: { flexDirection: 'row', alignItems: 'center', gap: 4, paddingTop: 4 },
     addTriggerText: { fontSize: 12, color: c.primary },
 });

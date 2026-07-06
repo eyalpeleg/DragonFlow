@@ -1,6 +1,6 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View } from 'react-native';
+import React, { useState } from 'react';
+import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { AppColors, PRESET_PALETTE } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { useTaskStore } from '../store/appStore';
@@ -12,7 +12,7 @@ interface Props {
 
 export default function AddCategoryModal({ visible, onClose }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const { categories, addCategory } = useTaskStore();
     const [name, setName] = useState('');
     const [selectedColor, setSelectedColor] = useState(PRESET_PALETTE[0]);
@@ -57,29 +57,32 @@ export default function AddCategoryModal({ visible, onClose }: Props) {
                     <Text style={styles.label}>Color</Text>
                     <View style={styles.palette}>
                         {PRESET_PALETTE.map((color) => (
-                            <TouchableOpacity
+                            <Pressable
                                 key={color}
-                                style={[styles.swatch, { backgroundColor: color }, selectedColor === color && styles.swatchSelected]}
+                                style={({ pressed }) => [styles.swatch, { backgroundColor: color }, selectedColor === color && styles.swatchSelected, pressed && { opacity: 0.7 }]}
                                 onPress={() => setSelectedColor(color)}
                             >
                                 {selectedColor === color && (
                                     <Ionicons name="checkmark" size={14} color={colors.white} />
                                 )}
-                            </TouchableOpacity>
+                            </Pressable>
                         ))}
                     </View>
 
                     <View style={styles.buttons}>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={handleClose}>
+                        <Pressable
+                            style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                            onPress={handleClose}
+                        >
                             <Text style={styles.cancelText}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity
-                            style={[styles.addBtn, !canAdd && styles.addBtnDisabled]}
+                        </Pressable>
+                        <Pressable
+                            style={({ pressed }) => [styles.addBtn, !canAdd && styles.addBtnDisabled, pressed && { opacity: 0.7 }]}
                             onPress={handleAdd}
                             disabled={!canAdd}
                         >
                             <Text style={styles.addText}>Add</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>
@@ -89,7 +92,7 @@ export default function AddCategoryModal({ visible, onClose }: Props) {
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
-    sheet: { backgroundColor: c.surface, borderRadius: 16, padding: 20, width: '85%' },
+    sheet: { backgroundColor: c.surfaceElevated, borderRadius: 16, padding: 20, width: '85%' },
     title: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 14 },
     input: {
         borderWidth: 1, borderColor: c.border.medium, borderRadius: 8,

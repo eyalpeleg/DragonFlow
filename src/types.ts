@@ -33,7 +33,6 @@ export interface Task {
     createdAt: number;
     startTime?: number;
     completedTime?: number;
-    archivedAt?: number;
     // Feature: sub-tasks
     subTasks?: SubTask[];
     // Feature: recurring
@@ -41,4 +40,6 @@ export interface Task {
     parentRecurringId?: string;
     // Feature: done stats comment
     completionComment?: string;
+    // Feature: pinned — always treated as urgent (focus mode + bubble)
+    pinned?: boolean;
 }

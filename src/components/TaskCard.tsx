@@ -1,32 +1,36 @@
-import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
-import { Alert, StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import { AntDesign, Ionicons } from '@expo/vector-icons';
+import React, { useRef } from 'react';
+import { Alert, Pressable, StyleSheet, Text, View } from 'react-native';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { getCategoryColor, getCategoryName, useTaskStore } from '../store/appStore';
 import { Task, TaskStatus } from '../types';
 import TaskChecklist from './TaskChecklist';
+import type { EditFocus } from './EditTaskModal';
+
+const DOUBLE_TAP_MS = 280;
 
 interface Props {
     task: Task;
+    today: string;
+    tomorrow: string;
     onStatusChange: (id: string, status: TaskStatus) => void;
-    onEdit: (task: Task) => void;
-    onArchive: (id: string) => void;
+    onEdit: (task: Task, focus?: EditFocus) => void;
+    onDelete: (id: string) => void;
     onOpenStats: (task: Task) => void;
 }
 
-export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOpenStats }: Props) {
+export default function TaskCard({ task, today, tomorrow, onStatusChange, onEdit, onDelete, onOpenStats }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const statusBarColors = useMemo<Record<TaskStatus, string>>(() => colors.statusSoft, [colors]);
+    const styles = makeStyles(colors);
+    const statusBarColors: Record<TaskStatus, string> = colors.statusSoft;
     const categories = useTaskStore((s) => s.categories);
-    const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [] } = task;
+    const togglePin = useTaskStore((s) => s.togglePin);
+    const { id, title, description, priority, categoryId, dueDate, status, recurrence, subTasks = [], pinned } = task;
     const categoryColor = getCategoryColor(categories, categoryId);
     const categoryName = getCategoryName(categories, categoryId);
     const isRecurring = !!recurrence;
 
-    const today = new Date().toISOString().slice(0, 10);
-    const tomorrow = new Date(Date.now() + 86400000).toISOString().slice(0, 10);
     const isOverdue = status !== 'Done' && dueDate && dueDate < today;
     const isDueToday = status !== 'Done' && dueDate === today;
     const isDueTomorrow = status !== 'Done' && dueDate === tomorrow;
@@ -35,6 +39,17 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
     const displayDate = dueDate
         ? new Date(dueDate + 'T00:00:00').toLocaleDateString('en-US', { month: 'short', day: 'numeric' })
         : null;
+
+    function handleDeletePress() {
+        Alert.alert(
+            'Delete Task',
+            `Delete "${title}"? This cannot be undone.`,
+            [
+                { text: 'Cancel', style: 'cancel' },
+                { text: 'Delete', style: 'destructive', onPress: () => onDelete(id) },
+            ]
+        );
+    }
 
     function handleAllSubTasksDone() {
         Alert.alert(
@@ -47,30 +62,65 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
         );
     }
 
+    const lastTapRef = useRef<number>(0);
+    const pendingSingleTapRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+    function handleCardPress() {
+        const now = Date.now();
+        const isDoubleTap = now - lastTapRef.current < DOUBLE_TAP_MS;
+        if (isDoubleTap) {
+            lastTapRef.current = 0;
+            if (pendingSingleTapRef.current) {
+                clearTimeout(pendingSingleTapRef.current);
+                pendingSingleTapRef.current = null;
+            }
+            onEdit(task);
+            return;
+        }
+        lastTapRef.current = now;
+        if (status === 'Done') {
+            pendingSingleTapRef.current = setTimeout(() => {
+                pendingSingleTapRef.current = null;
+                onOpenStats(task);
+            }, DOUBLE_TAP_MS);
+        }
+    }
+
     return (
-        <TouchableOpacity
-            activeOpacity={status === 'Done' ? 0.7 : 1}
-            onPress={status === 'Done' ? () => onOpenStats(task) : undefined}
+        <Pressable
+            style={({ pressed }) => pressed && { opacity: 0.7 }}
+            onPress={handleCardPress}
         >
             <View style={[styles.card, { borderLeftColor: statusBarColors[status] }, status === 'Done' && styles.cardDone]}>
                 <View style={styles.topRow}>
                     <Text style={[styles.title, status === 'Done' && styles.titleDone]} numberOfLines={2}>{title}</Text>
                     <View style={styles.actions}>
                         {status === 'Done' && (
-                            <TouchableOpacity onPress={() => onOpenStats(task)} style={styles.actionBtn}>
+                            <Pressable
+                                onPress={() => onOpenStats(task)}
+                                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
+                            >
                                 <Ionicons name="stats-chart" size={15} color={colors.primary} />
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
-                        <TouchableOpacity onPress={() => onEdit(task)} style={styles.actionBtn}>
-                            <Ionicons name="pencil-sharp" size={15} color={colors.text.subtle} />
-                        </TouchableOpacity>
-                        <TouchableOpacity onPress={() => onArchive(id)} style={styles.actionBtn}>
-                            <Ionicons
-                                name={status === 'Done' ? 'archive' : 'trash'}
-                                size={15}
-                                color={status === 'Done' ? colors.text.light : colors.text.error}
-                            />
-                        </TouchableOpacity>
+                        {status !== 'Done' && (
+                            <Pressable
+                                onPress={() => togglePin(id)}
+                                style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
+                            >
+                                <AntDesign
+                                    name="pushpin"
+                                    size={15}
+                                    color={pinned ? colors.primary : colors.text.disabled}
+                                />
+                            </Pressable>
+                        )}
+                        <Pressable
+                            onPress={handleDeletePress}
+                            style={({ pressed }) => [styles.actionBtn, pressed && { opacity: 0.7 }]}
+                        >
+                            <Ionicons name="trash" size={15} color={colors.text.error} />
+                        </Pressable>
                     </View>
                 </View>
                 {!!description && <Text style={styles.desc} numberOfLines={2}>{description}</Text>}
@@ -97,53 +147,53 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                                     {isDueToday ? 'Today' : isDueTomorrow ? 'Tomorrow' : displayDate}
                                 </Text>
                                 {isRecurring && (
-                                    <Ionicons name="repeat" size={12} color={colors.text.light} style={styles.recurIcon} />
+                                    <AntDesign name="sync" size={12} color={colors.text.light} style={styles.recurIcon} />
                                 )}
                             </View>
                         )}
                         {!displayDate && isRecurring && (
-                            <Ionicons name="repeat" size={12} color={colors.text.light} />
+                            <AntDesign name="sync" size={12} color={colors.text.light} />
                         )}
                     </View>
                     {status === 'Ready' && (
-                        <TouchableOpacity
-                            style={[styles.statusIconBtn, { backgroundColor: colors.secondary }]}
+                        <Pressable
+                            style={({ pressed }) => [styles.statusIconBtn, { backgroundColor: colors.secondary }, pressed && { opacity: 0.7 }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
                             <Ionicons name="play" size={14} color={colors.white} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                     {status === 'In Progress' && (
                         <View style={styles.statusBtnGroup}>
-                            <TouchableOpacity
-                                style={[styles.statusIconBtn, styles.statusIconBtnMuted]}
+                            <Pressable
+                                style={({ pressed }) => [styles.statusIconBtn, styles.statusIconBtnMuted, pressed && { opacity: 0.7 }]}
                                 onPress={() => onStatusChange(id, 'Paused')}
                             >
                                 <Ionicons name="pause" size={14} color={colors.text.subtle} />
-                            </TouchableOpacity>
-                            <TouchableOpacity
-                                style={[styles.statusIconBtn, { backgroundColor: colors.action }]}
+                            </Pressable>
+                            <Pressable
+                                style={({ pressed }) => [styles.statusIconBtn, { backgroundColor: colors.action }, pressed && { opacity: 0.7 }]}
                                 onPress={() => onStatusChange(id, 'Done')}
                             >
                                 <Ionicons name="checkmark" size={16} color={colors.white} />
-                            </TouchableOpacity>
+                            </Pressable>
                         </View>
                     )}
                     {status === 'Paused' && (
-                        <TouchableOpacity
-                            style={[styles.statusIconBtn, { backgroundColor: colors.secondary }]}
+                        <Pressable
+                            style={({ pressed }) => [styles.statusIconBtn, { backgroundColor: colors.secondary }, pressed && { opacity: 0.7 }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
                             <Ionicons name="play" size={14} color={colors.white} />
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                     {status === 'Done' && (
-                        <TouchableOpacity
-                            style={styles.reopenBtn}
+                        <Pressable
+                            style={({ pressed }) => [styles.reopenBtn, pressed && { opacity: 0.7 }]}
                             onPress={() => onStatusChange(id, 'In Progress')}
                         >
                             <Text style={styles.reopenBtnText}>↩ Reopen</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     )}
                 </View>
 
@@ -153,22 +203,23 @@ export default function TaskCard({ task, onStatusChange, onEdit, onArchive, onOp
                         subTasks={subTasks}
                         taskStatus={status}
                         onAllDone={handleAllSubTasksDone}
+                        onRequestAddSubTask={() => onEdit(task, 'subTask')}
                     />
                 )}
 
                 {status === 'Done' && (
-                    <Text style={styles.tapHint}>Tap card for stats →</Text>
+                    <Text style={styles.tapHint}>Tap for stats · double-tap to edit</Text>
                 )}
             </View>
-        </TouchableOpacity>
+        </Pressable>
     );
 }
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     card: {
         backgroundColor: c.surface, padding: 14, marginVertical: 5, marginHorizontal: 12,
-        borderRadius: 12, borderLeftWidth: 4, elevation: 1,
-        shadowColor: c.shadow, shadowOffset: { width: 0, height: 1 }, shadowOpacity: 0.05, shadowRadius: 2,
+        borderRadius: 12, borderLeftWidth: 4,
+        boxShadow: '0px 1px 2px rgba(0,0,0,0.05)',
     },
     cardDone: { opacity: 0.6 },
     topRow: { flexDirection: 'row', justifyContent: 'space-between', alignItems: 'center', marginBottom: 6 },

@@ -11,11 +11,14 @@
     "prebuild:clean": "expo prebuild --clean --platform android && npm run copy-native-files && npm run patch-native-config",
     "android": "expo run:android",
     "build:apk": "npm run prebuild:clean && cd android && ./gradlew assembleRelease",
+    "build:aab": "npm run prebuild:clean && cd android && ./gradlew bundleRelease",
     "ios": "expo run:ios",
     "web": "expo start --web",
     "lint": "expo lint",
+    "typecheck": "tsc --noEmit",
     "test": "jest",
-    "test:watch": "jest --watch"
+    "test:watch": "jest --watch",
+    "check": "npm run typecheck && npm run lint && npm test -- --passWithNoTests"
   },
   "dependencies": {
     "@expo/vector-icons": "^15.0.3",

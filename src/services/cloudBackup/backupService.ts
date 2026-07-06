@@ -1,4 +1,3 @@
-import { AppState, AppStateStatus } from 'react-native';
 import { useTaskStore } from '../../store/appStore';
 import { useBackupStore } from './backupStore';
 import * as googleAuth from './googleAuth';
@@ -26,9 +25,17 @@ function startOfWeekKey(d: Date, firstDayOfWeek: 'sunday' | 'monday'): string {
 }
 
 function newestInBucket(backups: BackupMetadata[], bucket: BackupBucket): BackupMetadata | undefined {
-    return backups
-        .filter((b) => b.bucket === bucket)
-        .sort((a, b) => new Date(b.modifiedTime).getTime() - new Date(a.modifiedTime).getTime())[0];
+    let newest: BackupMetadata | undefined;
+    let newestMs = -Infinity;
+    for (const b of backups) {
+        if (b.bucket !== bucket) continue;
+        const ms = new Date(b.modifiedTime).getTime();
+        if (ms > newestMs) {
+            newestMs = ms;
+            newest = b;
+        }
+    }
+    return newest;
 }
 
 export async function initializeBackup(): Promise<void> {
@@ -169,13 +176,3 @@ export function onAppBackground(): void {
     performBackup().catch(() => {});
 }
 
-export function setupAppStateListener(): () => void {
-    const handler = (nextState: AppStateStatus) => {
-        if (nextState === 'background') {
-            onAppBackground();
-        }
-    };
-
-    const subscription = AppState.addEventListener('change', handler);
-    return () => subscription.remove();
-}

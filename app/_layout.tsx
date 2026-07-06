@@ -1,5 +1,6 @@
-import { useEffect, useRef, useState } from 'react';
-import { Animated, AppState, Image, StyleSheet, Text } from 'react-native';
+import { useEffect, useState } from 'react';
+import { Animated, AppState, StyleSheet, Text } from 'react-native';
+import { Image } from 'expo-image';
 import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
@@ -7,9 +8,10 @@ import * as SplashScreen from 'expo-splash-screen';
 import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
-import { backupService } from '@/src/services/cloudBackup';
+import { initializeBackup, setupAutoBackup, onAppBackground } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
 import { useColorMode } from '@/src/styles/useColors';
+import UndoSnackbar from '@/src/components/UndoSnackbar';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -21,7 +23,7 @@ export default function RootLayout() {
     const { setFloatingBubbleDismissed } = useTaskStore();
     const colorMode = useColorMode();
     const [splashVisible, setSplashVisible] = useState(true);
-    const splashOpacity = useRef(new Animated.Value(1)).current;
+    const [splashOpacity] = useState(() => new Animated.Value(1));
 
     useEffect(() => {
         SplashScreen.hideAsync().catch(() => {});
@@ -60,8 +62,8 @@ export default function RootLayout() {
         useTaskStore.getState().setPomodoroVisible(false);
 
         // Cloud backup initialization
-        backupService.initializeBackup().catch(() => {});
-        const unsubscribeBackup = backupService.setupAutoBackup();
+        initializeBackup().catch(() => {});
+        const unsubscribeBackup = setupAutoBackup();
 
         // Listen for native bubble dismiss gesture
         const unsubscribe = FloatingBubble.onDismissed(() => {
@@ -96,7 +98,7 @@ export default function RootLayout() {
                         FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
                     }
                 }
-                backupService.onAppBackground();
+                onAppBackground();
             }
         });
         return () => {
@@ -111,6 +113,7 @@ export default function RootLayout() {
         <SafeAreaProvider>
             <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
             <Slot />
+            <UndoSnackbar />
             {splashVisible && (
                 <Animated.View
                     pointerEvents="none"

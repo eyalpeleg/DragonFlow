@@ -1,7 +1,7 @@
-import { useCallback, useEffect, useMemo, useRef, useState } from 'react';
+import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
-import { makePomodoroModes, PomodoroModeIdx } from '../components/PomodoroTimer';
+import { makePomodoroModes, PomodoroModeIdx } from '../components/pomodoroModes';
 import { computeBubbleScore, useTaskStore } from '../store/appStore';
 import { useColors } from '../styles/useColors';
 import { cancelPomodoroNotification, playAppSound, schedulePomodoroEnd } from '../utils/notifications';
@@ -21,11 +21,25 @@ export interface PomodoroController {
 
 export function usePomodoroController(): PomodoroController {
     const colors = useColors();
-    const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
+    const pomodoroModes = makePomodoroModes(colors);
 
-    const [modeIdx, setModeIdx] = useState<PomodoroModeIdx>(0);
-    const [secondsLeft, setSecondsLeft] = useState(pomodoroModes[0].minutes * 60);
-    const [running, setRunning] = useState(false);
+    const [modeIdx, setModeIdx] = useState<PomodoroModeIdx>(() => {
+        const { pomodoroModeIdx } = useTaskStore.getState();
+        return (pomodoroModeIdx ?? 0) as PomodoroModeIdx;
+    });
+    const [secondsLeft, setSecondsLeft] = useState(() => {
+        const { pomodoroEndTime, pomodoroPausedSecondsLeft: pausedLeft } = useTaskStore.getState();
+        if (pomodoroEndTime !== null) {
+            const remaining = Math.round((pomodoroEndTime - Date.now()) / 1000);
+            return remaining > 0 ? remaining : pomodoroModes[0].minutes * 60;
+        }
+        if (pausedLeft !== null) return pausedLeft;
+        return pomodoroModes[0].minutes * 60;
+    });
+    const [running, setRunning] = useState(() => {
+        const { pomodoroEndTime } = useTaskStore.getState();
+        return pomodoroEndTime !== null && pomodoroEndTime > Date.now();
+    });
 
     const pomodoroPausedSecondsLeft = useTaskStore((s) => s.pomodoroPausedSecondsLeft);
     const customTimerSeconds = useTaskStore((s) => s.customTimerSeconds);
@@ -46,10 +60,10 @@ export function usePomodoroController(): PomodoroController {
     useEffect(() => { modeIdxRef.current = modeIdx; }, [modeIdx]);
     useEffect(() => { runningRef.current = running; }, [running]);
 
-    const getModeSeconds = useCallback((idx: PomodoroModeIdx, customSecs: number): number => {
+    const getModeSeconds = (idx: PomodoroModeIdx, customSecs: number): number => {
         if (idx === 3) return customSecs;
         return pomodoroModes[idx as 0 | 1 | 2].minutes * 60;
-    }, [pomodoroModes]);
+    };
 
     const getModeLabel = useCallback((idx: PomodoroModeIdx): string => {
         if (idx === 3) return 'Custom';
@@ -109,21 +123,15 @@ export function usePomodoroController(): PomodoroController {
     }, [running, stopTimer]);
 
     useEffect(() => {
-        const { pomodoroEndTime, pomodoroModeIdx, pomodoroPausedSecondsLeft: pausedLeft, pomodoroNotifId } = useTaskStore.getState();
-        if (pomodoroEndTime !== null && pomodoroModeIdx !== null) {
+        const { pomodoroEndTime, pomodoroNotifId } = useTaskStore.getState();
+        if (pomodoroEndTime !== null) {
             const remaining = Math.round((pomodoroEndTime - Date.now()) / 1000);
-            setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
             if (remaining > 0) {
                 endTimeRef.current = pomodoroEndTime;
                 notifIdRef.current = pomodoroNotifId;
-                setSecondsLeft(remaining);
-                setRunning(true);
             } else {
                 clearPomodoroTimer();
             }
-        } else if (pausedLeft !== null && pomodoroModeIdx !== null) {
-            setModeIdx(pomodoroModeIdx as PomodoroModeIdx);
-            setSecondsLeft(pausedLeft);
         }
     // eslint-disable-next-line react-hooks/exhaustive-deps
     }, []);
@@ -169,7 +177,7 @@ export function usePomodoroController(): PomodoroController {
         return () => sub.remove();
     }, [getFallbackBubble, clearPomodoroTimer, getModeLabel]);
 
-    const handleSelectMode = useCallback((idx: PomodoroModeIdx) => {
+    const handleSelectMode = (idx: PomodoroModeIdx) => {
         stopTimer();
         setModeIdx(idx);
         if (idx === 3) {
@@ -178,9 +186,9 @@ export function usePomodoroController(): PomodoroController {
         } else {
             setSecondsLeft(getModeSeconds(idx, customTimerSeconds));
         }
-    }, [stopTimer, customTimerSeconds, setCustomTimerSeconds, getModeSeconds]);
+    };
 
-    const handleStart = useCallback(async () => {
+    const handleStart = async () => {
         const durationSecs = isPaused ? secondsLeft : getModeSeconds(modeIdx, customTimerSeconds);
         const durationMs = durationSecs * 1000;
         const endTime = Date.now() + durationMs;
@@ -192,21 +200,21 @@ export function usePomodoroController(): PomodoroController {
 
         setPomodoroTimer(endTime, modeIdx, id);
         setRunning(true);
-    }, [modeIdx, isPaused, secondsLeft, customTimerSeconds, setPomodoroTimer, getModeSeconds]);
+    };
 
-    const handlePause = useCallback(async () => {
+    const handlePause = async () => {
         await stopTimer(true);
-    }, [stopTimer]);
+    };
 
-    const handleReset = useCallback(() => {
+    const handleReset = () => {
         stopTimer();
         setSecondsLeft(getModeSeconds(modeIdx, customTimerSeconds));
-    }, [stopTimer, modeIdx, customTimerSeconds, getModeSeconds]);
+    };
 
-    const handleSetCustomTimerSeconds = useCallback((seconds: number) => {
+    const handleSetCustomTimerSeconds = (seconds: number) => {
         setCustomTimerSeconds(seconds);
         setSecondsLeft(seconds);
-    }, [setCustomTimerSeconds]);
+    };
 
     return {
         modeIdx,

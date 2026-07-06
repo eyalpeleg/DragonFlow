@@ -1,20 +1,19 @@
-import React, { useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, TextInput, TouchableOpacity, View, KeyboardAvoidingView, Platform } from 'react-native';
+import React, { useState } from 'react';
+import { KeyboardAvoidingView, Modal, Platform, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
 import { useTaskStore } from '../store/appStore';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
+import { makePomodoroModes, PomodoroModeIdx } from './pomodoroModes';
 
-export type PomodoroMode = { label: string; minutes: number; color: string };
-
-export function makePomodoroModes(c: AppColors): readonly PomodoroMode[] {
-    return [
-        { label: 'Focus', minutes: 25, color: c.secondary },
-        { label: 'Short Break', minutes: 5, color: c.secondary },
-        { label: 'Long Break', minutes: 15, color: c.secondary },
-    ] as const;
+function validateAndParseTime(input: string): { hours: number; minutes: number; seconds: number } | null {
+    const match = input.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
+    if (!match) return null;
+    const h = parseInt(match[1], 10);
+    const m = parseInt(match[2], 10);
+    const s = parseInt(match[3], 10);
+    if (m > 59 || s > 59) return null;
+    return { hours: h, minutes: m, seconds: s };
 }
-
-export type PomodoroModeIdx = 0 | 1 | 2 | 3;
 
 interface Props {
     modeIdx: PomodoroModeIdx;
@@ -37,8 +36,8 @@ export default function PomodoroTimer({
     const setPomodoroVisible = useTaskStore((s) => s.setPomodoroVisible);
     const onClose = () => setPomodoroVisible(false);
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
+    const styles = makeStyles(colors);
+    const pomodoroModes = makePomodoroModes(colors);
     const customModeColor = colors.secondary;
 
     const [customTimeInput, setCustomTimeInput] = useState('00:00:00');
@@ -55,16 +54,6 @@ export default function PomodoroTimer({
     const hours = String(Math.floor(displaySeconds / 3600)).padStart(2, '0');
     const mins = String(Math.floor((displaySeconds % 3600) / 60)).padStart(2, '0');
     const secs = String(displaySeconds % 60).padStart(2, '0');
-
-    const validateAndParseTime = (input: string): { hours: number; minutes: number; seconds: number } | null => {
-        const match = input.match(/^(\d{1,2}):(\d{1,2}):(\d{1,2})$/);
-        if (!match) return null;
-        const h = parseInt(match[1], 10);
-        const m = parseInt(match[2], 10);
-        const s = parseInt(match[3], 10);
-        if (m > 59 || s > 59) return null;
-        return { hours: h, minutes: m, seconds: s };
-    };
 
     const handleCustomTimeChange = (text: string) => {
         setCustomTimeInput(text);
@@ -98,16 +87,16 @@ export default function PomodoroTimer({
     return (
         <Modal visible={isVisible} animationType="fade" transparent onRequestClose={onClose}>
             <KeyboardAvoidingView behavior={Platform.OS === 'ios' ? 'padding' : 'height'} style={styles.overlay}>
-                <TouchableOpacity style={styles.overlay} activeOpacity={1} onPress={onClose}>
-                    <TouchableOpacity style={styles.sheet} activeOpacity={1} onPress={() => {}}>
+                <Pressable style={styles.overlay} onPress={onClose}>
+                    <Pressable style={styles.sheet} onPress={() => {}}>
                     <View style={styles.handle} />
                     <Text style={styles.title}>Pomodoro Timer</Text>
 
                     <View style={styles.modeRow}>
                         {pomodoroModes.map((m, i) => (
-                            <TouchableOpacity
+                            <Pressable
                                 key={m.label}
-                                style={[styles.modeChip, modeIdx === i && { backgroundColor: m.color }, running && modeIdx !== i && { opacity: 0.5 }]}
+                                style={({ pressed }) => [styles.modeChip, modeIdx === i && { backgroundColor: m.color }, running && modeIdx !== i && { opacity: 0.5 }, pressed && { opacity: 0.7 }]}
                                 onPress={() => !running && onSelectMode(i as PomodoroModeIdx)}
                                 disabled={running && modeIdx !== i}
                             >
@@ -117,10 +106,10 @@ export default function PomodoroTimer({
                                 <Text style={[styles.modeChipSub, modeIdx === i && { color: colors.overlay.whiteSubtle }]}>
                                     {m.label}
                                 </Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         ))}
-                        <TouchableOpacity
-                            style={[styles.modeChip, isCustomMode && { backgroundColor: customModeColor }, running && !isCustomMode && { opacity: 0.5 }]}
+                        <Pressable
+                            style={({ pressed }) => [styles.modeChip, isCustomMode && { backgroundColor: customModeColor }, running && !isCustomMode && { opacity: 0.5 }, pressed && { opacity: 0.7 }]}
                             onPress={() => !running && handleSelectCustom()}
                             disabled={running && !isCustomMode}
                         >
@@ -130,7 +119,7 @@ export default function PomodoroTimer({
                             <Text style={[styles.modeChipSub, isCustomMode && { color: colors.overlay.whiteSubtle }]}>
                                 Set time
                             </Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View style={styles.clockContainer}>
@@ -147,13 +136,13 @@ export default function PomodoroTimer({
                                 {customTimeError && (
                                     <Text style={styles.customTimeError}>{customTimeError}</Text>
                                 )}
-                                <TouchableOpacity
-                                    style={[styles.submitBtn, customTimeError !== null && { opacity: 0.5 }]}
+                                <Pressable
+                                    style={({ pressed }) => [styles.submitBtn, customTimeError !== null && { opacity: 0.5 }, pressed && { opacity: 0.7 }]}
                                     onPress={handleCustomTimeSubmit}
                                     disabled={customTimeError !== null}
                                 >
                                     <Text style={styles.submitBtnText}>✓ Set Timer</Text>
-                                </TouchableOpacity>
+                                </Pressable>
                             </View>
                         ) : (
                             <View style={[styles.ringOuter, { borderColor: colors.border.light }]}>
@@ -169,29 +158,35 @@ export default function PomodoroTimer({
                     </View>
 
                     <View style={styles.controls}>
-                        <TouchableOpacity style={styles.resetBtn} onPress={onReset}>
+                        <Pressable
+                            style={({ pressed }) => [styles.resetBtn, pressed && { opacity: 0.7 }]}
+                            onPress={onReset}
+                        >
                             <Text style={styles.resetBtnText}>↺ Reset</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                         {running ? (
-                            <TouchableOpacity style={[styles.startBtn, { backgroundColor: colors.text.placeholder }]} onPress={onPause}>
+                            <Pressable
+                                style={({ pressed }) => [styles.startBtn, { backgroundColor: colors.text.placeholder }, pressed && { opacity: 0.7 }]}
+                                onPress={onPause}
+                            >
                                 <Text style={styles.startBtnText}>⏸ Pause</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         ) : isPaused ? (
-                            <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? colors.text.disabled : colors.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: colors.primary }]}
+                            <Pressable
+                                style={({ pressed }) => [styles.startBtn, { backgroundColor: isStartDisabled ? colors.text.disabled : colors.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: colors.primary }, pressed && { opacity: 0.7 }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
                                 <Text style={styles.startBtnText}>▶ Resume</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         ) : (
-                            <TouchableOpacity
-                                style={[styles.startBtn, { backgroundColor: isStartDisabled ? colors.text.disabled : colors.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: colors.primary }]}
+                            <Pressable
+                                style={({ pressed }) => [styles.startBtn, { backgroundColor: isStartDisabled ? colors.text.disabled : colors.secondary }, !isStartDisabled && { borderWidth: 2, borderColor: colors.primary }, pressed && { opacity: 0.7 }]}
                                 onPress={() => { onStart(); onClose(); }}
                                 disabled={isStartDisabled}
                             >
                                 <Text style={styles.startBtnText}>▶ Start</Text>
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </View>
 
@@ -199,11 +194,14 @@ export default function PomodoroTimer({
                         Timer keeps running when you close this panel.
                     </Text>
 
-                    <TouchableOpacity style={styles.closeBtn} onPress={onClose}>
+                    <Pressable
+                        style={({ pressed }) => [styles.closeBtn, pressed && { opacity: 0.7 }]}
+                        onPress={onClose}
+                    >
                         <Text style={styles.closeBtnText}>Close</Text>
-                    </TouchableOpacity>
-                    </TouchableOpacity>
-                </TouchableOpacity>
+                    </Pressable>
+                    </Pressable>
+                </Pressable>
             </KeyboardAvoidingView>
         </Modal>
     );
@@ -211,7 +209,7 @@ export default function PomodoroTimer({
 
 const makeStyles = (c: AppColors) => StyleSheet.create({
     overlay: { flex: 1, backgroundColor: c.overlay.scrimStrong, justifyContent: 'flex-start', paddingTop: 80 },
-    sheet: { backgroundColor: c.surface, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
+    sheet: { backgroundColor: c.surfaceElevated, borderRadius: 12, padding: 20, marginHorizontal: 16, alignItems: 'center', maxHeight: '75%' },
     handle: { width: 40, height: 4, borderRadius: 2, backgroundColor: c.border.medium, marginBottom: 16 },
     title: { fontSize: 20, fontWeight: 'bold', color: c.text.primary, marginBottom: 16 },
     modeRow: { flexDirection: 'row', gap: 8, marginBottom: 24 },

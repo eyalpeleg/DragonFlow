@@ -1,5 +1,5 @@
-import React, { useMemo, useState } from 'react';
-import { Modal, StyleSheet, Text, TouchableOpacity, View, PanResponder } from 'react-native';
+import React, { useState } from 'react';
+import { Modal, PanResponder, Pressable, StyleSheet, Text, View } from 'react-native';
 import { Ionicons } from '@expo/vector-icons';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -17,26 +17,26 @@ interface Props {
 
 export default function VolumeControl({ visible, volume, onVolumeChange, onClose, onPlayPreview }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
+    const styles = makeStyles(colors);
     const [tempVolume, setTempVolume] = useState(volume);
-    const startYRef = React.useRef(0);
 
-    const panResponder = React.useRef(
-        PanResponder.create({
+    const [panResponder] = useState(() => {
+        let startY = 0;
+        return PanResponder.create({
             onStartShouldSetPanResponder: () => true,
             onMoveShouldSetPanResponder: () => true,
             onPanResponderGrant: (event) => {
-                startYRef.current = event.nativeEvent.locationY;
-                const newVolume = Math.max(0, Math.min(1, 1 - startYRef.current / SLIDER_HEIGHT));
+                startY = event.nativeEvent.locationY;
+                const newVolume = Math.max(0, Math.min(1, 1 - startY / SLIDER_HEIGHT));
                 setTempVolume(newVolume);
             },
             onPanResponderMove: (_, gestureState) => {
-                const currentY = startYRef.current + gestureState.dy;
+                const currentY = startY + gestureState.dy;
                 const newVolume = Math.max(0, Math.min(1, 1 - currentY / SLIDER_HEIGHT));
                 setTempVolume(newVolume);
             },
-        })
-    ).current;
+        });
+    });
 
     const handleApply = () => {
         onVolumeChange(tempVolume);
@@ -55,9 +55,12 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                     <Text style={styles.title}>Volume Control</Text>
 
                     <View style={styles.sliderWrapper}>
-                        <TouchableOpacity onPress={() => setTempVolume(1)}>
+                        <Pressable
+                            onPress={() => setTempVolume(1)}
+                            style={({ pressed }) => pressed && { opacity: 0.7 }}
+                        >
                             <Ionicons name="volume-high" size={24} color={colors.primary} />
-                        </TouchableOpacity>
+                        </Pressable>
 
                         <View style={styles.sliderContainer} {...panResponder.panHandlers}>
                             <View style={styles.sliderTrack}>
@@ -71,9 +74,12 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                             />
                         </View>
 
-                        <TouchableOpacity onPress={() => setTempVolume(0)}>
+                        <Pressable
+                            onPress={() => setTempVolume(0)}
+                            style={({ pressed }) => pressed && { opacity: 0.7 }}
+                        >
                             <Ionicons name="volume-mute" size={24} color={colors.primary} />
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
 
                     <View style={styles.volumeInfoRow}>
@@ -81,19 +87,28 @@ export default function VolumeControl({ visible, volume, onVolumeChange, onClose
                             Volume: {Math.round(tempVolume * 100)}%
                         </Text>
                         {onPlayPreview && (
-                            <TouchableOpacity style={styles.playButton} onPress={() => onPlayPreview(tempVolume)}>
+                            <Pressable
+                                style={({ pressed }) => [styles.playButton, pressed && { opacity: 0.7 }]}
+                                onPress={() => onPlayPreview(tempVolume)}
+                            >
                                 <Ionicons name="musical-notes" size={20} color={colors.white} />
-                            </TouchableOpacity>
+                            </Pressable>
                         )}
                     </View>
 
                     <View style={styles.buttonRow}>
-                        <TouchableOpacity style={styles.cancelBtn} onPress={handleCancel}>
+                        <Pressable
+                            style={({ pressed }) => [styles.cancelBtn, pressed && { opacity: 0.7 }]}
+                            onPress={handleCancel}
+                        >
                             <Text style={styles.cancelBtnText}>Cancel</Text>
-                        </TouchableOpacity>
-                        <TouchableOpacity style={styles.applyBtn} onPress={handleApply}>
+                        </Pressable>
+                        <Pressable
+                            style={({ pressed }) => [styles.applyBtn, pressed && { opacity: 0.7 }]}
+                            onPress={handleApply}
+                        >
                             <Text style={styles.applyBtnText}>Apply</Text>
-                        </TouchableOpacity>
+                        </Pressable>
                     </View>
                 </View>
             </View>
@@ -109,12 +124,12 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         alignItems: 'center',
     },
     modalContent: {
-        backgroundColor: c.surface,
+        backgroundColor: c.surfaceElevated,
         borderRadius: 16,
         padding: 24,
         width: '85%',
         maxWidth: 400,
-        elevation: 8,
+        boxShadow: '0px 4px 8px rgba(0,0,0,0.15)',
     },
     title: {
         fontSize: 18,

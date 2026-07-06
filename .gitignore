@@ -48,6 +48,7 @@ app-example
 .claude/settings.local.json
 .claude/worktrees/
 .claude/plans/
+.claude/scheduled_tasks.lock
 build*.apk
 *.apk
 distro/

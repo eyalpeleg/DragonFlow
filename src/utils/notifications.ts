@@ -46,14 +46,16 @@ const CHANNEL_DEFS = [
 export async function setupNotificationChannels(): Promise<void> {
     if (!notificationsAvailable || Platform.OS !== 'android') return;
     try {
-        for (const ch of CHANNEL_DEFS) {
-            await Notifications.setNotificationChannelAsync(ch.id, {
-                name: ch.name,
-                importance: Notifications.AndroidImportance.HIGH,
-                vibrationPattern: ch.vibe as unknown as number[],
-                lightColor: COLORS.notification,
-            });
-        }
+        await Promise.all(
+            CHANNEL_DEFS.map((ch) =>
+                Notifications.setNotificationChannelAsync(ch.id, {
+                    name: ch.name,
+                    importance: Notifications.AndroidImportance.HIGH,
+                    vibrationPattern: ch.vibe as unknown as number[],
+                    lightColor: COLORS.notification,
+                }),
+            ),
+        );
     } catch {
         // ignore — Expo Go
     }
@@ -131,40 +133,45 @@ export async function scheduleTaskReminders(task: Task): Promise<void> {
 
     const volume = useTaskStore.getState().tasksVolume;
     const now = Date.now();
-    for (const r of reminders) {
-        await Notifications.cancelScheduledNotificationAsync(r.id).catch(() => {});
-        FloatingBubble.cancelSound(r.id);
-        if (r.fireMs <= now) continue;
-        try {
-            await Notifications.scheduleNotificationAsync({
-                identifier: r.id,
-                content: {
-                    title: `${r.label}: ${task.title}`,
-                    body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
-                    sound: undefined,
-                    data: { type: 'reminder', taskId: task.id },
-                    ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
-                },
-                trigger: {
-                    type: Notifications.SchedulableTriggerInputTypes.DATE,
-                    date: new Date(r.fireMs),
-                },
-            });
-        } catch {
-            // ignore
-        }
-        if (r.isLastWarning && soundType !== 'Disabled') {
-            FloatingBubble.scheduleSound(r.id, r.fireMs, soundType, 'ding', volume);
-        }
-    }
+    await Promise.all(
+        reminders.map(async (r) => {
+            await Notifications.cancelScheduledNotificationAsync(r.id).catch(() => {});
+            FloatingBubble.cancelSound(r.id);
+            if (r.fireMs <= now) return;
+            try {
+                await Notifications.scheduleNotificationAsync({
+                    identifier: r.id,
+                    content: {
+                        title: `${r.label}: ${task.title}`,
+                        body: `Due at ${time} · ${task.priority} · ${getCategoryName(useTaskStore.getState().categories, task.categoryId)}`,
+                        sound: undefined,
+                        data: { type: 'reminder', taskId: task.id },
+                        ...(Platform.OS === 'android' && { channelId: REMINDERS_CHANNEL }),
+                    },
+                    trigger: {
+                        type: Notifications.SchedulableTriggerInputTypes.DATE,
+                        date: new Date(r.fireMs),
+                    },
+                });
+            } catch {
+                // ignore
+            }
+            if (r.isLastWarning && soundType !== 'Disabled') {
+                FloatingBubble.scheduleSound(r.id, r.fireMs, soundType, 'ding', volume);
+            }
+        }),
+    );
 }
 
 export async function cancelTaskReminders(taskId: string): Promise<void> {
     if (!notificationsAvailable) return;
-    for (const suffix of ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m', '-rdt']) {
-        await Notifications.cancelScheduledNotificationAsync(taskId + suffix).catch(() => {});
-        FloatingBubble.cancelSound(taskId + suffix);
-    }
+    const suffixes = ['-ra', '-rb', '-rc', '-rd', '-re', '-r5m', '-rdt'];
+    await Promise.all(
+        suffixes.map(async (suffix) => {
+            await Notifications.cancelScheduledNotificationAsync(taskId + suffix).catch(() => {});
+            FloatingBubble.cancelSound(taskId + suffix);
+        }),
+    );
 }
 
 export async function playAppSound(soundFile: 'ding' | 'bell', volume: number = 1.0): Promise<void> {

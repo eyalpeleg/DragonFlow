@@ -1,11 +1,11 @@
 import { Ionicons } from '@expo/vector-icons';
-import React, { useMemo } from 'react';
-import { StyleSheet, Text, TouchableOpacity, View } from 'react-native';
+import React from 'react';
+import { Pressable, StyleSheet, Text, View } from 'react-native';
 import { useTaskStore } from '../store/appStore';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
 import { formatCountdown } from '../utils/pomodoroFormat';
-import { makePomodoroModes, PomodoroModeIdx } from './PomodoroTimer';
+import { makePomodoroModes, PomodoroModeIdx } from './pomodoroModes';
 
 interface Props {
     modeIdx: PomodoroModeIdx;
@@ -18,8 +18,8 @@ interface Props {
 
 export default function PomodoroMiniBar({ modeIdx, secondsLeft, running, isPaused, onTogglePause, onStop }: Props) {
     const colors = useColors();
-    const styles = useMemo(() => makeStyles(colors), [colors]);
-    const pomodoroModes = useMemo(() => makePomodoroModes(colors), [colors]);
+    const styles = makeStyles(colors);
+    const pomodoroModes = makePomodoroModes(colors);
     const setPomodoroVisible = useTaskStore((s) => s.setPomodoroVisible);
 
     const isActive = running || isPaused;
@@ -30,17 +30,28 @@ export default function PomodoroMiniBar({ modeIdx, secondsLeft, running, isPause
 
     return (
         <View style={styles.container}>
-            <TouchableOpacity style={styles.tappable} activeOpacity={0.7} onPress={() => setPomodoroVisible(true)}>
+            <Pressable
+                style={({ pressed }) => [styles.tappable, pressed && { opacity: 0.7 }]}
+                onPress={() => setPomodoroVisible(true)}
+            >
                 <Ionicons name="hourglass" size={18} color={colors.white} style={styles.icon} />
                 <Text style={styles.label}>{modeLabel}</Text>
                 <Text style={styles.countdown}>{display}</Text>
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.controlBtn} onPress={onTogglePause} accessibilityLabel={running ? 'Pause Pomodoro' : 'Resume Pomodoro'}>
+            </Pressable>
+            <Pressable
+                style={({ pressed }) => [styles.controlBtn, pressed && { opacity: 0.7 }]}
+                onPress={onTogglePause}
+                accessibilityLabel={running ? 'Pause Pomodoro' : 'Resume Pomodoro'}
+            >
                 <Ionicons name={running ? 'pause' : 'play'} size={18} color={colors.white} />
-            </TouchableOpacity>
-            <TouchableOpacity style={styles.controlBtn} onPress={onStop} accessibilityLabel="Stop Pomodoro">
+            </Pressable>
+            <Pressable
+                style={({ pressed }) => [styles.controlBtn, pressed && { opacity: 0.7 }]}
+                onPress={onStop}
+                accessibilityLabel="Stop Pomodoro"
+            >
                 <Ionicons name="stop" size={16} color={colors.white} />
-            </TouchableOpacity>
+            </Pressable>
         </View>
     );
 }
