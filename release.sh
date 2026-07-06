@@ -1,9 +1,11 @@
 #!/usr/bin/env bash
-# Release flow: bump version, commit, build release APK, copy to ./distro/
+# Release flow: bump version, commit, build release artifact, copy to ./distro/
 #
 # Usage:
-#   ./release.sh              # bumps patch (1.0.1 -> 1.0.2) + versionCode +1
-#   ./release.sh -v 1.2.3     # sets explicit version, still bumps versionCode +1
+#   ./release.sh              # APK for sideload (default)
+#   ./release.sh --play       # AAB for Google Play upload
+#   ./release.sh -v 1.2.3     # explicit version (still bumps versionCode +1)
+#   ./release.sh --play -v 1.2.3
 #
 # Requires ~/.dragonflow/keystore.env (created during release signing setup).
 
@@ -12,6 +14,7 @@ set -euo pipefail
 cd "$(dirname "$0")"
 
 EXPLICIT_VERSION=""
+PLAY=0
 while [ $# -gt 0 ]; do
   case "$1" in
     -v|--version)
@@ -19,13 +22,17 @@ while [ $# -gt 0 ]; do
       EXPLICIT_VERSION="$2"
       shift 2
       ;;
+    --play)
+      PLAY=1
+      shift
+      ;;
     -h|--help)
-      sed -n '2,7p' "$0" | sed 's/^# \{0,1\}//'
+      sed -n '2,9p' "$0" | sed 's/^# \{0,1\}//'
       exit 0
       ;;
     *)
       echo "✗ Unknown argument: $1" >&2
-      echo "Usage: $0 [-v X.Y.Z]" >&2
+      echo "Usage: $0 [--play] [-v X.Y.Z]" >&2
       exit 1
       ;;
   esac
@@ -92,26 +99,43 @@ git commit -m "chore(release): bump to v$VERSION (versionCode $VCODE)"
 ok "Committed $(git rev-parse --short HEAD)"
 
 # 5. Build
-step "Building release APK (this takes a few minutes)"
+if [ "$PLAY" -eq 1 ]; then
+  step "Building release AAB for Google Play (this takes a few minutes)"
+  ARTIFACT_KIND="AAB"
+  ARTIFACT_EXT="aab"
+  ARTIFACT_SRC="android/app/build/outputs/bundle/release/app-release.aab"
+  BUILD_CMD="build:aab"
+else
+  step "Building release APK (this takes a few minutes)"
+  ARTIFACT_KIND="APK"
+  ARTIFACT_EXT="apk"
+  ARTIFACT_SRC="android/app/build/outputs/apk/release/app-release.apk"
+  BUILD_CMD="build:apk"
+fi
 # shellcheck disable=SC1090
 source "$HOME/.dragonflow/keystore.env"
-npm run build:apk
+npm run "$BUILD_CMD"
 
 # 6. Copy into ./distro/ (gitignored)
-APK_SRC="android/app/build/outputs/apk/release/app-release.apk"
 mkdir -p distro
-APK_DEST="distro/DragonFlow-v${VERSION}.apk"
-[ -f "$APK_SRC" ] || fail "Build finished but APK not found at $APK_SRC"
-cp "$APK_SRC" "$APK_DEST"
-ABS_DEST="$(pwd)/$APK_DEST"
-ok "APK copied to $ABS_DEST"
+ARTIFACT_DEST="distro/DragonFlow-v${VERSION}.${ARTIFACT_EXT}"
+[ -f "$ARTIFACT_SRC" ] || fail "Build finished but $ARTIFACT_KIND not found at $ARTIFACT_SRC"
+cp "$ARTIFACT_SRC" "$ARTIFACT_DEST"
+ABS_DEST="$(pwd)/$ARTIFACT_DEST"
+ok "$ARTIFACT_KIND copied to $ABS_DEST"
 
 # 7. Summary
-SIZE=$(ls -lh "$APK_DEST" | awk '{print $5}')
+SIZE=$(ls -lh "$ARTIFACT_DEST" | awk '{print $5}')
 printf "\n\033[1;32m=========================================\n"
 printf "  DragonFlow v%s ready\n" "$VERSION"
 printf "  versionCode: %s\n" "$VCODE"
+printf "  artifact:    %s\n" "$ARTIFACT_KIND"
 printf "  size:        %s\n" "$SIZE"
 printf "  path:        %s\n" "$ABS_DEST"
 printf "=========================================\033[0m\n"
-printf "\nNext: drag into your family Drive folder, then 'git push origin %s' when ready.\n" "$BRANCH"
+if [ "$PLAY" -eq 1 ]; then
+  printf "\nNext: upload AAB to Play Console (Internal testing), then 'git push origin %s'.\n" "$BRANCH"
+  printf "See docs/release/PLAY_SUBMISSION.md for the full Play upload flow.\n"
+else
+  printf "\nNext: drag into your family Drive folder, then 'git push origin %s' when ready.\n" "$BRANCH"
+fi

@@ -88,28 +88,21 @@ Run through this checklist before building:
 
 ## 4. Build the production AAB
 
-Push your env-var secrets to EAS first (one-time setup — EAS reuses them across builds):
+From the repo root:
 
 ```bash
-eas secret:create --scope project --name DRAGONFLOW_KEYSTORE_PATH    --value "/home/expo/keystores/dragonflow-upload.keystore" --type string
-eas secret:create --scope project --name DRAGONFLOW_KEYSTORE_PASSWORD --value "<password>" --type string
-eas secret:create --scope project --name DRAGONFLOW_KEY_ALIAS         --value "dragonflow-upload" --type string
-eas secret:create --scope project --name DRAGONFLOW_KEY_PASSWORD      --value "<password>" --type string
-
-# Upload the keystore file itself as a file secret
-eas secret:create --scope project --name DRAGONFLOW_KEYSTORE_FILE --type file \
-  --value "$HOME/keystores/dragonflow-upload.keystore"
+./release.sh --play
 ```
 
-> **Note**: EAS file secrets are mounted at a path the build environment knows; you may need to adjust `DRAGONFLOW_KEYSTORE_PATH` to match the EAS-injected file path. If `eas build` fails to find the keystore, run `eas secret:list` and use the mounted path. Alternative: switch to EAS-managed credentials with `eas credentials` — simpler but requires re-doing the keystore step.
+This runs the full local release flow: clean tree check, version bump in [`app.json`](../../app.json) (patch + versionCode), `tsc` + `eslint` + `jest`, commit `chore(release): bump to v<X> (versionCode <N>)`, prebuild, and `gradlew bundleRelease` signed with the keystore loaded from `~/.dragonflow/keystore.env`.
 
-Build:
+Output: `distro/DragonFlow-v<X.Y.Z>.aab`.
 
-```bash
-eas build --profile production --platform android
-```
+For an explicit version: `./release.sh --play -v 1.2.3`.
 
-This produces an **AAB** (Android App Bundle, not APK) at the URL printed at the end. Download it to `~/Downloads/dragonflow-1.0.3.aab` or similar.
+> The script auto-commits the version bump on the current branch (must be `develop` or a feature branch — it refuses `main`). Push when you're ready: `git push origin develop`.
+
+**Alternative (cloud build via EAS)**: `eas build --profile production --platform android`. Requires uploading keystore + passwords as EAS secrets first. The local `--play` flow above is faster and uses the keystore you already have.
 
 ---
 
@@ -279,20 +272,14 @@ You'll get an email when it's live. The Play Store URL is `https://play.google.c
 
 For every release after the first:
 
-1. **Bump versions** (both files must match):
-   - [`app.json`](../../app.json) → `expo.version` and `expo.android.versionCode`.
-   - [`android/app/build.gradle`](../../android/app/build.gradle) → `versionCode` and `versionName`.
-   - `versionCode` MUST be strictly greater than the previous one.
-2. `git commit -m "chore(release): bump to vX.Y.Z (versionCode N)"`
-3. `/precommit` (per [CLAUDE.md](../../CLAUDE.md) rules), then push.
-4. `eas build --profile production --platform android`
-5. Download AAB → Play Console → Internal testing → new release → upload → roll out.
-6. Verify on device for at least a few hours.
-7. Promote to Production with staged rollout.
+1. `./release.sh --play` — bumps `app.json` (version + versionCode), runs tsc/eslint/jest, commits, prebuilds, builds the signed AAB at `distro/DragonFlow-v<X.Y.Z>.aab`. `android/app/build.gradle` picks up the new versionCode automatically via `prebuild:clean`.
+2. `git push origin develop` (or your feature branch).
+3. Play Console → Internal testing → new release → upload AAB → roll out.
+4. Verify on a real device for at least a few hours (smoke test from [§12](#12-install-on-a-real-device-and-smoke-test)).
+5. Promote to Production with staged rollout (20% → 100% after 24–48h).
 
 **Optional automation** (not set up yet):
-- `eas submit --profile production --platform android` can upload the AAB to Play directly if you configure a service account in `eas.json`. Skip until manual flow is comfortable.
-- A `npm run bump:patch` / `bump:minor` script that updates both `app.json` and `android/app/build.gradle` in one shot would prevent the mismatch footgun.
+- `eas submit --profile production --platform android` can upload the AAB to Play directly if you configure a Play service account in `eas.json`. Skip until the manual upload flow is comfortable.
 
 ---
 
