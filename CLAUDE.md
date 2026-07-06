@@ -14,7 +14,7 @@ Personal/family task management app. Keep it simple — no enterprise patterns o
 
 ```
 app/                    # Expo Router pages
-  (tabs)/               # Bottom tab navigator (tasks, daily, weekly, settings)
+  (tabs)/               # Bottom tab navigator (tasks, pomodoro, progress, settings)
 src/
   components/           # UI components (modals, cards, filters)
   store/appStore.ts     # Zustand store — single source of truth for all app state
@@ -25,6 +25,34 @@ src/
   utils/                # Notifications, recurrence, analytics, import/export
 docs/design/            # Architecture, features, decisions
 ```
+
+## Where Things Live
+
+Quick lookup so changes start at the right file. The store hook is `useTaskStore` (exported from `appStore.ts`).
+
+| Need to touch… | Go to |
+| --- | --- |
+| All app state, task CRUD, categories, filters, prefs, Pomodoro state | `src/store/appStore.ts` (`useTaskStore`) |
+| Filtering + sorting of the task list | `useSortedFilteredTasks()` in `src/store/appStore.ts` |
+| Archived/done task list | `useArchivedTasks()` in `src/store/appStore.ts` |
+| Bubble urgency scoring | `isUrgent()` / `computeBubbleScore()` in `src/store/appStore.ts` |
+| Type definitions (Task, Category, SubTask, RecurrenceConfig) | `src/types.ts` |
+| Colors, priority palette, spacing | `src/styles/theme.ts` (`COLORS`, `PRESET_PALETTE`); theme-aware hook in `src/styles/useColors.ts` |
+| Recurrence math | `src/utils/recurrence.ts` |
+| Notifications & channels | `src/utils/notifications.ts` |
+| Daily/weekly stats & summaries | `src/utils/summaryLogic.ts` |
+| Category color/name lookup | `src/utils/categories.ts` |
+| Import/export, backup serialization | `src/utils/dataTransfer.ts` |
+| Due-time helpers / IDs | `src/utils/dueTime.ts`, `src/utils/id.ts` |
+| Pomodoro UI + controller | `src/components/PomodoroTimer.tsx`, `PomodoroMiniBar.tsx`, `src/hooks/usePomodoroController.ts`, `src/components/pomodoroModes.ts` |
+| Audio / alarm sounds | `src/services/audioService.ts` |
+| Google Drive backup (auth, drive API, orchestration, state) | `src/services/cloudBackup/` (`googleAuth.ts`, `googleDrive.ts`, `backupService.ts`, `backupStore.ts`) |
+| Native floating bubble (JS bridge) | `src/modules/FloatingBubble.ts`; Kotlin source in `modules/dragonflow-native/` |
+| Add/Edit task & category modals, filters | `src/components/AddTaskModal.tsx`, `EditTaskModal.tsx`, `AddCategoryModal.tsx`, `EditCategoryModal.tsx`, `FilterModal.tsx`, `StatusFilter.tsx` |
+| Tab screens | `app/(tabs)/{tasks,pomodoro,progress,settings}.tsx` |
+| Tests | co-located `__tests__/` dirs under `store/`, `utils/`, `services/` |
+
+> **Keep this table current.** This file is loaded into context every session and is the primary code map. When you move, rename, split, or add a file/symbol referenced above (or add a new area worth indexing), update the matching row in the same change — treat a stale pointer as a bug. Verify the path/symbol resolves before committing.
 
 ## Key Patterns
 
