@@ -18,16 +18,16 @@ A personal task management app for Android, built for family use with a focus on
 | Tab | Purpose |
 |-----|---------|
 | **Tasks** | Full task list with filtering by status, priority, and category |
-| **Today** | Tasks due today, plus a Pomodoro timer for the active task |
-| **Weekly** | Completion stats and done-task history by week |
+| **Pomodoro** | Pomodoro timer for the active task |
+| **Progress** | Completion stats and done-task history |
 | **Settings** | Google Drive backup/restore, auto-backup toggle |
 
 ---
 
 ## Key Modules
 
-### `src/store/taskStore.ts`
-Zustand store — single source of truth for all tasks and categories. Persisted to AsyncStorage with schema migration (v0→v1). Side effects on task changes: schedules notifications, updates the FloatingBubble count, triggers auto-backup.
+### `src/store/appStore.ts`
+Zustand store (`useTaskStore`) — single source of truth for all app state: tasks, categories, filters, preferences, and Pomodoro timer. Persisted to AsyncStorage with schema migration (v0→v1). Side effects on task changes: schedules notifications, updates the FloatingBubble count, triggers auto-backup.
 
 ### `src/types.ts`
 Core data model:
@@ -110,13 +110,13 @@ app/
   _layout.tsx              # Root layout, initializes backup and notifications
   (tabs)/
     tasks.tsx              # Task list screen
-    daily.tsx              # Today view + Pomodoro timer
-    weekly.tsx             # Weekly stats
+    pomodoro.tsx           # Pomodoro timer for the active task
+    progress.tsx           # Completion stats & done-task history
     settings.tsx           # Backup settings
 
 src/
   components/              # UI: TaskCard, modals (Add/Edit/Filter), PomodoroTimer
-  store/taskStore.ts       # Zustand store + persistence
+  store/appStore.ts        # Zustand store + persistence
   types.ts                 # Task, Category, SubTask, RecurrenceConfig
   styles/theme.ts          # COLORS, PRESET_PALETTE, priority colors
   modules/FloatingBubble.ts
