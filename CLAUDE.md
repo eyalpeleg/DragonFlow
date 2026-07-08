@@ -74,14 +74,24 @@ Quick lookup so changes start at the right file. The store hook is `useTaskStore
 ## Commands
 
 ```bash
-npx expo start              # Dev server
-npx expo run:android        # Run on Android
-npx expo run:ios            # Run on iOS
-npx tsc --noEmit            # Type check
-npm run prebuild:clean      # Regenerate native projects (preferred)
-npx expo prebuild --clean   # Direct prebuild (use npm script above instead)
-npm run lint                # ESLint
+npx expo start                        # Dev server
+npm run android                       # Build & run on Android (expo run:android)
+npx expo run:ios                      # Run on iOS
+npm run typecheck                     # tsc --noEmit
+npm run lint                          # ESLint (expo lint)
+npm test                              # Jest — full suite
+npm test -- src/utils/recurrence      # Run one test file (path substring)
+npm test -- -t "computeBubbleScore"   # Run tests matching a name
+npm run test:watch                    # Jest watch mode
+npm run check                         # typecheck + lint + test (run before committing)
+npm run prebuild:clean                # Regenerate native projects (preferred)
+npm run build:apk                     # prebuild:clean + gradle assembleRelease
+npm run build:aab                     # prebuild:clean + gradle bundleRelease
 ```
+
+> `prebuild`/`prebuild:clean` chain `expo prebuild` → `copy-native-files` → `patch-native-config`. Always use the npm scripts, never `expo prebuild` directly, or the native module files (see below) won't be copied in.
+>
+> Tests live in co-located `__tests__/` dirs under `src/store/`, `src/utils/`, and `src/services/`; config is `jest.config.js` (preset `jest-expo`) + `jest.setup.js`, with native/module mocks in `__mocks__/`.
 
 ## Native Android Module
 
