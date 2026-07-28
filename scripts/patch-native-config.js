@@ -30,6 +30,20 @@ if (fs.existsSync(mainAppFile)) {
       console.log('  ✓ Added FloatingBubblePackage() registration');
     }
   }
+
+  // Register ShareIntentPackage alongside FloatingBubblePackage (same com.plgsw.dragonflow
+  // package as MainApplication, so no import needed).
+  if (!content.includes('add(ShareIntentPackage())')) {
+    const before = content;
+    content = content.replace(
+      /add\(FloatingBubblePackage\(\)\)/,
+      'add(FloatingBubblePackage())\n              add(ShareIntentPackage())'
+    );
+    if (content !== before) {
+      fs.writeFileSync(mainAppFile, content, 'utf8');
+      console.log('  ✓ Added ShareIntentPackage() registration');
+    }
+  }
 } else {
   console.warn(`  ⚠ MainApplication.kt not found at ${mainAppFile}`);
 }
@@ -54,6 +68,16 @@ if (fs.existsSync(manifestFile)) {
         `$1\n  <uses-permission android:name="${perm}"/>`
       );
     }
+  }
+
+  // Add the share-target intent-filter to MainActivity so the app appears in the
+  // Android share sheet for text/plain (ACTION_SEND). Inserted before MainActivity's
+  // closing </activity> tag. See docs/design/features/share-text-target/design.md §1.
+  if (!content.includes('android.intent.action.SEND')) {
+    content = content.replace(
+      /(\n)(\s*)<\/activity>/,
+      `$1$2  <intent-filter>\n$2    <action android:name="android.intent.action.SEND"/>\n$2    <category android:name="android.intent.category.DEFAULT"/>\n$2    <data android:mimeType="text/plain"/>\n$2  </intent-filter>\n$2</activity>`
+    );
   }
 
   // Add service and receiver declarations if missing

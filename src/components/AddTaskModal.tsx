@@ -70,9 +70,12 @@ interface Props {
     isVisible: boolean;
     onClose: () => void;
     onAdd: (input: AddTaskInput) => void;
+    /** Pre-fill the title/description when opened (e.g. from a shared text). */
+    initialTitle?: string;
+    initialDescription?: string;
 }
 
-export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
+export default function AddTaskModal({ isVisible, onClose, onAdd, initialTitle, initialDescription }: Props) {
     const colors = useColors();
     const styles = makeStyles(colors);
     const recurringTrackColor = { true: colors.primary };
@@ -129,6 +132,15 @@ export default function AddTaskModal({ isVisible, onClose, onAdd }: Props) {
         if (!isVisible) return;
         const t = setTimeout(() => titleInputRef.current?.focus(), 300);
         return () => clearTimeout(t);
+    }, [isVisible]);
+
+    // Seed title/description from prefill (e.g. a shared text) when the modal opens.
+    // Only runs on open; the normal "+" path passes no initial values and is unaffected.
+    useEffect(() => {
+        if (!isVisible) return;
+        if (initialTitle !== undefined) setTitle(initialTitle);
+        if (initialDescription !== undefined) setDescription(initialDescription);
+        // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isVisible]);
 
     function addSubTask() {

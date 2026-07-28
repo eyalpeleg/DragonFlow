@@ -37,6 +37,7 @@
 | Parking app awareness | Idea | Detect active parking sessions and remind the user to close/stop parking when finished |
 | Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
 | Fix Google auth expiration | Idea | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in |
+| Upgrade Expo SDK 54 → 57 | Idea | Enabler (spawned by Share-text analysis) — unlocks `expo-share-intent` (replaces custom-native share code) + iOS share target; also newer RN & security patches. High blast radius; schedule as its own effort |
 | | | |
 
 > Add new ideas to the Planned table as they come up.
