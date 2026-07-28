@@ -33,6 +33,10 @@
 | Widgets | Idea | Home screen widget showing today's tasks |
 | Backup sign-in prompt | Idea | On startup, if not signed in to Google Drive backup, alert with a CTA that deep-links to Settings → Backup/Sign-in to prevent data loss on uninstall |
 | Filter → Category | Idea | Replace the general Filter UI with a Category selector — categories are the only thing users filter by, giving a "projects/lists" view |
+| Share-to-task target | Idea | Register app as an Android "share text" target so users can create an instant task from shared/copied text |
+| Parking app awareness | Idea | Detect active parking sessions and remind the user to close/stop parking when finished |
+| Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
+| Fix Google auth expiration | Idea | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in |
 | | | |
 
 > Add new ideas to the Planned table as they come up.
