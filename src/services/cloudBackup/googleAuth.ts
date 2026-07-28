@@ -73,3 +73,32 @@ export async function getValidToken(): Promise<string> {
         throw new AuthError('Session expired. Please sign in again.');
     }
 }
+
+/**
+ * Force a fresh access token. Called after a Drive call returns 401 because the
+ * cached access token expired (the SDK caches it ~1h and getTokens() does not
+ * check expiry). Path 1 clears the stale cached token so the SDK mints a new one
+ * from its refresh token; Path 2 rehydrates the session with a silent sign-in.
+ * Throws AuthError only when both fail (access genuinely revoked / no session).
+ */
+export async function getFreshToken(): Promise<string> {
+    // Path 1 — clear the stale cached access token, then refetch a fresh one.
+    try {
+        const current = await GoogleSignin.getTokens();
+        await GoogleSignin.clearCachedAccessToken(current.accessToken);
+        const refreshed = await GoogleSignin.getTokens();
+        return refreshed.accessToken;
+    } catch {
+        // fall through to silent re-auth
+    }
+    // Path 2 — silent re-sign-in (rehydrates the native session), then fetch.
+    try {
+        const res = await GoogleSignin.signInSilently();
+        if (res.type !== 'success') throw new AuthError('Session expired. Please sign in again.');
+        const tokens = await GoogleSignin.getTokens();
+        return tokens.accessToken;
+    } catch (e) {
+        if (e instanceof AuthError) throw e;
+        throw new AuthError('Session expired. Please sign in again.');
+    }
+}

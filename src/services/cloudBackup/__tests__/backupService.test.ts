@@ -238,6 +238,9 @@ describe('performBackup — success bookkeeping', () => {
 
 describe('performBackup — failure handling', () => {
     it('on AuthError: signs the user out and does NOT increment failures', async () => {
+        // An AuthError reaching backupService is now *terminal* — the Drive layer's
+        // authorizedFetch already tried a 401 refresh + one retry (see googleDrive.test.ts).
+        // So a propagated AuthError means refresh genuinely failed → sign out is correct.
         useBackupStore.setState({ consecutiveFailures: 1 });
         mockList.mockRejectedValue(new AuthError('expired'));
         await performBackup();

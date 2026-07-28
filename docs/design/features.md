@@ -35,7 +35,7 @@
 | Share-to-task target | Built · QA pending | Android share target — pre-fills Add Task from shared text. Shipped to `develop` (207b316); on-device QA pending. Docs: `docs/design/features/share-text-target/` |
 | Parking app awareness | Idea | Detect active parking sessions and remind the user to close/stop parking when finished |
 | Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
-| Fix Google auth expiration | Idea | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in |
+| Fix Google auth expiration | Building | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in. Docs: `docs/design/features/fix-google-auth-expiration/` |
 | Upgrade Expo SDK 54 → 57 | Idea | Enabler (spawned by Share-text analysis) — unlocks `expo-share-intent` (replaces custom-native share code) + iOS share target; also newer RN & security patches. High blast radius; schedule as its own effort |
 | | | |
 
