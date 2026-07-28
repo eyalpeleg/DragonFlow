@@ -32,8 +32,7 @@
 | App Store / Play Store publish | Planned | Bundle ID ready (`com.plgsw.dragonflow`) |
 | Widgets | Idea | Home screen widget showing today's tasks |
 | Backup sign-in prompt | Idea | On startup, if not signed in to Google Drive backup, alert with a CTA that deep-links to Settings → Backup/Sign-in to prevent data loss on uninstall |
-| Filter → Category | Idea | Replace the general Filter UI with a Category selector — categories are the only thing users filter by, giving a "projects/lists" view |
-| Share-to-task target | Idea | Register app as an Android "share text" target so users can create an instant task from shared/copied text |
+| Share-to-task target | Built · QA pending | Android share target — pre-fills Add Task from shared text. Shipped to `develop` (207b316); on-device QA pending. Docs: `docs/design/features/share-text-target/` |
 | Parking app awareness | Idea | Detect active parking sessions and remind the user to close/stop parking when finished |
 | Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
 | Fix Google auth expiration | Idea | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in |
@@ -41,3 +40,5 @@
 | | | |
 
 > Add new ideas to the Planned table as they come up.
+>
+> **Status ladder** (advanced by the SDLC pipeline skills): `Idea` → `Brainstormed` → `Analyzed` → `Spec'd` → `Designed` → `Building` → `Built` → `Verified`. Once verified **and** released, move the row up to the **Shipped** table (with its key files). `Planned` marks committed-but-not-yet-started work.
