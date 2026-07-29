@@ -32,7 +32,15 @@
 | App Store / Play Store publish | Planned | Bundle ID ready (`com.plgsw.dragonflow`) |
 | Widgets | Idea | Home screen widget showing today's tasks |
 | Backup sign-in prompt | Idea | On startup, if not signed in to Google Drive backup, alert with a CTA that deep-links to Settings → Backup/Sign-in to prevent data loss on uninstall |
-| Filter → Category | Idea | Replace the general Filter UI with a Category selector — categories are the only thing users filter by, giving a "projects/lists" view |
+| Share-to-task target | Built · QA pending | Android share target — pre-fills Add Task from shared text. Shipped to `develop` (207b316); on-device QA pending. Docs: `docs/design/features/share-text-target/` |
+| Parking app awareness (parking-reminder) | Built · QA pending | Notice when the parking app is used (UsageStatsManager polled in FloatingBubbleService); on app→background, prompt to arm a "stop parking" reminder for a chosen duration (human confirm, since these apps are multi-purpose parking+transit). Lightweight session record, reuse bubble+notifications. P0: privacy (exclude from Drive backup) + prompt-fatigue guardrails. Config package id is the one intentional vendor reference; multi-vendor support is a follow-up. Docs: `docs/design/features/parking-reminder/` |
+| Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
+| Fix Google auth expiration | Verified | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in. Docs: `docs/design/features/fix-google-auth-expiration/` |
+| Fix false "Backup Complete" alert | Idea | Bugfix — `handleCloudBackup()` in `app/(tabs)/settings.tsx` always shows "Backup Complete" because `performBackup()` swallows errors (NetworkError/auth) and never throws. A failed/offline "Back Up Now" misleadingly reports success. Surface real success vs failure (return status from `performBackup`, or check `backupStatus`/`lastError`). Found during on-device QA of Fix-Google-auth-expiration. |
+| Fix "Last backup: Never" after re-sign-in | Idea | Bugfix — after a sign-out→sign-in cycle, Settings shows "Last backup: Never" even though backups exist in Drive. `backupStore.setSignedOut()` wipes `lastBackupTime`/`lastBackupFileId` to null and `setSignedIn()` never restores them (sign-in doesn't query Drive for the newest backup). Found during on-device QA of Fix-Google-auth-expiration. Fix direction: on sign-in, hydrate `lastBackupTime` from the newest `listBackupFiles()` entry, or stop wiping it on sign-out. Files: `src/services/cloudBackup/backupStore.ts`, `backupService.ts`. |
+| Upgrade Expo SDK 54 → 57 | Idea | Enabler (spawned by Share-text analysis) — unlocks `expo-share-intent` (replaces custom-native share code) + iOS share target; also newer RN & security patches. High blast radius; schedule as its own effort |
 | | | |
 
 > Add new ideas to the Planned table as they come up.
+>
+> **Status ladder** (advanced by the SDLC pipeline skills): `Idea` → `Brainstormed` → `Analyzed` → `Spec'd` → `Designed` → `Building` → `Built` → `Verified`. Once verified **and** released, move the row up to the **Shipped** table (with its key files). `Planned` marks committed-but-not-yet-started work.

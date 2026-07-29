@@ -1,13 +1,17 @@
 package com.plgsw.dragonflow
 
 import android.animation.ValueAnimator
+import android.app.AppOpsManager
 import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.Service
+import android.app.usage.UsageEvents
+import android.app.usage.UsageStatsManager
 import android.content.Context
 import android.content.Intent
 import android.content.res.Configuration
+import android.os.Process
 import android.graphics.*
 import android.graphics.drawable.BitmapDrawable
 import android.media.MediaPlayer
@@ -48,6 +52,38 @@ class FloatingBubbleService : Service() {
             val totalSecs = (remaining / 1000).toInt()
             bubbleView?.setTimerText(String.format("%02d:%02d", totalSecs / 60, totalSecs % 60))
             timerHandler.postDelayed(this, 1000)
+        }
+    }
+
+    // Parking countdown state. remindAt is JS's source of truth;
+    // native only renders the countdown and flips to overdue past it.
+    private var parkingRemindAtMs: Long = 0L
+    private var parkingFallbackCount: Int = 0
+    private var parkingFallbackMessage: String = ""
+    private val parkingRunnable: Runnable = object : Runnable {
+        override fun run() {
+            if (parkingRemindAtMs <= 0L) return
+            val remaining = parkingRemindAtMs - System.currentTimeMillis()
+            bubbleView?.setParkingText(formatParking(remaining), remaining < 0)
+            // 1 Hz while under an hour or overdue (seconds change); else once a minute.
+            val delay = if (remaining < 3_600_000L) 1_000L else 60_000L
+            timerHandler.postDelayed(this, delay)
+        }
+    }
+
+    // Parking-app usage-watch state. The poll runs only while monitoring and self-stops
+    // after a single debounced background catch (idle→confirm→stop).
+    private var parkingMonitoring = false
+    private var parkingAppForegroundTs = 0L
+    private var parkingLoggedNoAccess = false
+    // Most recent onStartCommand id — stopSelf(lastStartId) won't tear down the
+    // service when a newer start request is already queued (prevents the
+    // ForegroundServiceDidNotStartInTimeException crash under rapid start/stop).
+    private var lastStartId = 0
+    private val parkingPollRunnable: Runnable = object : Runnable {
+        override fun run() {
+            pollParkingAppUsage()
+            if (parkingMonitoring) timerHandler.postDelayed(this, 1_500L)
         }
     }
 
@@ -103,6 +139,17 @@ class FloatingBubbleService : Service() {
     }
 
     override fun onStartCommand(intent: Intent?, flags: Int, startId: Int): Int {
+        // Every startForegroundService() obligates us to call startForeground()
+        // promptly. Do it up-front for EVERY command so a following stopSelf()/
+        // stopService() (e.g. stop-parking, stop-watch) can never trigger
+        // ForegroundServiceDidNotStartInTimeException.
+        lastStartId = startId
+        try {
+            startForeground(NOTIFICATION_ID, buildNotification())
+        } catch (e: Exception) {
+            // Some OEMs restrict FGS starts from the background; the obligation is
+            // still cleared and we simply won't show the overlay in that case.
+        }
         when (intent?.getStringExtra("action")) {
             "startPomodoro" -> {
                 val endTimeMs = intent?.getLongExtra("pomodoroEndTimeMs", 0L) ?: 0L
@@ -122,12 +169,27 @@ class FloatingBubbleService : Service() {
                 val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
                 stopPomodoroCountdown(fallbackCount, fallbackMessage)
             }
+            "startParking" -> {
+                val remindAtMs = intent?.getLongExtra("parkingRemindAtMs", 0L) ?: 0L
+                val fallbackCount = intent?.getIntExtra("fallbackCount", 0) ?: 0
+                val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
+                if (bubbleView == null) createBubbleView(fallbackCount)
+                startParkingCountdown(remindAtMs, fallbackCount, fallbackMessage)
+            }
+            "stopParking" -> {
+                val fallbackCount = intent?.getIntExtra("fallbackCount", 0) ?: 0
+                val fallbackMessage = intent?.getStringExtra("fallbackMessage") ?: ""
+                stopParkingCountdown(fallbackCount, fallbackMessage)
+            }
+            "startParkingWatch" -> startParkingWatch()
+            "stopParkingWatch" -> stopParkingWatch()
             else -> {
                 val count = intent?.getIntExtra("count", 0) ?: 0
                 if (bubbleView == null) {
                     createBubbleView(count)
                 } else {
                     bubbleView?.setTimerText(null)
+                    bubbleView?.setParkingText(null, false)
                     bubbleView?.updateCount(count)
                 }
                 updateNotification("Critical tasks active")
@@ -138,6 +200,9 @@ class FloatingBubbleService : Service() {
 
     private fun startPomodoroCountdown(endTimeMs: Long, label: String, fallbackCount: Int, fallbackMessage: String) {
         timerHandler.removeCallbacks(timerRunnable)
+        timerHandler.removeCallbacks(parkingRunnable)
+        parkingRemindAtMs = 0L
+        bubbleView?.setParkingText(null, false)
         pomodoroEndTimeMs = endTimeMs
         pomodoroFallbackCount = fallbackCount
         pomodoroFallbackMessage = fallbackMessage
@@ -164,6 +229,138 @@ class FloatingBubbleService : Service() {
                 stopSelf()
             }
         }
+    }
+
+    private fun startParkingCountdown(remindAtMs: Long, fallbackCount: Int, fallbackMessage: String) {
+        // Already counting down to this exact end — just refresh the fallback and keep
+        // ticking (avoids redundant restarts when syncBubble re-pushes on every
+        // background transition).
+        if (parkingRemindAtMs == remindAtMs && remindAtMs != 0L) {
+            parkingFallbackCount = fallbackCount
+            parkingFallbackMessage = fallbackMessage
+            return
+        }
+        // Parking supersedes the pomodoro/task bubble while active (AC7a).
+        timerHandler.removeCallbacks(timerRunnable)
+        timerHandler.removeCallbacks(parkingRunnable)
+        parkingRemindAtMs = remindAtMs
+        parkingFallbackCount = fallbackCount
+        parkingFallbackMessage = fallbackMessage
+        bubbleView?.setTimerText(null)
+        updateNotification("Parking reminder active")
+        android.util.Log.d(PARKING_TAG, "startParking → bubble countdown to remindAt=$remindAtMs (in ${(remindAtMs - System.currentTimeMillis()) / 1000}s)")
+        parkingRunnable.run()
+    }
+
+    private fun stopParkingCountdown(fallbackCount: Int, fallbackMessage: String) {
+        timerHandler.removeCallbacks(parkingRunnable)
+        parkingRemindAtMs = 0L
+        bubbleView?.setParkingText(null, false)
+        // If a pomodoro is still running underneath, hand the bubble back to it
+        // rather than to the static task count (precedence: pomodoro > tasks).
+        if (pomodoroEndTimeMs > System.currentTimeMillis()) {
+            timerRunnable.run()
+            return
+        }
+        if (fallbackCount > 0) {
+            bubbleView?.updateCount(fallbackCount)
+            updateNotification("Critical tasks active")
+        }
+        // If nothing else needs the bubble/service, JS follows with hide() (stopService)
+        // or the poll keeps the service alive; free it if truly idle.
+        maybeStopIfIdle()
+    }
+
+    private fun startParkingWatch() {
+        parkingAppForegroundTs = 0L
+        parkingLoggedNoAccess = false
+        if (!parkingMonitoring) {
+            parkingMonitoring = true
+            timerHandler.removeCallbacks(parkingPollRunnable)
+            timerHandler.postDelayed(parkingPollRunnable, 1_500L)
+            android.util.Log.d(PARKING_TAG, "startParkingWatch → polling every 1.5s for ${ParkingWatcherModule.PARKING_APP_PACKAGE}")
+        } else {
+            android.util.Log.d(PARKING_TAG, "startParkingWatch (already monitoring)")
+        }
+    }
+
+    private fun stopParkingWatch() {
+        parkingMonitoring = false
+        timerHandler.removeCallbacks(parkingPollRunnable)
+        android.util.Log.d(PARKING_TAG, "stopParkingWatch → poll stopped")
+        maybeStopIfIdle()
+    }
+
+    /**
+     * Poll UsageStats for a parking-app foreground→background transition. Reads only
+     * which package moved and when; the raw events are never logged or stored
+     * (AC16). On a debounced background catch, emit to JS and self-stop.
+     */
+    private fun pollParkingAppUsage() {
+        try {
+            val appOps = getSystemService(Context.APP_OPS_SERVICE) as AppOpsManager
+            val mode = appOps.checkOpNoThrow(
+                AppOpsManager.OPSTR_GET_USAGE_STATS, Process.myUid(), packageName
+            )
+            if (mode != AppOpsManager.MODE_ALLOWED) {
+                if (!parkingLoggedNoAccess) {
+                    android.util.Log.d(PARKING_TAG, "poll: Usage access NOT granted (mode=$mode) — cannot detect; grant it in Settings")
+                    parkingLoggedNoAccess = true
+                }
+                return
+            }
+            val usm = getSystemService(Context.USAGE_STATS_SERVICE) as UsageStatsManager
+            val now = System.currentTimeMillis()
+            val events = usm.queryEvents(now - 10_000L, now)
+            val event = UsageEvents.Event()
+            while (events.hasNextEvent()) {
+                events.getNextEvent(event)
+                if (event.packageName != ParkingWatcherModule.PARKING_APP_PACKAGE) continue
+                when (event.eventType) {
+                    UsageEvents.Event.MOVE_TO_FOREGROUND -> {
+                        parkingAppForegroundTs = event.timeStamp
+                        android.util.Log.d(PARKING_TAG, "poll: parking-app FOREGROUND seen (ts=${event.timeStamp})")
+                    }
+                    UsageEvents.Event.MOVE_TO_BACKGROUND -> {
+                        val gap = if (parkingAppForegroundTs > 0L) event.timeStamp - parkingAppForegroundTs else -1L
+                        android.util.Log.d(PARKING_TAG, "poll: parking-app BACKGROUND seen (fgSeen=${parkingAppForegroundTs > 0L}, gap=${gap}ms, debounce=${ParkingWatcherModule.DEBOUNCE_MS}ms)")
+                        if (parkingAppForegroundTs > 0L && gap >= ParkingWatcherModule.DEBOUNCE_MS) {
+                            parkingAppForegroundTs = 0L
+                            android.util.Log.d(PARKING_TAG, "poll: debounce OK → emit parkingAppBackgrounded + self-stop")
+                            ParkingWatcherModule.sendParkingBackgroundedEvent()
+                            stopParkingWatch() // self-stop; JS re-arms after the prompt is resolved
+                            return
+                        } else {
+                            android.util.Log.d(PARKING_TAG, "poll: background ignored (foreground <${ParkingWatcherModule.DEBOUNCE_MS}ms or not seen in window)")
+                        }
+                    }
+                }
+            }
+        } catch (e: Exception) {
+            // Never crash the poll — locked-device null returns / OEM quirks are expected.
+            android.util.Log.d(PARKING_TAG, "poll: exception (expected on locked device): ${e.message}")
+        }
+    }
+
+    private fun maybeStopIfIdle() {
+        if (bubbleView == null && pomodoroEndTimeMs <= 0L && parkingRemindAtMs <= 0L && !parkingMonitoring) {
+            // stopSelf(startId): no-op if a newer start request has already arrived,
+            // so we never orphan a pending startForegroundService() obligation.
+            stopSelf(lastStartId)
+        }
+    }
+
+    private fun formatParking(remainingMs: Long): String {
+        if (remainingMs < 0) {
+            val overMin = -remainingMs / 60_000L
+            return if (overMin >= 60) "+${overMin / 60}h${String.format("%02d", overMin % 60)}m" else "+${overMin}m"
+        }
+        val totalSec = remainingMs / 1000L
+        val h = totalSec / 3600L
+        val m = (totalSec % 3600L) / 60L
+        val s = totalSec % 60L
+        return if (totalSec >= 3600L) "$h:${String.format("%02d", m)}"
+        else String.format("%02d:%02d", m, s)
     }
 
     private fun playPomodoroSound() {
@@ -281,13 +478,16 @@ class FloatingBubbleService : Service() {
     }
 
     private fun openApp() {
+        // While a parking session owns the bubble, a tap opens the parking sheet
+        // (extend / done); otherwise it enters Focus mode as before.
+        val action = if (parkingRemindAtMs > 0L) "parking" else "focus"
         val launchIntent = packageManager.getLaunchIntentForPackage(packageName)
         if (launchIntent != null) {
             launchIntent.flags =
                 Intent.FLAG_ACTIVITY_NEW_TASK or
                 Intent.FLAG_ACTIVITY_SINGLE_TOP or
                 Intent.FLAG_ACTIVITY_REORDER_TO_FRONT
-            launchIntent.putExtra("dragonflow_action", "focus")
+            launchIntent.putExtra("dragonflow_action", action)
             startActivity(launchIntent)
         }
     }
@@ -443,6 +643,7 @@ class FloatingBubbleService : Service() {
     companion object {
         private const val CHANNEL_ID = "floating_bubble_channel"
         private const val NOTIFICATION_ID = 9999
+        const val PARKING_TAG = "ParkingWatcher"
     }
 
     private class BubbleView(context: Context, private var count: Int, private val sizePx: Int) :
@@ -476,9 +677,17 @@ class FloatingBubbleService : Service() {
 
 
         private var timerText: String? = null
+        private var parkingText: String? = null
+        private var parkingOverdue = false
 
         fun setTimerText(text: String?) {
             timerText = text
+            invalidate()
+        }
+
+        fun setParkingText(text: String?, overdue: Boolean) {
+            parkingText = text
+            parkingOverdue = overdue
             invalidate()
         }
 
@@ -495,15 +704,22 @@ class FloatingBubbleService : Service() {
             // Draw purple ellipse background
             canvas.drawOval(0f, 0f, w, h, backgroundPaint)
 
-            // Always draw a border — alert color when count is high, normal otherwise.
-            // Inset by half the stroke so the outer edge of the stroke isn't clipped
-            // by the view bounds.
-            borderPaint.color = if (count > 3) COLOR_ALERT_BORDER else COLOR_NORMAL_BORDER
+            // Always draw a border — alert color when count is high or parking is
+            // overdue, normal otherwise. Inset by half the stroke so the outer edge
+            // of the stroke isn't clipped by the view bounds.
+            borderPaint.color = if (count > 3 || parkingOverdue) COLOR_ALERT_BORDER else COLOR_NORMAL_BORDER
             val inset = borderPaint.strokeWidth / 2f
             canvas.drawOval(inset, inset, w - inset, h - inset, borderPaint)
 
+            val pt = parkingText
             val t = timerText
-            if (t != null) {
+            if (pt != null) {
+                // Parking mode: monospace countdown ("h:mm"/"mm:ss") or overdue ("+Xm").
+                // Overdue is signalled by the red border AND the leading "+" — not colour alone.
+                timerTextPaint.textSize = w * (if (pt.length > 4) 0.22f else 0.28f)
+                val textY = h / 2f - (timerTextPaint.descent() + timerTextPaint.ascent()) / 2f
+                canvas.drawText(pt, w / 2f, textY, timerTextPaint)
+            } else if (t != null) {
                 // Timer mode: clean white monospace text for sharp, readable MM:SS
                 timerTextPaint.textSize = w * 0.28f
                 val textY = h / 2f - (timerTextPaint.descent() + timerTextPaint.ascent()) / 2f

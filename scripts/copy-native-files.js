@@ -25,7 +25,12 @@ try {
     'FloatingBubblePackage.kt',
     'FloatingBubbleService.kt',
     'SoundAlarmReceiver.kt',
-    'BootReceiver.kt'
+    'BootReceiver.kt',
+    'ShareIntentModule.kt',
+    'ShareIntentPackage.kt',
+    'ParkingWatcherModule.kt',
+    'ParkingWatcherPackage.kt',
+    'ServiceLauncher.kt'
   ];
 
   console.log('[copy-native-files] Copying native files...');
@@ -122,11 +127,23 @@ tasks.whenTaskAdded { task ->
   if (fs.existsSync(mainAppKt)) {
     let mainApp = fs.readFileSync(mainAppKt, 'utf8');
 
-    // Add import if not present
+    // Add imports if not present
     if (!mainApp.includes('import com.plgsw.dragonflow.FloatingBubblePackage')) {
       mainApp = mainApp.replace(
         /import expo\.modules\.ReactNativeHostWrapper/,
         'import com.plgsw.dragonflow.FloatingBubblePackage\nimport expo.modules.ReactNativeHostWrapper'
+      );
+    }
+    if (!mainApp.includes('import com.plgsw.dragonflow.ShareIntentPackage')) {
+      mainApp = mainApp.replace(
+        /import expo\.modules\.ReactNativeHostWrapper/,
+        'import com.plgsw.dragonflow.ShareIntentPackage\nimport expo.modules.ReactNativeHostWrapper'
+      );
+    }
+    if (!mainApp.includes('import com.plgsw.dragonflow.ParkingWatcherPackage')) {
+      mainApp = mainApp.replace(
+        /import expo\.modules\.ReactNativeHostWrapper/,
+        'import com.plgsw.dragonflow.ParkingWatcherPackage\nimport expo.modules.ReactNativeHostWrapper'
       );
     }
 
@@ -137,9 +154,21 @@ tasks.whenTaskAdded { task ->
         'PackageList(this).packages.apply {\n              add(FloatingBubblePackage())\n$1\n            }'
       );
     }
+    if (!mainApp.includes('add(ShareIntentPackage())')) {
+      mainApp = mainApp.replace(
+        /add\(FloatingBubblePackage\(\)\)/,
+        'add(FloatingBubblePackage())\n              add(ShareIntentPackage())'
+      );
+    }
+    if (!mainApp.includes('add(ParkingWatcherPackage())')) {
+      mainApp = mainApp.replace(
+        /add\(ShareIntentPackage\(\)\)/,
+        'add(ShareIntentPackage())\n              add(ParkingWatcherPackage())'
+      );
+    }
 
     fs.writeFileSync(mainAppKt, mainApp);
-    console.log('  ✓ MainApplication.kt (FloatingBubblePackage registration)');
+    console.log('  ✓ MainApplication.kt (FloatingBubble + ShareIntent + ParkingWatcher registration)');
   }
 
   // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default

@@ -46,6 +46,28 @@ const FloatingBubble = {
             try { NativeFloatingBubble.stopPomodoroTimer(fallbackCount, fallbackMessage); } catch {}
         }
     },
+    // Parking countdown: native ticks a live countdown to remindAtMs and flips to
+    // overdue past it. remindAtMs is JS's single source of truth; extend = re-push.
+    startParkingTimer(remindAtMs: number, fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.startParkingTimer(remindAtMs, fallbackCount, fallbackMessage); } catch {}
+        }
+    },
+    stopParkingTimer(fallbackCount: number, fallbackMessage: string) {
+        if (Platform.OS === 'android' && NativeFloatingBubble) {
+            try { NativeFloatingBubble.stopParkingTimer(fallbackCount, fallbackMessage); } catch {}
+        }
+    },
+    onParkingTap(callback: () => void) {
+        if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
+        try {
+            const emitter = new NativeEventEmitter(NativeFloatingBubble);
+            const listener = emitter.addListener('floatingBubbleParkingTap', callback);
+            return () => listener.remove();
+        } catch {
+            return () => {};
+        }
+    },
     onDismissed(callback: () => void) {
         if (Platform.OS !== 'android' || !NativeFloatingBubble) return () => {};
         try {

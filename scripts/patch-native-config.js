@@ -30,6 +30,33 @@ if (fs.existsSync(mainAppFile)) {
       console.log('  ✓ Added FloatingBubblePackage() registration');
     }
   }
+
+  // Register ShareIntentPackage alongside FloatingBubblePackage (same com.plgsw.dragonflow
+  // package as MainApplication, so no import needed).
+  if (!content.includes('add(ShareIntentPackage())')) {
+    const before = content;
+    content = content.replace(
+      /add\(FloatingBubblePackage\(\)\)/,
+      'add(FloatingBubblePackage())\n              add(ShareIntentPackage())'
+    );
+    if (content !== before) {
+      fs.writeFileSync(mainAppFile, content, 'utf8');
+      console.log('  ✓ Added ShareIntentPackage() registration');
+    }
+  }
+
+  // Register ParkingWatcherPackage alongside the others (same package, no import needed).
+  if (!content.includes('add(ParkingWatcherPackage())')) {
+    const before = content;
+    content = content.replace(
+      /add\(ShareIntentPackage\(\)\)/,
+      'add(ShareIntentPackage())\n              add(ParkingWatcherPackage())'
+    );
+    if (content !== before) {
+      fs.writeFileSync(mainAppFile, content, 'utf8');
+      console.log('  ✓ Added ParkingWatcherPackage() registration');
+    }
+  }
 } else {
   console.warn(`  ⚠ MainApplication.kt not found at ${mainAppFile}`);
 }
@@ -38,6 +65,14 @@ if (fs.existsSync(mainAppFile)) {
 if (fs.existsSync(manifestFile)) {
   let content = fs.readFileSync(manifestFile, 'utf8');
   const original = content;
+
+  // Ensure the tools: namespace is declared on <manifest> (needed for tools:ignore below).
+  if (!content.includes('xmlns:tools=')) {
+    content = content.replace(
+      /(<manifest\s+xmlns:android="[^"]*")/,
+      '$1 xmlns:tools="http://schemas.android.com/tools"'
+    );
+  }
 
   // Add required permissions if missing
   const permissionsToAdd = [
@@ -54,6 +89,43 @@ if (fs.existsSync(manifestFile)) {
         `$1\n  <uses-permission android:name="${perm}"/>`
       );
     }
+  }
+
+  // PACKAGE_USAGE_STATS (Parking reminder): a special-access "app-op" permission —
+  // granted via Settings, not a runtime dialog. lint flags it as a protected
+  // permission, so suppress that one check. See docs/design/features/parking-reminder.
+  if (!content.includes('android.permission.PACKAGE_USAGE_STATS')) {
+    content = content.replace(
+      /(<uses-permission[^>]*WRITE_EXTERNAL_STORAGE[^>]*\/>)/,
+      `$1\n  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>`
+    );
+  }
+
+  // Package visibility (Android 11+): declare the parking app so getLaunchIntentForPackage()
+  // can resolve it (AC6). Without this the launch intent silently returns null.
+  // Merge into an existing <queries> block if one exists (Expo emits one), else add.
+  if (!content.includes('com.unicell.pangoandroid')) {
+    if (content.includes('<queries>')) {
+      content = content.replace(
+        /(<\/queries>)/,
+        `  <package android:name="com.unicell.pangoandroid"/>\n  $1`
+      );
+    } else {
+      content = content.replace(
+        /(<\/application>)/,
+        `$1\n  <queries>\n    <package android:name="com.unicell.pangoandroid"/>\n  </queries>`
+      );
+    }
+  }
+
+  // Add the share-target intent-filter to MainActivity so the app appears in the
+  // Android share sheet for text/plain (ACTION_SEND). Inserted before MainActivity's
+  // closing </activity> tag. See docs/design/features/share-text-target/design.md §1.
+  if (!content.includes('android.intent.action.SEND')) {
+    content = content.replace(
+      /(\n)(\s*)<\/activity>/,
+      `$1$2  <intent-filter>\n$2    <action android:name="android.intent.action.SEND"/>\n$2    <category android:name="android.intent.category.DEFAULT"/>\n$2    <data android:mimeType="text/plain"/>\n$2  </intent-filter>\n$2</activity>`
+    );
   }
 
   // Add service and receiver declarations if missing

@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +8,7 @@ import Constants from 'expo-constants';
 import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
+import ParkingWatcher from '@/src/modules/ParkingWatcher';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
@@ -190,7 +192,7 @@ export default function SettingsScreen() {
     const colors = useColors();
     const styles = makeStyles(colors);
     const switchTrackColor = { false: colors.text.disabled, true: colors.secondary };
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, parkingReminderEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone, setParkingReminderEnabled } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -198,6 +200,37 @@ export default function SettingsScreen() {
     const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
     const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
     const [pomodoroVolumeVisible, setPomodoroVolumeVisible] = useState(false);
+
+    // Parking reminder: track the (revocable) Usage-access grant and the disclosure gate.
+    const [parkingUsageGranted, setParkingUsageGranted] = useState(true);
+    const [parkingDisclosureVisible, setParkingDisclosureVisible] = useState(false);
+    const refreshUsageAccess = useCallback(() => {
+        ParkingWatcher.hasUsageAccess().then(setParkingUsageGranted).catch(() => {});
+    }, []);
+    // Re-check on focus + when returning from the system settings screen (AC15).
+    useFocusEffect(useCallback(() => {
+        refreshUsageAccess();
+        const sub = AppState.addEventListener('change', (s) => { if (s === 'active') refreshUsageAccess(); });
+        return () => sub.remove();
+    }, [refreshUsageAccess]));
+
+    function handleToggleParking(next: boolean) {
+        console.log(`[ParkingWatcher] USER: toggled parking reminder ${next ? 'ON' : 'OFF'} (settings)`);
+        if (next) {
+            setParkingDisclosureVisible(true); // AC13 — disclosure before enabling
+        } else {
+            setParkingReminderEnabled(false);
+        }
+    }
+    function confirmParkingDisclosure() {
+        console.log('[ParkingWatcher] USER: confirmed disclosure → enabling parking reminder (settings)');
+        setParkingDisclosureVisible(false);
+        setParkingReminderEnabled(true);
+        ParkingWatcher.hasUsageAccess().then((granted) => {
+            setParkingUsageGranted(granted);
+            if (!granted) ParkingWatcher.requestUsageAccess(); // AC14 — deep-link to grant
+        }).catch(() => {});
+    }
 
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
@@ -353,6 +386,35 @@ export default function SettingsScreen() {
                             thumbColor={colors.white}
                         />
                     </View>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Parking Reminder">
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLabel}>
+                            <Ionicons name="car-outline" size={20} color={colors.secondary} />
+                            <View style={styles.ml12}>
+                                <Text style={styles.settingTitle}>Parking reminder</Text>
+                                <Text style={styles.settingDesc}>When you use your parking app, offer to remind you to stop the parking session</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={parkingReminderEnabled}
+                            onValueChange={handleToggleParking}
+                            trackColor={switchTrackColor}
+                            thumbColor={colors.white}
+                        />
+                    </View>
+                    {parkingReminderEnabled && !parkingUsageGranted && (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Grant usage access"
+                            style={({ pressed }) => [styles.signInBtn, pressed && { opacity: 0.7 }]}
+                            onPress={() => { console.log('[ParkingWatcher] USER: clicked Grant usage access (settings)'); ParkingWatcher.requestUsageAccess(); }}
+                        >
+                            <Ionicons name="warning-outline" size={18} color={colors.white} />
+                            <Text style={styles.signInText}>Grant “Usage access” to enable detection</Text>
+                        </Pressable>
+                    )}
                 </CollapsibleSection>
 
                 <CollapsibleSection title="Audio">
@@ -640,6 +702,38 @@ export default function SettingsScreen() {
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal key={editingCategory?.id ?? 'none'} visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
 
+            {/* AC13 — prominent disclosure shown before enabling detection. */}
+            <Modal visible={parkingDisclosureVisible} transparent animationType="fade" onRequestClose={() => setParkingDisclosureVisible(false)}>
+                <View style={styles.parkingDiscOverlay}>
+                    <View style={styles.parkingDiscSheet}>
+                        <Text style={styles.parkingDiscTitle}>Before you enable this</Text>
+                        <Text style={styles.parkingDiscBody}>
+                            To notice when you’ve used your parking app, DragonFlow checks Android’s “Usage access”. It only detects
+                            <Text style={styles.parkingDiscBold}> that it ran</Text> — never what you do in it, and never any other app’s contents.
+                            {'\n\n'}This stays entirely on your device: nothing about your app usage is logged, sent, or included in cloud backup.
+                        </Text>
+                        <View style={styles.parkingDiscButtons}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancel"
+                                style={({ pressed }) => [styles.parkingDiscCancel, pressed && { opacity: 0.7 }]}
+                                onPress={() => setParkingDisclosureVisible(false)}
+                            >
+                                <Text style={styles.parkingDiscCancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Continue and grant usage access"
+                                style={({ pressed }) => [styles.parkingDiscContinue, pressed && { opacity: 0.7 }]}
+                                onPress={confirmParkingDisclosure}
+                            >
+                                <Text style={styles.parkingDiscContinueText}>Continue</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
                 options={SOUND_TYPE_OPTIONS}
@@ -810,6 +904,16 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 10,
     },
     signInText: { color: c.white, fontWeight: 'bold', fontSize: 15 },
+    parkingDiscOverlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+    parkingDiscSheet: { backgroundColor: c.surfaceElevated, borderRadius: 16, padding: 20, width: '85%' },
+    parkingDiscTitle: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 12 },
+    parkingDiscBody: { fontSize: 14, color: c.text.muted, lineHeight: 20 },
+    parkingDiscBold: { fontWeight: '700', color: c.text.primary },
+    parkingDiscButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
+    parkingDiscCancel: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+    parkingDiscCancelText: { color: c.text.weak, fontSize: 14 },
+    parkingDiscContinue: { minHeight: 44, justifyContent: 'center', backgroundColor: c.primary, paddingHorizontal: 20, borderRadius: 10 },
+    parkingDiscContinueText: { color: c.surface, fontWeight: '700', fontSize: 14 },
     cloudSignInWrapper: { alignItems: 'center', paddingVertical: 8 },
     cloudUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
     cloudUserEmail: { fontSize: 12, color: c.text.placeholder, flex: 1, marginLeft: 8 },

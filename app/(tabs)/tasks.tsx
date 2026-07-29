@@ -13,6 +13,10 @@ import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
+import { useShareIntent } from '@/src/hooks/useShareIntent';
+import { useParkingReminder } from '@/src/hooks/useParkingReminder';
+import ParkingArmModal from '@/src/components/ParkingArmModal';
+import ParkingActionSheet from '@/src/components/ParkingActionSheet';
 import { Task, TaskStatus } from '@/src/types';
 
 
@@ -37,6 +41,18 @@ export default function TasksScreen() {
     const tasks = useSortedFilteredTasks();
     const archivedTasks = useArchivedTasks();
     const [addModalVisible, setAddModalVisible] = useState(false);
+    // Shared-text target: open the Add Task modal pre-filled when text is shared in.
+    const { prefill, clearPrefill } = useShareIntent();
+    useEffect(() => {
+        if (prefill) setAddModalVisible(true);
+    }, [prefill]);
+    // Parking reminder: arm prompt on parking-app background; action sheet on bubble tap.
+    const { promptVisible: parkingPromptVisible, arm: armParking, dismiss: dismissParking } = useParkingReminder();
+    const [parkingSheetVisible, setParkingSheetVisible] = useState(false);
+    useEffect(() => {
+        const unsubscribe = FloatingBubble.onParkingTap(() => setParkingSheetVisible(true));
+        return unsubscribe;
+    }, []);
     const [editTask, setEditTask] = useState<Task | null>(null);
     const [editFocus, setEditFocus] = useState<EditFocus | undefined>(undefined);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
@@ -248,8 +264,10 @@ export default function TasksScreen() {
             <AddTaskModal
                 key={`add-${addModalVisible ? 'open' : 'closed'}`}
                 isVisible={addModalVisible}
-                onClose={() => setAddModalVisible(false)}
+                onClose={() => { setAddModalVisible(false); clearPrefill(); }}
                 onAdd={addTask}
+                initialTitle={prefill?.title}
+                initialDescription={prefill?.description}
             />
 
             <EditTaskModal
@@ -265,6 +283,19 @@ export default function TasksScreen() {
                 key={`stats-${statsTask?.id ?? 'none'}`}
                 task={statsTask}
                 onClose={() => setStatsTask(null)}
+            />
+
+            <ParkingArmModal
+                key={`parking-arm-${parkingPromptVisible ? 'open' : 'closed'}`}
+                visible={parkingPromptVisible}
+                onArm={armParking}
+                onDismiss={dismissParking}
+            />
+
+            <ParkingActionSheet
+                key={`parking-sheet-${parkingSheetVisible ? 'open' : 'closed'}`}
+                visible={parkingSheetVisible}
+                onClose={() => setParkingSheetVisible(false)}
             />
         </SafeAreaView>
     );

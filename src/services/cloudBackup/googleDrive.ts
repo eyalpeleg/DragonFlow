@@ -1,4 +1,5 @@
 import { validateExportData, ExportPayload } from '../../utils/dataTransfer';
+import * as googleAuth from './googleAuth';
 import { AuthError, BackupBucket, BackupMetadata, NetworkError, QuotaError } from './types';
 
 const DRIVE_API = 'https://www.googleapis.com/drive/v3';
@@ -9,6 +10,40 @@ function classifyBackup(name: string): BackupBucket {
     if (name.includes('-weekly-')) return 'weekly';
     if (name.includes('-daily-')) return 'daily';
     return 'ongoing';
+}
+
+/**
+ * Run an authorized Drive request. On HTTP 401 (cached access token expired),
+ * refresh the token once and retry the SAME request exactly once. Non-401
+ * responses and network failures pass through untouched — no refresh, no
+ * wrongful sign-out. `build` must construct the request fresh from the given
+ * token, since it is called again (with a fresh token) on retry.
+ */
+async function authorizedFetch(
+    token: string,
+    build: (token: string) => Promise<Response>,
+): Promise<Response> {
+    let response: Response;
+    try {
+        response = await build(token);
+    } catch (e: any) {
+        throw new NetworkError(e.message ?? 'Network request failed');
+    }
+    if (response.status !== 401) return response;
+
+    console.warn('drive: 401, refreshing access token');
+    let fresh: string;
+    try {
+        fresh = await googleAuth.getFreshToken();
+    } catch {
+        console.warn('drive: auth refresh failed, session terminal');
+        return response; // original 401 → handleResponse throws terminal AuthError
+    }
+    try {
+        return await build(fresh); // retry ONCE; a 2nd 401 propagates, no 3rd attempt
+    } catch (e: any) {
+        throw new NetworkError(e.message ?? 'Network request failed');
+    }
 }
 
 async function handleResponse(response: Response): Promise<any> {
@@ -35,14 +70,9 @@ export async function listBackupFiles(token: string): Promise<BackupMetadata[]> 
     const fields = encodeURIComponent('files(id,name,modifiedTime,size)');
     const url = `${DRIVE_API}/files?spaces=appDataFolder&q=${query}&fields=${fields}&orderBy=modifiedTime desc&pageSize=100`;
 
-    let response: Response;
-    try {
-        response = await fetch(url, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-    } catch (e: any) {
-        throw new NetworkError(e.message ?? 'Network request failed');
-    }
+    const response = await authorizedFetch(token, (t) =>
+        fetch(url, { headers: { Authorization: `Bearer ${t}` } }),
+    );
 
     const data = await handleResponse(response);
     return (data.files ?? []).map((f: any) => ({
@@ -78,19 +108,16 @@ export async function uploadBackup(
         `${JSON.stringify(payload)}\r\n` +
         `--${boundary}--`;
 
-    let response: Response;
-    try {
-        response = await fetch(`${UPLOAD_API}/files?uploadType=multipart&fields=id,name,modifiedTime,size`, {
+    const response = await authorizedFetch(token, (t) =>
+        fetch(`${UPLOAD_API}/files?uploadType=multipart&fields=id,name,modifiedTime,size`, {
             method: 'POST',
             headers: {
-                Authorization: `Bearer ${token}`,
+                Authorization: `Bearer ${t}`,
                 'Content-Type': `multipart/related; boundary=${boundary}`,
             },
             body,
-        });
-    } catch (e: any) {
-        throw new NetworkError(e.message ?? 'Network request failed');
-    }
+        }),
+    );
 
     const data = await handleResponse(response);
     return {
@@ -123,10 +150,12 @@ export async function cleanupOldBackups(
     await Promise.all(
         toDelete.map(async (backup) => {
             try {
-                const response = await fetch(`${DRIVE_API}/files/${backup.fileId}`, {
-                    method: 'DELETE',
-                    headers: { Authorization: `Bearer ${token}` },
-                });
+                const response = await authorizedFetch(token, (t) =>
+                    fetch(`${DRIVE_API}/files/${backup.fileId}`, {
+                        method: 'DELETE',
+                        headers: { Authorization: `Bearer ${t}` },
+                    }),
+                );
                 if (!response.ok && response.status !== 404) {
                     console.warn(`Failed to delete old backup ${backup.name}: ${response.status}`);
                 }
@@ -136,14 +165,11 @@ export async function cleanupOldBackups(
 }
 
 export async function downloadBackup(token: string, fileId: string): Promise<ExportPayload> {
-    let response: Response;
-    try {
-        response = await fetch(`${DRIVE_API}/files/${fileId}?alt=media`, {
-            headers: { Authorization: `Bearer ${token}` },
-        });
-    } catch (e: any) {
-        throw new NetworkError(e.message ?? 'Network request failed');
-    }
+    const response = await authorizedFetch(token, (t) =>
+        fetch(`${DRIVE_API}/files/${fileId}?alt=media`, {
+            headers: { Authorization: `Bearer ${t}` },
+        }),
+    );
 
     if (!response.ok) {
         await handleResponse(response); // throws typed error

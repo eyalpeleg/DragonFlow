@@ -8,6 +8,11 @@ import { COLORS } from '../styles/theme';
 
 const POMODORO_CHANNEL = 'pomodoro-3';
 const REMINDERS_CHANNEL = 'reminders-3';
+const PARKING_CHANNEL = 'parking-3';
+
+const PARKING_REMINDER_CATEGORY = 'parking-reminder';
+const PARKING_ARM_CATEGORY = 'parking-arm';
+const PARKING_ARM_NOTIF_ID = 'parking-arm-prompt';
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -41,6 +46,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 const CHANNEL_DEFS = [
     { id: POMODORO_CHANNEL,  name: 'Pomodoro Timer',  vibe: [0, 500, 200, 500] },
     { id: REMINDERS_CHANNEL, name: 'Task Reminders',  vibe: [0, 300, 200, 300] },
+    { id: PARKING_CHANNEL,     name: 'Parking Reminder', vibe: [0, 300, 200, 300] },
 ];
 
 export async function setupNotificationChannels(): Promise<void> {
@@ -86,6 +92,89 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
 export async function cancelPomodoroNotification(id: string): Promise<void> {
     if (!notificationsAvailable || !id) return;
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+}
+
+// --- Parking reminder (AC4/AC5/AC19) ---------------------------------
+// Registers the notification action buttons once (idempotent). Called at boot
+// beside setupNotificationChannels. Two categories: the firing reminder
+// (extend / open the parking app) and the arm prompt (pick a duration / not parking).
+export async function setupParkingNotificationCategory(): Promise<void> {
+    if (!notificationsAvailable) return;
+    try {
+        await Notifications.setNotificationCategoryAsync(PARKING_REMINDER_CATEGORY, [
+            { identifier: 'extend-15', buttonTitle: '+15 min' },
+            { identifier: 'open-parking', buttonTitle: 'Open Parking App' },
+        ]);
+        // Arm-prompt quick actions handle the tap in the background (no app open);
+        // the body tap opens the app for a custom duration.
+        await Notifications.setNotificationCategoryAsync(PARKING_ARM_CATEGORY, [
+            { identifier: 'arm-60', buttonTitle: '1 hour', options: { opensAppToForeground: false } },
+            { identifier: 'arm-120', buttonTitle: '2 hours', options: { opensAppToForeground: false } },
+            { identifier: 'not-parking', buttonTitle: 'Not parking', options: { opensAppToForeground: false } },
+        ]);
+    } catch {
+        // ignore — Expo Go
+    }
+}
+
+// Posts the "start a parking reminder?" heads-up notification immediately, so the
+// user can arm from any screen without opening DragonFlow.
+export async function presentParkingArmPrompt(): Promise<void> {
+    if (!notificationsAvailable) return;
+    try {
+        await Notifications.scheduleNotificationAsync({
+            identifier: PARKING_ARM_NOTIF_ID,
+            content: {
+                title: '🅿️ Start a parking reminder?',
+                body: 'You just used your parking app — remind you to stop the parking session?',
+                sound: undefined,
+                data: { type: 'parking-arm' },
+                categoryIdentifier: PARKING_ARM_CATEGORY,
+                ...(Platform.OS === 'android' && { channelId: PARKING_CHANNEL }),
+            },
+            trigger: null, // present immediately
+        });
+    } catch {
+        // ignore
+    }
+}
+
+export async function dismissParkingArmPrompt(): Promise<void> {
+    if (!notificationsAvailable) return;
+    await Notifications.dismissNotificationAsync(PARKING_ARM_NOTIF_ID).catch(() => {});
+    await Notifications.cancelScheduledNotificationAsync(PARKING_ARM_NOTIF_ID).catch(() => {});
+}
+
+// Schedules the "stop parking" reminder at an absolute time (DATE trigger, so it
+// survives drift/process death). Uses sessionId as the notification identifier
+// so extend can reschedule under the same id.
+export async function scheduleParkingReminder(remindAt: number, sessionId: string): Promise<string> {
+    if (!notificationsAvailable) return '';
+    try {
+        await Notifications.scheduleNotificationAsync({
+            identifier: sessionId,
+            content: {
+                title: '🅿️ Stop your parking',
+                body: 'Your parking time is up — tap to open your parking app and stop the session.',
+                sound: undefined,
+                data: { type: 'parking', sessionId },
+                categoryIdentifier: PARKING_REMINDER_CATEGORY,
+                ...(Platform.OS === 'android' && { channelId: PARKING_CHANNEL }),
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: new Date(remindAt),
+            },
+        });
+        return sessionId;
+    } catch {
+        return '';
+    }
+}
+
+export async function cancelParkingReminder(notifId: string): Promise<void> {
+    if (!notificationsAvailable || !notifId) return;
+    await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
 }
 
 function dayBefore(date: string, hours: number, minutes = 0): number {

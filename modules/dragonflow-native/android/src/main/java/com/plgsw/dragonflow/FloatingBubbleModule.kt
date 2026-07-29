@@ -47,11 +47,18 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
     override fun onHostDestroy() {}
 
     private fun consumeFocusAction(intent: Intent?) {
-        if (intent?.getStringExtra("dragonflow_action") == "focus") {
-            // One-shot: clear the extra so subsequent foreground resumes don't re-trigger.
-            intent.removeExtra("dragonflow_action")
-            pendingOpenFocus = true
-            sendOpenFocusEvent()
+        when (intent?.getStringExtra("dragonflow_action")) {
+            "focus" -> {
+                // One-shot: clear the extra so subsequent foreground resumes don't re-trigger.
+                intent.removeExtra("dragonflow_action")
+                pendingOpenFocus = true
+                sendOpenFocusEvent()
+            }
+            "parking" -> {
+                intent.removeExtra("dragonflow_action")
+                pendingParkingTap = true
+                sendParkingTapEvent()
+            }
         }
     }
 
@@ -66,11 +73,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("count", count)
             putExtra("message", message)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -167,11 +170,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("soundType", soundType)
             putExtra("volume", volume)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -182,20 +181,47 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
+        ServiceLauncher.start(context, intent)
+    }
+
+    @ReactMethod
+    fun startParkingTimer(remindAtMs: Double, fallbackCount: Int, fallbackMessage: String) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M &&
+            !Settings.canDrawOverlays(reactApplicationContext)) {
+            return
         }
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "startParking")
+            putExtra("parkingRemindAtMs", remindAtMs.toLong())
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        ServiceLauncher.start(context, intent)
+    }
+
+    @ReactMethod
+    fun stopParkingTimer(fallbackCount: Int, fallbackMessage: String) {
+        val context = reactApplicationContext
+        val intent = Intent(context, FloatingBubbleService::class.java).apply {
+            putExtra("action", "stopParking")
+            putExtra("fallbackCount", fallbackCount)
+            putExtra("fallbackMessage", fallbackMessage)
+        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
     fun addListener(eventName: String) {
-        // On cold start, the open-focus intent may arrive before JS subscribes.
-        // When JS finally subscribes, flush any pending open-focus signal.
+        // On cold start, the open-focus / parking-tap intent may arrive before JS
+        // subscribes. When JS finally subscribes, flush any pending signal.
         if (eventName == "floatingBubbleOpenFocus" && pendingOpenFocus) {
             pendingOpenFocus = false
             sendOpenFocusEvent()
+        }
+        if (eventName == "floatingBubbleParkingTap" && pendingParkingTap) {
+            pendingParkingTap = false
+            sendParkingTapEvent()
         }
     }
 
@@ -208,6 +234,9 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
         @Volatile
         var pendingOpenFocus: Boolean = false
 
+        @Volatile
+        var pendingParkingTap: Boolean = false
+
         fun sendDismissEvent() {
             reactContext
                 ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
@@ -218,6 +247,12 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             reactContext
                 ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
                 ?.emit("floatingBubbleOpenFocus", null)
+        }
+
+        fun sendParkingTapEvent() {
+            reactContext
+                ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
+                ?.emit("floatingBubbleParkingTap", null)
         }
     }
 }

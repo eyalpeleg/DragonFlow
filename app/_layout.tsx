@@ -5,9 +5,11 @@ import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
+import * as Notifications from 'expo-notifications';
+import { dismissParkingArmPrompt, requestNotificationPermission, setupNotificationChannels, setupParkingNotificationCategory } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
-import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
+import ParkingWatcher from '@/src/modules/ParkingWatcher';
+import { useTaskStore, computeBubbleScore, getTodayTomorrowStrs, urgentBubbleMessage } from '@/src/store/appStore';
 import { initializeBackup, setupAutoBackup, onAppBackground } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
 import { useColorMode } from '@/src/styles/useColors';
@@ -42,6 +44,7 @@ export default function RootLayout() {
     useEffect(() => {
         audioService.initialize().catch(() => {});
         setupNotificationChannels();
+        setupParkingNotificationCategory();
         requestNotificationPermission();
         FloatingBubble.canDrawOverlays().then((ok) => {
             if (!ok) FloatingBubble.requestOverlayPermission();
@@ -76,6 +79,56 @@ export default function RootLayout() {
             router.push('/(tabs)/tasks');
         });
 
+        // Route parking notification actions: the arm prompt (pick a duration / not
+        // parking) and the firing reminder (extend / open the parking app).
+        const notifResponseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+            const data = response.notification.request.content.data as { type?: string };
+            const action = response.actionIdentifier;
+
+            if (data?.type === 'parking-arm') {
+                const store = useTaskStore.getState();
+                if (action === 'arm-60' || action === 'arm-120') {
+                    console.log(`[ParkingWatcher] USER: set parking reminder to ${action === 'arm-60' ? 60 : 120} min (notification)`);
+                    store.startParkingSession(action === 'arm-60' ? 60 : 120);
+                    store.setParkingArmPromptVisible(false);
+                    dismissParkingArmPrompt();
+                } else if (action === 'not-parking') {
+                    console.log('[ParkingWatcher] USER: dismissed arm prompt — not parking (notification)');
+                    store.setParkingSuppressedUntil(Date.now() + (store.debugModeEnabled ? 2 : 30) * 60_000);
+                    store.setParkingArmPromptVisible(false);
+                    dismissParkingArmPrompt();
+                    ParkingWatcher.startMonitoring();
+                } else {
+                    // Body tap → open the app; the pending arm modal shows for a custom duration.
+                    console.log('[ParkingWatcher] USER: tapped arm notification body → opening app for custom duration');
+                    store.setParkingArmPromptVisible(true);
+                    router.push('/(tabs)/tasks');
+                }
+                return;
+            }
+
+            if (data?.type !== 'parking') return;
+            if (action === 'extend-15') {
+                console.log('[ParkingWatcher] USER: add 15 min (reminder notification)');
+                // If the action relaunched the app, the store may still be rehydrating
+                // (parkingSession not yet restored) — apply the extend once it is.
+                if (useTaskStore.getState().hasHydrated) {
+                    useTaskStore.getState().extendParkingSession(15);
+                } else {
+                    const unsub = useTaskStore.subscribe((s) => {
+                        if (s.hasHydrated) { unsub(); s.extendParkingSession(15); }
+                    });
+                }
+            } else if (action === 'open-parking') {
+                console.log('[ParkingWatcher] USER: clicked Open Parking App (reminder notification)');
+                ParkingWatcher.openParkingApp();
+            } else {
+                // Tapping the notification body → open the app on the tasks list.
+                console.log('[ParkingWatcher] USER: tapped reminder notification body → opening app');
+                router.push('/(tabs)/tasks');
+            }
+        });
+
         const sub = AppState.addEventListener('change', (nextState) => {
             const { tasks, dismissedFloatingBubble, showBubbleInBackground: showBubble } = useTaskStore.getState();
             if (nextState === 'active') {
@@ -84,8 +137,18 @@ export default function RootLayout() {
                     setFloatingBubbleDismissed(false);
                 }
             } else if (nextState === 'background') {
+                const { pomodoroEndTime, parkingSession } = useTaskStore.getState();
+                // Parking takes precedence over pomodoro and the task count (AC7a).
+                if (parkingSession) {
+                    const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
+                    const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+                    if (showBubble) {
+                        FloatingBubble.startParkingTimer(parkingSession.remindAt, score, urgentBubbleMessage(score));
+                    }
+                    onAppBackground();
+                    return;
+                }
                 // Don't show task bubble if Pomodoro is running — timer component handles it
-                const { pomodoroEndTime } = useTaskStore.getState();
                 if (pomodoroEndTime === null || pomodoroEndTime <= Date.now()) {
                     const pad = (n: number) => String(n).padStart(2, '0');
                     const now = new Date();
@@ -105,6 +168,7 @@ export default function RootLayout() {
             sub.remove();
             unsubscribe();
             unsubscribeOpenFocus();
+            notifResponseSub.remove();
             unsubscribeBackup();
         };
     }, [setFloatingBubbleDismissed]);
