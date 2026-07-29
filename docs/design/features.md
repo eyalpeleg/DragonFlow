@@ -35,7 +35,9 @@
 | Share-to-task target | Built · QA pending | Android share target — pre-fills Add Task from shared text. Shipped to `develop` (207b316); on-device QA pending. Docs: `docs/design/features/share-text-target/` |
 | Parking app awareness | Idea | Detect active parking sessions and remind the user to close/stop parking when finished |
 | Activity log | Idea | Record user activity so it can be shared with the developer to understand how the app is used |
-| Fix Google auth expiration | Building | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in. Docs: `docs/design/features/fix-google-auth-expiration/` |
+| Fix Google auth expiration | Verified | Bugfix — handle expired Google auth token so Drive backup keeps working without re-sign-in. Docs: `docs/design/features/fix-google-auth-expiration/` |
+| Fix false "Backup Complete" alert | Idea | Bugfix — `handleCloudBackup()` in `app/(tabs)/settings.tsx` always shows "Backup Complete" because `performBackup()` swallows errors (NetworkError/auth) and never throws. A failed/offline "Back Up Now" misleadingly reports success. Surface real success vs failure (return status from `performBackup`, or check `backupStatus`/`lastError`). Found during on-device QA of Fix-Google-auth-expiration. |
+| Fix "Last backup: Never" after re-sign-in | Idea | Bugfix — after a sign-out→sign-in cycle, Settings shows "Last backup: Never" even though backups exist in Drive. `backupStore.setSignedOut()` wipes `lastBackupTime`/`lastBackupFileId` to null and `setSignedIn()` never restores them (sign-in doesn't query Drive for the newest backup). Found during on-device QA of Fix-Google-auth-expiration. Fix direction: on sign-in, hydrate `lastBackupTime` from the newest `listBackupFiles()` entry, or stop wiping it on sign-out. Files: `src/services/cloudBackup/backupStore.ts`, `backupService.ts`. |
 | Upgrade Expo SDK 54 → 57 | Idea | Enabler (spawned by Share-text analysis) — unlocks `expo-share-intent` (replaces custom-native share code) + iOS share target; also newer RN & security patches. High blast radius; schedule as its own effort |
 | | | |
 
