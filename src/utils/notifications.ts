@@ -8,6 +8,9 @@ import { COLORS } from '../styles/theme';
 
 const POMODORO_CHANNEL = 'pomodoro-3';
 const REMINDERS_CHANNEL = 'reminders-3';
+const PANGO_CHANNEL = 'pango-3';
+
+const PANGO_CATEGORY = 'pango-reminder';
 
 // Silently no-op in Expo Go (SDK 53+ removed push support; local notifs need a dev build)
 let notificationsAvailable = false;
@@ -41,6 +44,7 @@ export async function requestNotificationPermission(): Promise<boolean> {
 const CHANNEL_DEFS = [
     { id: POMODORO_CHANNEL,  name: 'Pomodoro Timer',  vibe: [0, 500, 200, 500] },
     { id: REMINDERS_CHANNEL, name: 'Task Reminders',  vibe: [0, 300, 200, 300] },
+    { id: PANGO_CHANNEL,     name: 'Parking Reminder', vibe: [0, 300, 200, 300] },
 ];
 
 export async function setupNotificationChannels(): Promise<void> {
@@ -86,6 +90,53 @@ export async function schedulePomodoroEnd(minutes: number): Promise<string> {
 export async function cancelPomodoroNotification(id: string): Promise<void> {
     if (!notificationsAvailable || !id) return;
     await Notifications.cancelScheduledNotificationAsync(id).catch(() => {});
+}
+
+// --- Pango parking reminder (AC4/AC5/AC19) ---------------------------------
+// Registers the notification action buttons once (idempotent). Called at boot
+// beside setupNotificationChannels.
+export async function setupPangoNotificationCategory(): Promise<void> {
+    if (!notificationsAvailable) return;
+    try {
+        await Notifications.setNotificationCategoryAsync(PANGO_CATEGORY, [
+            { identifier: 'extend-15', buttonTitle: '+15 min' },
+            { identifier: 'open-pango', buttonTitle: 'Open Pango' },
+        ]);
+    } catch {
+        // ignore — Expo Go
+    }
+}
+
+// Schedules the "stop parking" reminder at an absolute time (DATE trigger, so it
+// survives drift/process death). Uses sessionId as the notification identifier
+// so extend can reschedule under the same id.
+export async function scheduleParkingReminder(remindAt: number, sessionId: string): Promise<string> {
+    if (!notificationsAvailable) return '';
+    try {
+        await Notifications.scheduleNotificationAsync({
+            identifier: sessionId,
+            content: {
+                title: '🅿️ Stop your Pango parking',
+                body: 'Your parking time is up — tap to open Pango and stop the session.',
+                sound: undefined,
+                data: { type: 'pango', sessionId },
+                categoryIdentifier: PANGO_CATEGORY,
+                ...(Platform.OS === 'android' && { channelId: PANGO_CHANNEL }),
+            },
+            trigger: {
+                type: Notifications.SchedulableTriggerInputTypes.DATE,
+                date: new Date(remindAt),
+            },
+        });
+        return sessionId;
+    } catch {
+        return '';
+    }
+}
+
+export async function cancelParkingReminder(notifId: string): Promise<void> {
+    if (!notificationsAvailable || !notifId) return;
+    await Notifications.cancelScheduledNotificationAsync(notifId).catch(() => {});
 }
 
 function dayBefore(date: string, hours: number, minutes = 0): number {

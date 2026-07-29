@@ -1,5 +1,6 @@
-import React, { useState } from 'react';
-import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import React, { useCallback, useState } from 'react';
+import { ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
+import { useFocusEffect } from 'expo-router';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -7,6 +8,7 @@ import Constants from 'expo-constants';
 import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
+import PangoWatcher from '@/src/modules/PangoWatcher';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
 import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
@@ -190,7 +192,7 @@ export default function SettingsScreen() {
     const colors = useColors();
     const styles = makeStyles(colors);
     const switchTrackColor = { false: colors.text.disabled, true: colors.secondary };
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, pangoReminderEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone, setPangoReminderEnabled } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -198,6 +200,35 @@ export default function SettingsScreen() {
     const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
     const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
     const [pomodoroVolumeVisible, setPomodoroVolumeVisible] = useState(false);
+
+    // Pango reminder: track the (revocable) Usage-access grant and the disclosure gate.
+    const [pangoUsageGranted, setPangoUsageGranted] = useState(true);
+    const [pangoDisclosureVisible, setPangoDisclosureVisible] = useState(false);
+    const refreshUsageAccess = useCallback(() => {
+        PangoWatcher.hasUsageAccess().then(setPangoUsageGranted).catch(() => {});
+    }, []);
+    // Re-check on focus + when returning from the system settings screen (AC15).
+    useFocusEffect(useCallback(() => {
+        refreshUsageAccess();
+        const sub = AppState.addEventListener('change', (s) => { if (s === 'active') refreshUsageAccess(); });
+        return () => sub.remove();
+    }, [refreshUsageAccess]));
+
+    function handleTogglePango(next: boolean) {
+        if (next) {
+            setPangoDisclosureVisible(true); // AC13 — disclosure before enabling
+        } else {
+            setPangoReminderEnabled(false);
+        }
+    }
+    function confirmPangoDisclosure() {
+        setPangoDisclosureVisible(false);
+        setPangoReminderEnabled(true);
+        PangoWatcher.hasUsageAccess().then((granted) => {
+            setPangoUsageGranted(granted);
+            if (!granted) PangoWatcher.requestUsageAccess(); // AC14 — deep-link to grant
+        }).catch(() => {});
+    }
 
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
@@ -353,6 +384,35 @@ export default function SettingsScreen() {
                             thumbColor={colors.white}
                         />
                     </View>
+                </CollapsibleSection>
+
+                <CollapsibleSection title="Pango Reminder">
+                    <View style={styles.settingRow}>
+                        <View style={styles.settingLabel}>
+                            <Ionicons name="car-outline" size={20} color={colors.secondary} />
+                            <View style={styles.ml12}>
+                                <Text style={styles.settingTitle}>Parking reminder</Text>
+                                <Text style={styles.settingDesc}>When you use Pango, offer to remind you to stop the parking session</Text>
+                            </View>
+                        </View>
+                        <Switch
+                            value={pangoReminderEnabled}
+                            onValueChange={handleTogglePango}
+                            trackColor={switchTrackColor}
+                            thumbColor={colors.white}
+                        />
+                    </View>
+                    {pangoReminderEnabled && !pangoUsageGranted && (
+                        <Pressable
+                            accessibilityRole="button"
+                            accessibilityLabel="Grant usage access"
+                            style={({ pressed }) => [styles.signInBtn, pressed && { opacity: 0.7 }]}
+                            onPress={() => PangoWatcher.requestUsageAccess()}
+                        >
+                            <Ionicons name="warning-outline" size={18} color={colors.white} />
+                            <Text style={styles.signInText}>Grant “Usage access” to enable detection</Text>
+                        </Pressable>
+                    )}
                 </CollapsibleSection>
 
                 <CollapsibleSection title="Audio">
@@ -640,6 +700,38 @@ export default function SettingsScreen() {
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal key={editingCategory?.id ?? 'none'} visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
 
+            {/* AC13 — prominent disclosure shown before enabling detection. */}
+            <Modal visible={pangoDisclosureVisible} transparent animationType="fade" onRequestClose={() => setPangoDisclosureVisible(false)}>
+                <View style={styles.pangoDiscOverlay}>
+                    <View style={styles.pangoDiscSheet}>
+                        <Text style={styles.pangoDiscTitle}>Before you enable this</Text>
+                        <Text style={styles.pangoDiscBody}>
+                            To notice when you’ve used Pango, DragonFlow checks Android’s “Usage access”. It only detects
+                            <Text style={styles.pangoDiscBold}> that Pango ran</Text> — never what you do in it, and never any other app’s contents.
+                            {'\n\n'}This stays entirely on your device: nothing about your app usage is logged, sent, or included in cloud backup.
+                        </Text>
+                        <View style={styles.pangoDiscButtons}>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Cancel"
+                                style={({ pressed }) => [styles.pangoDiscCancel, pressed && { opacity: 0.7 }]}
+                                onPress={() => setPangoDisclosureVisible(false)}
+                            >
+                                <Text style={styles.pangoDiscCancelText}>Cancel</Text>
+                            </Pressable>
+                            <Pressable
+                                accessibilityRole="button"
+                                accessibilityLabel="Continue and grant usage access"
+                                style={({ pressed }) => [styles.pangoDiscContinue, pressed && { opacity: 0.7 }]}
+                                onPress={confirmPangoDisclosure}
+                            >
+                                <Text style={styles.pangoDiscContinueText}>Continue</Text>
+                            </Pressable>
+                        </View>
+                    </View>
+                </View>
+            </Modal>
+
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
                 options={SOUND_TYPE_OPTIONS}
@@ -810,6 +902,16 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 10,
     },
     signInText: { color: c.white, fontWeight: 'bold', fontSize: 15 },
+    pangoDiscOverlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
+    pangoDiscSheet: { backgroundColor: c.surfaceElevated, borderRadius: 16, padding: 20, width: '85%' },
+    pangoDiscTitle: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 12 },
+    pangoDiscBody: { fontSize: 14, color: c.text.muted, lineHeight: 20 },
+    pangoDiscBold: { fontWeight: '700', color: c.text.primary },
+    pangoDiscButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
+    pangoDiscCancel: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
+    pangoDiscCancelText: { color: c.text.weak, fontSize: 14 },
+    pangoDiscContinue: { minHeight: 44, justifyContent: 'center', backgroundColor: c.primary, paddingHorizontal: 20, borderRadius: 10 },
+    pangoDiscContinueText: { color: c.surface, fontWeight: '700', fontSize: 14 },
     cloudSignInWrapper: { alignItems: 'center', paddingVertical: 8 },
     cloudUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
     cloudUserEmail: { fontSize: 12, color: c.text.placeholder, flex: 1, marginLeft: 8 },

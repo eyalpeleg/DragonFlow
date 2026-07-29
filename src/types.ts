@@ -43,3 +43,14 @@ export interface Task {
     // Feature: pinned — always treated as urgent (focus mode + bubble)
     pinned?: boolean;
 }
+
+// Feature: Pango parking reminder — a lightweight, transient session record
+// (NOT a Task; excluded from stats and from backup/export). `overdue` is always
+// derived (see isExpired in utils/parking), never stored.
+export interface ParkingSession {
+    id: string;
+    startedAt: number; // epoch ms
+    durationMin: number; // original armed duration
+    remindAt: number; // absolute epoch ms; mutated on extend
+    notifId?: string; // = id (deterministic); the scheduled OS notification identifier
+}

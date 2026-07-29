@@ -60,7 +60,24 @@ class BootReceiver : BroadcastReceiver() {
                     }
                 }
 
-                if (score > 0) {
+                // An active parking session takes precedence over the task count
+                // (AC7a/AC21): restore its countdown bubble, carrying the task score
+                // as the fallback so the bubble hands back when parking is cleared.
+                val parking = state.optJSONObject("parkingSession")
+                val remindAt = parking?.optLong("remindAt", 0L) ?: 0L
+                if (parking != null && remindAt > 0L) {
+                    val serviceIntent = Intent(context, FloatingBubbleService::class.java).apply {
+                        putExtra("action", "startParking")
+                        putExtra("parkingRemindAtMs", remindAt)
+                        putExtra("fallbackCount", score)
+                        putExtra("fallbackMessage", "$score Urgent ${if (score == 1) "Task" else "Tasks"}")
+                    }
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                        context.startForegroundService(serviceIntent)
+                    } else {
+                        context.startService(serviceIntent)
+                    }
+                } else if (score > 0) {
                     val serviceIntent = Intent(context, FloatingBubbleService::class.java).apply {
                         putExtra("count", score)
                         putExtra("message", "$score Urgent ${if (score == 1) "Task" else "Tasks"}")

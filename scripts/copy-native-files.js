@@ -27,7 +27,9 @@ try {
     'SoundAlarmReceiver.kt',
     'BootReceiver.kt',
     'ShareIntentModule.kt',
-    'ShareIntentPackage.kt'
+    'ShareIntentPackage.kt',
+    'PangoWatcherModule.kt',
+    'PangoWatcherPackage.kt'
   ];
 
   console.log('[copy-native-files] Copying native files...');
@@ -137,6 +139,12 @@ tasks.whenTaskAdded { task ->
         'import com.plgsw.dragonflow.ShareIntentPackage\nimport expo.modules.ReactNativeHostWrapper'
       );
     }
+    if (!mainApp.includes('import com.plgsw.dragonflow.PangoWatcherPackage')) {
+      mainApp = mainApp.replace(
+        /import expo\.modules\.ReactNativeHostWrapper/,
+        'import com.plgsw.dragonflow.PangoWatcherPackage\nimport expo.modules.ReactNativeHostWrapper'
+      );
+    }
 
     // Add package registration if not present
     if (!mainApp.includes('add(FloatingBubblePackage())')) {
@@ -151,9 +159,15 @@ tasks.whenTaskAdded { task ->
         'add(FloatingBubblePackage())\n              add(ShareIntentPackage())'
       );
     }
+    if (!mainApp.includes('add(PangoWatcherPackage())')) {
+      mainApp = mainApp.replace(
+        /add\(ShareIntentPackage\(\)\)/,
+        'add(ShareIntentPackage())\n              add(PangoWatcherPackage())'
+      );
+    }
 
     fs.writeFileSync(mainAppKt, mainApp);
-    console.log('  ✓ MainApplication.kt (FloatingBubblePackage + ShareIntentPackage registration)');
+    console.log('  ✓ MainApplication.kt (FloatingBubble + ShareIntent + PangoWatcher registration)');
   }
 
   // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default

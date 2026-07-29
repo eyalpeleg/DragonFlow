@@ -14,6 +14,9 @@ import { useColors } from '@/src/styles/useColors';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useShareIntent } from '@/src/hooks/useShareIntent';
+import { usePangoReminder } from '@/src/hooks/usePangoReminder';
+import PangoArmModal from '@/src/components/PangoArmModal';
+import PangoActionSheet from '@/src/components/PangoActionSheet';
 import { Task, TaskStatus } from '@/src/types';
 
 
@@ -43,6 +46,13 @@ export default function TasksScreen() {
     useEffect(() => {
         if (prefill) setAddModalVisible(true);
     }, [prefill]);
+    // Pango parking reminder: arm prompt on Pango-background; action sheet on bubble tap.
+    const { promptVisible: pangoPromptVisible, arm: armPango, dismiss: dismissPango } = usePangoReminder();
+    const [pangoSheetVisible, setPangoSheetVisible] = useState(false);
+    useEffect(() => {
+        const unsubscribe = FloatingBubble.onParkingTap(() => setPangoSheetVisible(true));
+        return unsubscribe;
+    }, []);
     const [editTask, setEditTask] = useState<Task | null>(null);
     const [editFocus, setEditFocus] = useState<EditFocus | undefined>(undefined);
     const [statsTask, setStatsTask] = useState<Task | null>(null);
@@ -273,6 +283,19 @@ export default function TasksScreen() {
                 key={`stats-${statsTask?.id ?? 'none'}`}
                 task={statsTask}
                 onClose={() => setStatsTask(null)}
+            />
+
+            <PangoArmModal
+                key={`pango-arm-${pangoPromptVisible ? 'open' : 'closed'}`}
+                visible={pangoPromptVisible}
+                onArm={armPango}
+                onDismiss={dismissPango}
+            />
+
+            <PangoActionSheet
+                key={`pango-sheet-${pangoSheetVisible ? 'open' : 'closed'}`}
+                visible={pangoSheetVisible}
+                onClose={() => setPangoSheetVisible(false)}
             />
         </SafeAreaView>
     );

@@ -16,6 +16,8 @@ jest.mock('@react-native-async-storage/async-storage', () => ({
 jest.mock('../../utils/notifications', () => ({
     scheduleTaskReminders: jest.fn().mockResolvedValue(undefined),
     cancelTaskReminders: jest.fn().mockResolvedValue(undefined),
+    scheduleParkingReminder: jest.fn().mockResolvedValue('id'),
+    cancelParkingReminder: jest.fn().mockResolvedValue(undefined),
 }));
 jest.mock('../../modules/FloatingBubble', () => ({
     __esModule: true,
@@ -30,10 +32,14 @@ jest.mock('../../modules/FloatingBubble', () => ({
         onOpenFocus: jest.fn(() => () => {}),
         startPomodoroTimer: jest.fn(),
         stopPomodoroTimer: jest.fn(),
+        startParkingTimer: jest.fn(),
+        stopParkingTimer: jest.fn(),
+        onParkingTap: jest.fn(() => () => {}),
     },
 }));
 
 import { validateExportData } from '../dataTransfer';
+import { useTaskStore } from '../../store/appStore';
 import type { Category, Task } from '../../types';
 
 const validTask: Task = {
@@ -171,5 +177,21 @@ describe('validateExportData', () => {
         it('rejects null / non-object category entries', () => {
             expect(validateExportData(payload({ categories: [null] }))).toBe(false);
         });
+    });
+});
+
+// AC17 — parking data must never leak into the export/backup payload.
+describe('exportData excludes parking (AC17)', () => {
+    it('omits parkingSession and pango* fields', () => {
+        useTaskStore.setState({
+            parkingSession: { id: 'p1', startedAt: 1, durationMin: 60, remindAt: 2, notifId: 'p1' },
+            pangoReminderEnabled: true,
+            pangoSuppressedUntil: 999,
+        });
+        const out = useTaskStore.getState().exportData() as { settings: Record<string, unknown> };
+        expect(out).not.toHaveProperty('parkingSession');
+        expect(out).not.toHaveProperty('pangoReminderEnabled');
+        expect(out.settings).not.toHaveProperty('pangoReminderEnabled');
+        expect(out.settings).not.toHaveProperty('pangoSuppressedUntil');
     });
 });

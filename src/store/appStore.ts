@@ -2,8 +2,9 @@ import AsyncStorage from '@react-native-async-storage/async-storage';
 import { create } from 'zustand';
 import { createJSONStorage, persist } from 'zustand/middleware';
 import { PriorityLevel } from '../styles/theme';
-import { Category, RecurrenceConfig, SubTask, Task, TaskStatus, SoundType } from '../types';
-import { cancelTaskReminders, scheduleTaskReminders } from '../utils/notifications';
+import { Category, ParkingSession, RecurrenceConfig, SubTask, Task, TaskStatus, SoundType } from '../types';
+import { cancelParkingReminder, cancelTaskReminders, scheduleParkingReminder, scheduleTaskReminders } from '../utils/notifications';
+import { computeExtend, computeRemindAt, ExtendDelta, isValidDuration } from '../utils/parking';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
@@ -14,6 +15,10 @@ import { makeId } from '../utils/id';
 export { getCategoryColor, getCategoryName };
 
 export const DEFAULT_CATEGORY_ID = 'default';
+
+// A parking session overdue by more than this on rehydrate is auto-cleared: it was
+// forgotten, and while any session is active Pango detection stays suppressed.
+const PARKING_STALE_MS = 6 * 60 * 60 * 1000;
 
 const STATUS_RANK: Record<TaskStatus, number> = {
     'In Progress': 0,
@@ -43,7 +48,7 @@ export function computeBubbleScore(tasks: Task[], todayStr: string, tomorrowStr:
     return tasks.filter((t) => isUrgent(t, todayStr, tomorrowStr)).length;
 }
 
-function getTodayTomorrowStrs(): { todayStr: string; tomorrowStr: string } {
+export function getTodayTomorrowStrs(): { todayStr: string; tomorrowStr: string } {
     const pad = (n: number) => String(n).padStart(2, '0');
     const now = new Date();
     const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
@@ -53,17 +58,61 @@ function getTodayTomorrowStrs(): { todayStr: string; tomorrowStr: string } {
     return { todayStr, tomorrowStr };
 }
 
-function syncNotifications(tasks: Task[], showBubbleInBackground: boolean, pomodoroEndTime: number | null) {
-    // While a pomodoro is active the native service owns the bubble — don't interfere
-    if (pomodoroEndTime !== null && pomodoroEndTime > Date.now()) return;
+/** The bubble label/notification text for an urgent-task count (empty when zero). */
+export function urgentBubbleMessage(score: number): string {
+    return score > 0 ? `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}` : '';
+}
 
+export type BubbleOwner = 'parking' | 'pomodoro' | 'tasks' | 'none';
+
+// The floating bubble is a single glanceable surface with three possible owners.
+// Precedence: parking-timer > pomodoro > task-count (AC7a). Pure so it can be
+// unit-tested exhaustively (see bubbleResolver.test.ts).
+export function resolveBubbleOwner(o: {
+    parkingActive: boolean;
+    pomodoroActive: boolean;
+    taskScore: number;
+}): BubbleOwner {
+    if (o.parkingActive) return 'parking';
+    if (o.pomodoroActive) return 'pomodoro';
+    if (o.taskScore > 0) return 'tasks';
+    return 'none';
+}
+
+// Drives the bubble from the current state, honouring the precedence above and
+// the foreground/background + user-pref gating. Replaces the old task-only
+// syncNotifications.
+function syncBubble(
+    tasks: Task[],
+    showBubbleInBackground: boolean,
+    pomodoroEndTime: number | null,
+    parkingSession: ParkingSession | null,
+) {
     const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
     const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+    const owner = resolveBubbleOwner({
+        parkingActive: parkingSession !== null,
+        pomodoroActive: pomodoroEndTime !== null && pomodoroEndTime > Date.now(),
+        taskScore: score,
+    });
 
-    if (score === 0 || AppState.currentState === 'active' || !showBubbleInBackground) {
-        FloatingBubble.hide();
+    // Lower-precedence content the bubble reverts to when parking clears.
+    const fallbackMessage = urgentBubbleMessage(score);
+    const suppressed = AppState.currentState === 'active' || !showBubbleInBackground;
+
+    if (owner === 'parking') {
+        // In the foreground the in-app chip takes over — hide the overlay.
+        if (suppressed) FloatingBubble.hide();
+        else FloatingBubble.startParkingTimer(parkingSession!.remindAt, score, fallbackMessage);
+        return;
+    }
+    // While a pomodoro is active the native service owns the bubble — don't interfere.
+    if (owner === 'pomodoro') return;
+
+    if (owner === 'tasks' && !suppressed) {
+        FloatingBubble.show(score, fallbackMessage);
     } else {
-        FloatingBubble.show(score, `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}`);
+        FloatingBubble.hide();
     }
 }
 
@@ -106,6 +155,9 @@ interface TaskStore {
     pomodoroPausedSecondsLeft: number | null;
     pomodoroNotifId: string | null;
     pomodoroVisible: boolean;
+    parkingSession: ParkingSession | null;
+    pangoReminderEnabled: boolean;
+    pangoSuppressedUntil: number | null;
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -151,6 +203,11 @@ interface TaskStore {
     setPomodoroTimer: (endTime: number, modeIdx: number, notifId: string) => void;
     pausePomodoroTimer: (secondsLeft: number, modeIdx: number) => void;
     clearPomodoroTimer: () => void;
+    startParkingSession: (durationMin: number) => ParkingSession | null;
+    extendParkingSession: (delta: ExtendDelta) => boolean;
+    clearParkingSession: () => void;
+    setPangoReminderEnabled: (enabled: boolean) => void;
+    setPangoSuppressedUntil: (until: number | null) => void;
     setPomodoroVisible: (visible: boolean) => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
@@ -180,6 +237,9 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroPausedSecondsLeft: null,
             pomodoroNotifId: null,
             pomodoroVisible: false,
+            parkingSession: null,
+            pangoReminderEnabled: false,
+            pangoSuppressedUntil: null,
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -207,14 +267,14 @@ export const useTaskStore = create<TaskStore>()(
                     pinned: input.pinned ?? false,
                 };
                 const tasks = [task, ...s.tasks];
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 scheduleTaskReminders(task).catch(() => {});
                 return { tasks };
             }),
 
             updateTask: (id, updates) => set((s) => {
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, ...updates } : t);
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 const updated = tasks.find((t) => t.id === id);
                 if (updated) {
                     cancelTaskReminders(id).catch(() => {});
@@ -226,7 +286,7 @@ export const useTaskStore = create<TaskStore>()(
             deleteTask: (id) => set((s) => {
                 cancelTaskReminders(id).catch(() => {});
                 const tasks = s.tasks.filter((t) => t.id !== id);
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 return { tasks };
             }),
 
@@ -251,7 +311,7 @@ export const useTaskStore = create<TaskStore>()(
                     scheduleTaskReminders(next).catch(() => {});
                 }
 
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 if (status === 'Done') {
                     cancelTaskReminders(id).catch(() => {});
                 } else if (status === 'In Progress') {
@@ -290,7 +350,7 @@ export const useTaskStore = create<TaskStore>()(
                 }
                 const restored = tasks.find((t) => t.id === info.taskId);
                 if (restored) scheduleTaskReminders(restored).catch(() => {});
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 return { tasks, lastDoneUndo: null };
             }),
 
@@ -300,7 +360,7 @@ export const useTaskStore = create<TaskStore>()(
 
             togglePin: (id) => set((s) => {
                 const tasks = s.tasks.map((t) => t.id === id ? { ...t, pinned: !t.pinned } : t);
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
                 return { tasks };
             }),
 
@@ -447,6 +507,62 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: null,
             }),
 
+            // --- Pango parking reminder ---
+            // notifId is deterministic (= session id) so extend/clear can reschedule
+            // or cancel without an async round-trip. Scheduling is fire-and-forget.
+            startParkingSession: (durationMin) => {
+                if (!isValidDuration(durationMin)) return null; // AC3
+                // Cancel any prior session's reminder so it can't fire orphaned.
+                const prev = get().parkingSession;
+                if (prev) cancelParkingReminder(prev.notifId ?? prev.id).catch(() => {});
+                const now = Date.now();
+                const id = makeId();
+                const session: ParkingSession = {
+                    id,
+                    startedAt: now,
+                    durationMin,
+                    remindAt: computeRemindAt(now, durationMin),
+                    notifId: id,
+                };
+                set({ parkingSession: session });
+                scheduleParkingReminder(session.remindAt, id).catch(() => {});
+                const s = get();
+                syncBubble(s.tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
+                return session;
+            },
+
+            extendParkingSession: (delta) => {
+                const session = get().parkingSession;
+                if (!session) return false;
+                const r = computeExtend(session, delta, Date.now()); // AC5 / AC5a
+                if (!r.ok) return false;
+                const updated: ParkingSession = { ...session, remindAt: r.remindAt };
+                set({ parkingSession: updated });
+                cancelParkingReminder(session.notifId ?? session.id).catch(() => {});
+                scheduleParkingReminder(r.remindAt, session.id).catch(() => {});
+                const s = get();
+                syncBubble(s.tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
+                return true;
+            },
+
+            clearParkingSession: () => {
+                const before = get();
+                const session = before.parkingSession;
+                if (session) cancelParkingReminder(session.notifId ?? session.id).catch(() => {});
+                // Explicitly stop the native parking countdown so it reverts even when a
+                // pomodoro is concurrently active (syncBubble defers to the pomodoro).
+                const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
+                const score = computeBubbleScore(before.tasks, todayStr, tomorrowStr);
+                FloatingBubble.stopParkingTimer(score, urgentBubbleMessage(score));
+                set({ parkingSession: null });
+                const s = get();
+                syncBubble(s.tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
+            },
+
+            setPangoReminderEnabled: (enabled) => set({ pangoReminderEnabled: enabled }),
+
+            setPangoSuppressedUntil: (until) => set({ pangoSuppressedUntil: until }),
+
             setPomodoroVisible: (visible) => set({ pomodoroVisible: visible }),
 
             setCustomTimerSeconds: (seconds) => set({
@@ -490,7 +606,7 @@ export const useTaskStore = create<TaskStore>()(
                 const categories = [...s.categories, ...newUserCategories];
 
                 const tasks = data.tasks ?? [];
-                syncNotifications(tasks, s.showBubbleInBackground, s.pomodoroEndTime);
+                syncBubble(tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
 
                 set({
                     tasks,
@@ -525,6 +641,9 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroModeIdx: state.pomodoroModeIdx,
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
+                parkingSession: state.parkingSession,
+                pangoReminderEnabled: state.pangoReminderEnabled,
+                pangoSuppressedUntil: state.pangoSuppressedUntil,
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
                 darkMode: state.darkMode,
@@ -649,6 +768,20 @@ export const useTaskStore = create<TaskStore>()(
                         if (t.status === 'Done') continue;
                         scheduleTaskReminders(t).catch(() => {});
                     }
+                    // Re-arm an un-expired parking reminder; leave a recently-expired
+                    // one in its overdue state (AC20); clear a long-forgotten one so it
+                    // stops blocking Pango detection.
+                    const ps = state.parkingSession;
+                    if (ps) {
+                        const nowMs = Date.now();
+                        if (nowMs - ps.remindAt > PARKING_STALE_MS) {
+                            cancelParkingReminder(ps.notifId ?? ps.id).catch(() => {});
+                            state.parkingSession = null;
+                        } else if (nowMs < ps.remindAt) {
+                            scheduleParkingReminder(ps.remindAt, ps.notifId ?? ps.id).catch(() => {});
+                        }
+                    }
+                    syncBubble(state.tasks, state.showBubbleInBackground, state.pomodoroEndTime, state.parkingSession);
                 }
                 state?.setHydrated(true);
             },

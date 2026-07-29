@@ -44,6 +44,19 @@ if (fs.existsSync(mainAppFile)) {
       console.log('  ✓ Added ShareIntentPackage() registration');
     }
   }
+
+  // Register PangoWatcherPackage alongside the others (same package, no import needed).
+  if (!content.includes('add(PangoWatcherPackage())')) {
+    const before = content;
+    content = content.replace(
+      /add\(ShareIntentPackage\(\)\)/,
+      'add(ShareIntentPackage())\n              add(PangoWatcherPackage())'
+    );
+    if (content !== before) {
+      fs.writeFileSync(mainAppFile, content, 'utf8');
+      console.log('  ✓ Added PangoWatcherPackage() registration');
+    }
+  }
 } else {
   console.warn(`  ⚠ MainApplication.kt not found at ${mainAppFile}`);
 }
@@ -52,6 +65,14 @@ if (fs.existsSync(mainAppFile)) {
 if (fs.existsSync(manifestFile)) {
   let content = fs.readFileSync(manifestFile, 'utf8');
   const original = content;
+
+  // Ensure the tools: namespace is declared on <manifest> (needed for tools:ignore below).
+  if (!content.includes('xmlns:tools=')) {
+    content = content.replace(
+      /(<manifest\s+xmlns:android="[^"]*")/,
+      '$1 xmlns:tools="http://schemas.android.com/tools"'
+    );
+  }
 
   // Add required permissions if missing
   const permissionsToAdd = [
@@ -66,6 +87,33 @@ if (fs.existsSync(manifestFile)) {
       content = content.replace(
         /(<uses-permission[^>]*WRITE_EXTERNAL_STORAGE[^>]*\/>)/,
         `$1\n  <uses-permission android:name="${perm}"/>`
+      );
+    }
+  }
+
+  // PACKAGE_USAGE_STATS (Pango reminder): a special-access "app-op" permission —
+  // granted via Settings, not a runtime dialog. lint flags it as a protected
+  // permission, so suppress that one check. See docs/design/features/pango-reminder.
+  if (!content.includes('android.permission.PACKAGE_USAGE_STATS')) {
+    content = content.replace(
+      /(<uses-permission[^>]*WRITE_EXTERNAL_STORAGE[^>]*\/>)/,
+      `$1\n  <uses-permission android:name="android.permission.PACKAGE_USAGE_STATS" tools:ignore="ProtectedPermissions"/>`
+    );
+  }
+
+  // Package visibility (Android 11+): declare Pango so getLaunchIntentForPackage()
+  // can resolve it (AC6). Without this the launch intent silently returns null.
+  // Merge into an existing <queries> block if one exists (Expo emits one), else add.
+  if (!content.includes('com.unicell.pangoandroid')) {
+    if (content.includes('<queries>')) {
+      content = content.replace(
+        /(<\/queries>)/,
+        `  <package android:name="com.unicell.pangoandroid"/>\n  $1`
+      );
+    } else {
+      content = content.replace(
+        /(<\/application>)/,
+        `$1\n  <queries>\n    <package android:name="com.unicell.pangoandroid"/>\n  </queries>`
       );
     }
   }

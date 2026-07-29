@@ -2,7 +2,7 @@ import { useCallback, useEffect, useRef, useState } from 'react';
 import { AppState } from 'react-native';
 import FloatingBubble from '../modules/FloatingBubble';
 import { makePomodoroModes, PomodoroModeIdx } from '../components/pomodoroModes';
-import { computeBubbleScore, useTaskStore } from '../store/appStore';
+import { computeBubbleScore, getTodayTomorrowStrs, urgentBubbleMessage, useTaskStore } from '../store/appStore';
 import { useColors } from '../styles/useColors';
 import { cancelPomodoroNotification, playAppSound, schedulePomodoroEnd } from '../utils/notifications';
 
@@ -72,13 +72,9 @@ export function usePomodoroController(): PomodoroController {
 
     const getFallbackBubble = useCallback(() => {
         const { tasks } = useTaskStore.getState();
-        const pad = (n: number) => String(n).padStart(2, '0');
-        const now = new Date();
-        const todayStr = `${now.getFullYear()}-${pad(now.getMonth() + 1)}-${pad(now.getDate())}`;
-        const tom = new Date(now); tom.setDate(tom.getDate() + 1);
-        const tomorrowStr = `${tom.getFullYear()}-${pad(tom.getMonth() + 1)}-${pad(tom.getDate())}`;
+        const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
         const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
-        return { score, message: score > 0 ? `${score} Urgent ${score === 1 ? 'Task' : 'Tasks'}` : '' };
+        return { score, message: urgentBubbleMessage(score) };
     }, []);
 
     const stopTimer = useCallback(async (isPauseAction = false) => {
@@ -150,7 +146,10 @@ export function usePomodoroController(): PomodoroController {
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {
-            if (nextState === 'background' && runningRef.current && endTimeRef.current) {
+            // Parking takes the bubble over pomodoro (AC7a); if a session is active,
+            // let the parking handler own the overlay and don't drive it here.
+            if (nextState === 'background' && runningRef.current && endTimeRef.current
+                && !useTaskStore.getState().parkingSession) {
                 const { score, message } = getFallbackBubble();
                 const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
                 FloatingBubble.startPomodoroTimer(

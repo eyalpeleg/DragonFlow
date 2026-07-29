@@ -5,9 +5,11 @@ import { Slot, router } from 'expo-router';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { StatusBar } from 'expo-status-bar';
 import * as SplashScreen from 'expo-splash-screen';
-import { requestNotificationPermission, setupNotificationChannels } from '@/src/utils/notifications';
+import * as Notifications from 'expo-notifications';
+import { requestNotificationPermission, setupNotificationChannels, setupPangoNotificationCategory } from '@/src/utils/notifications';
 import FloatingBubble from '@/src/modules/FloatingBubble';
-import { useTaskStore, computeBubbleScore } from '@/src/store/appStore';
+import PangoWatcher from '@/src/modules/PangoWatcher';
+import { useTaskStore, computeBubbleScore, getTodayTomorrowStrs, urgentBubbleMessage } from '@/src/store/appStore';
 import { initializeBackup, setupAutoBackup, onAppBackground } from '@/src/services/cloudBackup';
 import { audioService } from '@/src/services/audioService';
 import { useColorMode } from '@/src/styles/useColors';
@@ -42,6 +44,7 @@ export default function RootLayout() {
     useEffect(() => {
         audioService.initialize().catch(() => {});
         setupNotificationChannels();
+        setupPangoNotificationCategory();
         requestNotificationPermission();
         FloatingBubble.canDrawOverlays().then((ok) => {
             if (!ok) FloatingBubble.requestOverlayPermission();
@@ -76,6 +79,28 @@ export default function RootLayout() {
             router.push('/(tabs)/tasks');
         });
 
+        // Route Pango reminder notification actions (Extend / Open Pango).
+        const notifResponseSub = Notifications.addNotificationResponseReceivedListener((response) => {
+            const data = response.notification.request.content.data as { type?: string };
+            if (data?.type !== 'pango') return;
+            if (response.actionIdentifier === 'extend-15') {
+                // If the action relaunched the app, the store may still be rehydrating
+                // (parkingSession not yet restored) — apply the extend once it is.
+                if (useTaskStore.getState().hasHydrated) {
+                    useTaskStore.getState().extendParkingSession(15);
+                } else {
+                    const unsub = useTaskStore.subscribe((s) => {
+                        if (s.hasHydrated) { unsub(); s.extendParkingSession(15); }
+                    });
+                }
+            } else if (response.actionIdentifier === 'open-pango') {
+                PangoWatcher.openPango();
+            } else {
+                // Tapping the notification body → open the app on the tasks list.
+                router.push('/(tabs)/tasks');
+            }
+        });
+
         const sub = AppState.addEventListener('change', (nextState) => {
             const { tasks, dismissedFloatingBubble, showBubbleInBackground: showBubble } = useTaskStore.getState();
             if (nextState === 'active') {
@@ -84,8 +109,18 @@ export default function RootLayout() {
                     setFloatingBubbleDismissed(false);
                 }
             } else if (nextState === 'background') {
+                const { pomodoroEndTime, parkingSession } = useTaskStore.getState();
+                // Parking takes precedence over pomodoro and the task count (AC7a).
+                if (parkingSession) {
+                    const { todayStr, tomorrowStr } = getTodayTomorrowStrs();
+                    const score = computeBubbleScore(tasks, todayStr, tomorrowStr);
+                    if (showBubble) {
+                        FloatingBubble.startParkingTimer(parkingSession.remindAt, score, urgentBubbleMessage(score));
+                    }
+                    onAppBackground();
+                    return;
+                }
                 // Don't show task bubble if Pomodoro is running — timer component handles it
-                const { pomodoroEndTime } = useTaskStore.getState();
                 if (pomodoroEndTime === null || pomodoroEndTime <= Date.now()) {
                     const pad = (n: number) => String(n).padStart(2, '0');
                     const now = new Date();
@@ -105,6 +140,7 @@ export default function RootLayout() {
             sub.remove();
             unsubscribe();
             unsubscribeOpenFocus();
+            notifResponseSub.remove();
             unsubscribeBackup();
         };
     }, [setFloatingBubbleDismissed]);
