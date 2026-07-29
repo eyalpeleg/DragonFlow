@@ -1,4 +1,14 @@
 {
+  "permissions": {
+    "allow": [
+      "Bash(npx tsc:*)",
+      "Bash(npx eslint:*)",
+      "Bash(npm test:*)",
+      "Bash(npm run check:*)",
+      "Bash(git diff:*)",
+      "Bash(grep:*)"
+    ]
+  },
   "hooks": {
     "PreToolUse": [
       {
