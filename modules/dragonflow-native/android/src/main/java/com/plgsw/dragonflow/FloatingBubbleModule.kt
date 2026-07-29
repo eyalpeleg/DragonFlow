@@ -73,11 +73,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("count", count)
             putExtra("message", message)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -174,11 +170,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("soundType", soundType)
             putExtra("volume", volume)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -189,11 +181,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -209,11 +197,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod
@@ -224,11 +208,7 @@ class FloatingBubbleModule(reactContext: ReactApplicationContext) :
             putExtra("fallbackCount", fallbackCount)
             putExtra("fallbackMessage", fallbackMessage)
         }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            context.startForegroundService(intent)
-        } else {
-            context.startService(intent)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     @ReactMethod

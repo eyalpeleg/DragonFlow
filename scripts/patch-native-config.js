@@ -45,16 +45,16 @@ if (fs.existsSync(mainAppFile)) {
     }
   }
 
-  // Register PangoWatcherPackage alongside the others (same package, no import needed).
-  if (!content.includes('add(PangoWatcherPackage())')) {
+  // Register ParkingWatcherPackage alongside the others (same package, no import needed).
+  if (!content.includes('add(ParkingWatcherPackage())')) {
     const before = content;
     content = content.replace(
       /add\(ShareIntentPackage\(\)\)/,
-      'add(ShareIntentPackage())\n              add(PangoWatcherPackage())'
+      'add(ShareIntentPackage())\n              add(ParkingWatcherPackage())'
     );
     if (content !== before) {
       fs.writeFileSync(mainAppFile, content, 'utf8');
-      console.log('  ✓ Added PangoWatcherPackage() registration');
+      console.log('  ✓ Added ParkingWatcherPackage() registration');
     }
   }
 } else {
@@ -91,9 +91,9 @@ if (fs.existsSync(manifestFile)) {
     }
   }
 
-  // PACKAGE_USAGE_STATS (Pango reminder): a special-access "app-op" permission —
+  // PACKAGE_USAGE_STATS (Parking reminder): a special-access "app-op" permission —
   // granted via Settings, not a runtime dialog. lint flags it as a protected
-  // permission, so suppress that one check. See docs/design/features/pango-reminder.
+  // permission, so suppress that one check. See docs/design/features/parking-reminder.
   if (!content.includes('android.permission.PACKAGE_USAGE_STATS')) {
     content = content.replace(
       /(<uses-permission[^>]*WRITE_EXTERNAL_STORAGE[^>]*\/>)/,
@@ -101,7 +101,7 @@ if (fs.existsSync(manifestFile)) {
     );
   }
 
-  // Package visibility (Android 11+): declare Pango so getLaunchIntentForPackage()
+  // Package visibility (Android 11+): declare the parking app so getLaunchIntentForPackage()
   // can resolve it (AC6). Without this the launch intent silently returns null.
   // Merge into an existing <queries> block if one exists (Expo emits one), else add.
   if (!content.includes('com.unicell.pangoandroid')) {

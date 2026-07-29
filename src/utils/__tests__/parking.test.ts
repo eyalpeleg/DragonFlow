@@ -29,8 +29,8 @@ describe('parking pure helpers', () => {
             expect(isValidDuration(MAX_DURATION_MIN)).toBe(true);
         });
         it('rejects out-of-bounds and non-integers', () => {
-            expect(isValidDuration(4)).toBe(false);
-            expect(isValidDuration(1441)).toBe(false);
+            expect(isValidDuration(MIN_DURATION_MIN - 1)).toBe(false);
+            expect(isValidDuration(MAX_DURATION_MIN + 1)).toBe(false);
             expect(isValidDuration(0)).toBe(false);
             expect(isValidDuration(-30)).toBe(false);
             expect(isValidDuration(30.5)).toBe(false);

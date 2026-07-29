@@ -1,6 +1,6 @@
 # Story — Pango Reminder
 
-> SDLC Stage 4 (Story). Slug: `pango-reminder`. Input: [analysis.md](analysis.md). The testable contract for Design + Verify. Android-only.
+> SDLC Stage 4 (Story). Slug: `parking-reminder`. Input: [analysis.md](analysis.md). The testable contract for Design + Verify. Android-only.
 
 ## User story
 

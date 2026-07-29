@@ -182,16 +182,16 @@ describe('validateExportData', () => {
 
 // AC17 — parking data must never leak into the export/backup payload.
 describe('exportData excludes parking (AC17)', () => {
-    it('omits parkingSession and pango* fields', () => {
+    it('omits parkingSession and parking* fields', () => {
         useTaskStore.setState({
             parkingSession: { id: 'p1', startedAt: 1, durationMin: 60, remindAt: 2, notifId: 'p1' },
-            pangoReminderEnabled: true,
-            pangoSuppressedUntil: 999,
+            parkingReminderEnabled: true,
+            parkingSuppressedUntil: 999,
         });
         const out = useTaskStore.getState().exportData() as { settings: Record<string, unknown> };
         expect(out).not.toHaveProperty('parkingSession');
-        expect(out).not.toHaveProperty('pangoReminderEnabled');
-        expect(out.settings).not.toHaveProperty('pangoReminderEnabled');
-        expect(out.settings).not.toHaveProperty('pangoSuppressedUntil');
+        expect(out).not.toHaveProperty('parkingReminderEnabled');
+        expect(out.settings).not.toHaveProperty('parkingReminderEnabled');
+        expect(out.settings).not.toHaveProperty('parkingSuppressedUntil');
     });
 });

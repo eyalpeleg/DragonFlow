@@ -2,7 +2,7 @@ import * as Notifications from 'expo-notifications';
 import {
     cancelParkingReminder,
     scheduleParkingReminder,
-    setupPangoNotificationCategory,
+    setupParkingNotificationCategory,
 } from '../notifications';
 
 const mockSchedule = Notifications.scheduleNotificationAsync as jest.Mock;
@@ -23,8 +23,8 @@ describe('parking notifications (AC4/AC5/AC19)', () => {
         expect(mockSchedule).toHaveBeenCalledTimes(1);
         const arg = mockSchedule.mock.calls[0][0];
         expect(arg.identifier).toBe('sess-1');
-        expect(arg.content.data).toEqual({ type: 'pango', sessionId: 'sess-1' });
-        expect(arg.content.categoryIdentifier).toBe('pango-reminder');
+        expect(arg.content.data).toEqual({ type: 'parking', sessionId: 'sess-1' });
+        expect(arg.content.categoryIdentifier).toBe('parking-reminder');
         expect(arg.trigger.type).toBe('date');
         expect(arg.trigger.date).toEqual(new Date(remindAt));
     });
@@ -46,11 +46,11 @@ describe('parking notifications (AC4/AC5/AC19)', () => {
         expect(mockCancel).not.toHaveBeenCalled();
     });
 
-    it('registers Extend / Open Pango action buttons', async () => {
-        await setupPangoNotificationCategory();
-        expect(mockCategory).toHaveBeenCalledWith('pango-reminder', [
+    it('registers Extend / Open Parking App action buttons', async () => {
+        await setupParkingNotificationCategory();
+        expect(mockCategory).toHaveBeenCalledWith('parking-reminder', [
             { identifier: 'extend-15', buttonTitle: '+15 min' },
-            { identifier: 'open-pango', buttonTitle: 'Open Pango' },
+            { identifier: 'open-parking', buttonTitle: 'Open Parking App' },
         ]);
     });
 });

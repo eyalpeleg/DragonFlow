@@ -44,7 +44,7 @@ export interface Task {
     pinned?: boolean;
 }
 
-// Feature: Pango parking reminder — a lightweight, transient session record
+// Feature: Parking reminder — a lightweight, transient session record
 // (NOT a Task; excluded from stats and from backup/export). `overdue` is always
 // derived (see isExpired in utils/parking), never stored.
 export interface ParkingSession {

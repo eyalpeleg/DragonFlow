@@ -1,7 +1,7 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useEffect, useState } from 'react';
 import { Alert, Modal, Pressable, StyleSheet, Text, View } from 'react-native';
-import PangoWatcher from '../modules/PangoWatcher';
+import ParkingWatcher from '../modules/ParkingWatcher';
 import { useTaskStore } from '../store/appStore';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
@@ -13,15 +13,18 @@ interface Props {
 }
 
 const EXTEND_DELTAS: ExtendDelta[] = [5, 15, 30, 60];
+const EXTEND_DELTAS_DEBUG: ExtendDelta[] = [1, 5, 15, 30, 60]; // +1m only in Debug mode
 
 // In-app controls for an active parking session (opened from the bubble tap):
-// live countdown, Extend (5/15/30/60), Open Pango, Done. AC4a/AC5/AC5a/AC6/AC7.
-export default function PangoActionSheet({ visible, onClose }: Props) {
+// live countdown, Extend (5/15/30/60), Open Parking App, End Parking. AC4a/AC5/AC5a/AC6/AC7.
+export default function ParkingActionSheet({ visible, onClose }: Props) {
     const colors = useColors();
     const styles = makeStyles(colors);
     const session = useTaskStore((s) => s.parkingSession);
     const extendParkingSession = useTaskStore((s) => s.extendParkingSession);
     const clearParkingSession = useTaskStore((s) => s.clearParkingSession);
+    const debug = useTaskStore((s) => s.debugModeEnabled);
+    const extendDeltas = debug ? EXTEND_DELTAS_DEBUG : EXTEND_DELTAS;
     const [now, setNow] = useState(() => Date.now());
 
     // Tick the countdown while the sheet is open.
@@ -39,11 +42,16 @@ export default function PangoActionSheet({ visible, onClose }: Props) {
         : formatParkingCountdown(session.remindAt - now);
 
     function handleExtend(delta: ExtendDelta) {
+        console.log(`[ParkingWatcher] USER: add ${delta} min (action sheet)`);
         const ok = extendParkingSession(delta);
-        if (!ok) Alert.alert('Cannot extend', 'Parking is capped at 24 hours from when it started.');
+        if (!ok) {
+            console.log('[ParkingWatcher] USER: extend rejected — 24h cap');
+            Alert.alert('Cannot extend', 'Parking is capped at 24 hours from when it started.');
+        }
     }
 
     function handleDone() {
+        console.log('[ParkingWatcher] USER: clicked End Parking (action sheet)');
         clearParkingSession();
         onClose();
     }
@@ -54,7 +62,7 @@ export default function PangoActionSheet({ visible, onClose }: Props) {
                 <Pressable style={styles.sheet} onPress={(e) => e.stopPropagation()}>
                     <View style={styles.header}>
                         <Ionicons name="car" size={22} color={overdue ? colors.text.error : colors.primary} />
-                        <Text style={styles.title}>Pango parking</Text>
+                        <Text style={styles.title}>Parking</Text>
                     </View>
                     <Text
                         style={[styles.countdown, overdue && styles.countdownOverdue]}
@@ -65,9 +73,9 @@ export default function PangoActionSheet({ visible, onClose }: Props) {
 
                     <Text style={styles.label}>Extend by</Text>
                     <View style={styles.chips}>
-                        {EXTEND_DELTAS.map((d) => (
+                        {extendDeltas.map((d) => (
                             <Pressable
-                                key={`pango-extend-${d}`}
+                                key={`parking-extend-${d}`}
                                 accessibilityRole="button"
                                 accessibilityLabel={`Extend by ${d} minutes`}
                                 style={({ pressed }) => [styles.chip, pressed && { opacity: 0.7 }]}
@@ -81,21 +89,21 @@ export default function PangoActionSheet({ visible, onClose }: Props) {
                     <View style={styles.actions}>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Open Pango"
+                            accessibilityLabel="Open Parking App"
                             style={({ pressed }) => [styles.openBtn, pressed && { opacity: 0.7 }]}
-                            onPress={() => PangoWatcher.openPango()}
+                            onPress={() => { console.log('[ParkingWatcher] USER: clicked Open Parking App (action sheet)'); ParkingWatcher.openParkingApp(); }}
                         >
                             <Ionicons name="open-outline" size={16} color={colors.primary} />
-                            <Text style={styles.openText}>Open Pango</Text>
+                            <Text style={styles.openText}>Open Parking App</Text>
                         </Pressable>
                         <Pressable
                             accessibilityRole="button"
-                            accessibilityLabel="Mark parking done"
+                            accessibilityLabel="End parking"
                             style={({ pressed }) => [styles.doneBtn, pressed && { opacity: 0.7 }]}
                             onPress={handleDone}
                         >
                             <Ionicons name="checkmark" size={16} color={colors.surface} />
-                            <Text style={styles.doneText}>Done</Text>
+                            <Text style={styles.doneText}>End Parking</Text>
                         </Pressable>
                     </View>
                 </Pressable>

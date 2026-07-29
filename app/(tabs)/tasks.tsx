@@ -14,9 +14,9 @@ import { useColors } from '@/src/styles/useColors';
 import { useArchivedTasks, useTaskStore, useSortedFilteredTasks } from '@/src/store/appStore';
 import FloatingBubble from '@/src/modules/FloatingBubble';
 import { useShareIntent } from '@/src/hooks/useShareIntent';
-import { usePangoReminder } from '@/src/hooks/usePangoReminder';
-import PangoArmModal from '@/src/components/PangoArmModal';
-import PangoActionSheet from '@/src/components/PangoActionSheet';
+import { useParkingReminder } from '@/src/hooks/useParkingReminder';
+import ParkingArmModal from '@/src/components/ParkingArmModal';
+import ParkingActionSheet from '@/src/components/ParkingActionSheet';
 import { Task, TaskStatus } from '@/src/types';
 
 
@@ -46,11 +46,11 @@ export default function TasksScreen() {
     useEffect(() => {
         if (prefill) setAddModalVisible(true);
     }, [prefill]);
-    // Pango parking reminder: arm prompt on Pango-background; action sheet on bubble tap.
-    const { promptVisible: pangoPromptVisible, arm: armPango, dismiss: dismissPango } = usePangoReminder();
-    const [pangoSheetVisible, setPangoSheetVisible] = useState(false);
+    // Parking reminder: arm prompt on parking-app background; action sheet on bubble tap.
+    const { promptVisible: parkingPromptVisible, arm: armParking, dismiss: dismissParking } = useParkingReminder();
+    const [parkingSheetVisible, setParkingSheetVisible] = useState(false);
     useEffect(() => {
-        const unsubscribe = FloatingBubble.onParkingTap(() => setPangoSheetVisible(true));
+        const unsubscribe = FloatingBubble.onParkingTap(() => setParkingSheetVisible(true));
         return unsubscribe;
     }, []);
     const [editTask, setEditTask] = useState<Task | null>(null);
@@ -285,17 +285,17 @@ export default function TasksScreen() {
                 onClose={() => setStatsTask(null)}
             />
 
-            <PangoArmModal
-                key={`pango-arm-${pangoPromptVisible ? 'open' : 'closed'}`}
-                visible={pangoPromptVisible}
-                onArm={armPango}
-                onDismiss={dismissPango}
+            <ParkingArmModal
+                key={`parking-arm-${parkingPromptVisible ? 'open' : 'closed'}`}
+                visible={parkingPromptVisible}
+                onArm={armParking}
+                onDismiss={dismissParking}
             />
 
-            <PangoActionSheet
-                key={`pango-sheet-${pangoSheetVisible ? 'open' : 'closed'}`}
-                visible={pangoSheetVisible}
-                onClose={() => setPangoSheetVisible(false)}
+            <ParkingActionSheet
+                key={`parking-sheet-${parkingSheetVisible ? 'open' : 'closed'}`}
+                visible={parkingSheetVisible}
+                onClose={() => setParkingSheetVisible(false)}
             />
         </SafeAreaView>
     );

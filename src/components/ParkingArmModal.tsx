@@ -1,9 +1,10 @@
 import { Ionicons } from '@expo/vector-icons';
 import React, { useState } from 'react';
 import { Modal, Pressable, StyleSheet, Text, TextInput, View } from 'react-native';
+import { useTaskStore } from '../store/appStore';
 import { AppColors } from '../styles/theme';
 import { useColors } from '../styles/useColors';
-import { isValidDuration, MAX_DURATION_MIN, MIN_DURATION_MIN } from '../utils/parking';
+import { isValidDuration, MAX_DURATION_MIN, MIN_DURATION_MIN, MIN_DURATION_MIN_DEBUG } from '../utils/parking';
 
 interface Props {
     visible: boolean;
@@ -11,21 +12,23 @@ interface Props {
     onDismiss: (kind: 'not-parking' | 'today') => void;
 }
 
-const PRESETS = [30, 60, 120] as const;
 const DEFAULT_PRESET = 60;
 
-// Prompt shown when Pango goes to the background: arm a "stop parking" reminder
+// Prompt shown when the parking app goes to the background: arm a "stop parking" reminder
 // for a chosen duration, or dismiss (not parking / stop asking today). AC1/AC3/AC10/AC11/AC25.
-export default function PangoArmModal({ visible, onArm, onDismiss }: Props) {
+export default function ParkingArmModal({ visible, onArm, onDismiss }: Props) {
     const colors = useColors();
     const styles = makeStyles(colors);
+    const debug = useTaskStore((s) => s.debugModeEnabled);
+    const minDuration = debug ? MIN_DURATION_MIN_DEBUG : MIN_DURATION_MIN;
+    const presets = debug ? [1, 30, 60, 120] : [30, 60, 120]; // 1-minute option only in Debug mode
     const [preset, setPreset] = useState<number | 'custom'>(DEFAULT_PRESET);
     const [custom, setCustom] = useState('');
 
     const customMin = parseInt(custom, 10);
-    const customValid = preset === 'custom' ? isValidDuration(customMin) : true;
+    const customValid = preset === 'custom' ? isValidDuration(customMin, minDuration) : true;
     const selectedMin = preset === 'custom' ? customMin : preset;
-    const canArm = customValid && isValidDuration(selectedMin);
+    const canArm = customValid && isValidDuration(selectedMin, minDuration);
 
     function reset() {
         setPreset(DEFAULT_PRESET);
@@ -51,14 +54,14 @@ export default function PangoArmModal({ visible, onArm, onDismiss }: Props) {
                         <Ionicons name="car-outline" size={22} color={colors.primary} />
                         <Text style={styles.title}>Start a parking reminder?</Text>
                     </View>
-                    <Text style={styles.subtitle}>Remind me to stop my Pango parking in:</Text>
+                    <Text style={styles.subtitle}>Remind me to stop my parking in:</Text>
 
                     <View style={styles.presets}>
-                        {PRESETS.map((p) => {
+                        {presets.map((p) => {
                             const active = preset === p;
                             return (
                                 <Pressable
-                                    key={`pango-preset-${p}`}
+                                    key={`parking-preset-${p}`}
                                     accessibilityRole="button"
                                     accessibilityLabel={`${p} minutes`}
                                     accessibilityState={{ selected: active }}
@@ -73,7 +76,7 @@ export default function PangoArmModal({ visible, onArm, onDismiss }: Props) {
                             );
                         })}
                         <Pressable
-                            key="pango-preset-custom"
+                            key="parking-preset-custom"
                             accessibilityRole="button"
                             accessibilityLabel="Custom duration"
                             accessibilityState={{ selected: preset === 'custom' }}
@@ -89,7 +92,7 @@ export default function PangoArmModal({ visible, onArm, onDismiss }: Props) {
                         <>
                             <TextInput
                                 style={styles.input}
-                                placeholder={`Minutes (${MIN_DURATION_MIN}–${MAX_DURATION_MIN})`}
+                                placeholder={`Minutes (${minDuration}–${MAX_DURATION_MIN})`}
                                 placeholderTextColor={colors.text.light}
                                 value={custom}
                                 onChangeText={setCustom}
@@ -98,7 +101,7 @@ export default function PangoArmModal({ visible, onArm, onDismiss }: Props) {
                                 autoFocus
                             />
                             {custom.length > 0 && !customValid && (
-                                <Text style={styles.error}>Enter {MIN_DURATION_MIN}–{MAX_DURATION_MIN} minutes</Text>
+                                <Text style={styles.error}>Enter {minDuration}–{MAX_DURATION_MIN} minutes</Text>
                             )}
                         </>
                     )}

@@ -4,7 +4,7 @@ import { createJSONStorage, persist } from 'zustand/middleware';
 import { PriorityLevel } from '../styles/theme';
 import { Category, ParkingSession, RecurrenceConfig, SubTask, Task, TaskStatus, SoundType } from '../types';
 import { cancelParkingReminder, cancelTaskReminders, scheduleParkingReminder, scheduleTaskReminders } from '../utils/notifications';
-import { computeExtend, computeRemindAt, ExtendDelta, isValidDuration } from '../utils/parking';
+import { computeExtend, computeRemindAt, ExtendDelta, isValidDuration, MIN_DURATION_MIN, MIN_DURATION_MIN_DEBUG } from '../utils/parking';
 import { getCategoryColor, getCategoryName } from '../utils/categories';
 import { buildNextOccurrence } from '../utils/recurrence';
 import { AppState } from 'react-native';
@@ -17,7 +17,7 @@ export { getCategoryColor, getCategoryName };
 export const DEFAULT_CATEGORY_ID = 'default';
 
 // A parking session overdue by more than this on rehydrate is auto-cleared: it was
-// forgotten, and while any session is active Pango detection stays suppressed.
+// forgotten, and while any session is active parking-app detection stays suppressed.
 const PARKING_STALE_MS = 6 * 60 * 60 * 1000;
 
 const STATUS_RANK: Record<TaskStatus, number> = {
@@ -156,8 +156,9 @@ interface TaskStore {
     pomodoroNotifId: string | null;
     pomodoroVisible: boolean;
     parkingSession: ParkingSession | null;
-    pangoReminderEnabled: boolean;
-    pangoSuppressedUntil: number | null;
+    parkingReminderEnabled: boolean;
+    parkingSuppressedUntil: number | null;
+    parkingArmPromptVisible: boolean; // transient — drives the in-app arm modal
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -206,8 +207,9 @@ interface TaskStore {
     startParkingSession: (durationMin: number) => ParkingSession | null;
     extendParkingSession: (delta: ExtendDelta) => boolean;
     clearParkingSession: () => void;
-    setPangoReminderEnabled: (enabled: boolean) => void;
-    setPangoSuppressedUntil: (until: number | null) => void;
+    setParkingReminderEnabled: (enabled: boolean) => void;
+    setParkingSuppressedUntil: (until: number | null) => void;
+    setParkingArmPromptVisible: (visible: boolean) => void;
     setPomodoroVisible: (visible: boolean) => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
@@ -238,8 +240,9 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroNotifId: null,
             pomodoroVisible: false,
             parkingSession: null,
-            pangoReminderEnabled: false,
-            pangoSuppressedUntil: null,
+            parkingReminderEnabled: false,
+            parkingSuppressedUntil: null,
+            parkingArmPromptVisible: false,
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -507,11 +510,12 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroNotifId: null,
             }),
 
-            // --- Pango parking reminder ---
+            // --- Parking reminder ---
             // notifId is deterministic (= session id) so extend/clear can reschedule
             // or cancel without an async round-trip. Scheduling is fire-and-forget.
             startParkingSession: (durationMin) => {
-                if (!isValidDuration(durationMin)) return null; // AC3
+                const minAllowed = get().debugModeEnabled ? MIN_DURATION_MIN_DEBUG : MIN_DURATION_MIN;
+                if (!isValidDuration(durationMin, minAllowed)) return null; // AC3
                 // Cancel any prior session's reminder so it can't fire orphaned.
                 const prev = get().parkingSession;
                 if (prev) cancelParkingReminder(prev.notifId ?? prev.id).catch(() => {});
@@ -559,9 +563,17 @@ export const useTaskStore = create<TaskStore>()(
                 syncBubble(s.tasks, s.showBubbleInBackground, s.pomodoroEndTime, s.parkingSession);
             },
 
-            setPangoReminderEnabled: (enabled) => set({ pangoReminderEnabled: enabled }),
+            // Toggling the feature resets transient suppression + any pending prompt,
+            // so turning it off and on again is a clean slate.
+            setParkingReminderEnabled: (enabled) => set({
+                parkingReminderEnabled: enabled,
+                parkingSuppressedUntil: null,
+                parkingArmPromptVisible: false,
+            }),
 
-            setPangoSuppressedUntil: (until) => set({ pangoSuppressedUntil: until }),
+            setParkingSuppressedUntil: (until) => set({ parkingSuppressedUntil: until }),
+
+            setParkingArmPromptVisible: (visible) => set({ parkingArmPromptVisible: visible }),
 
             setPomodoroVisible: (visible) => set({ pomodoroVisible: visible }),
 
@@ -642,8 +654,8 @@ export const useTaskStore = create<TaskStore>()(
                 pomodoroPausedSecondsLeft: state.pomodoroPausedSecondsLeft,
                 pomodoroNotifId: state.pomodoroNotifId,
                 parkingSession: state.parkingSession,
-                pangoReminderEnabled: state.pangoReminderEnabled,
-                pangoSuppressedUntil: state.pangoSuppressedUntil,
+                parkingReminderEnabled: state.parkingReminderEnabled,
+                parkingSuppressedUntil: state.parkingSuppressedUntil,
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
                 darkMode: state.darkMode,
@@ -770,7 +782,7 @@ export const useTaskStore = create<TaskStore>()(
                     }
                     // Re-arm an un-expired parking reminder; leave a recently-expired
                     // one in its overdue state (AC20); clear a long-forgotten one so it
-                    // stops blocking Pango detection.
+                    // stops blocking parking-app detection.
                     const ps = state.parkingSession;
                     if (ps) {
                         const nowMs = Date.now();

@@ -1,6 +1,6 @@
 # Brainstorm — Pango Reminder
 
-> SDLC Stage 2 (Brainstorm). Slug: `pango-reminder`. Reuses the **"Parking app awareness"** backlog row (features.md). Feeds `sdlc-analyze`.
+> SDLC Stage 2 (Brainstorm). Slug: `parking-reminder`. Reuses the **"Parking app awareness"** backlog row (features.md). Feeds `sdlc-analyze`.
 
 ## The idea in one line
 

@@ -3,7 +3,6 @@ package com.plgsw.dragonflow
 import android.app.AppOpsManager
 import android.content.Context
 import android.content.Intent
-import android.os.Build
 import android.os.Process
 import android.provider.Settings
 import com.facebook.react.bridge.Promise
@@ -13,19 +12,20 @@ import com.facebook.react.bridge.ReactMethod
 import com.facebook.react.modules.core.DeviceEventManagerModule
 
 /**
- * Detects that the Pango app was used and moved to the background, by asking the
- * FloatingBubbleService to poll UsageStats. The module is deliberately "dumb": it
- * starts/stops the service's poll loop, checks/opens the "Usage access" special
- * permission, launches Pango, and bridges a single "pangoBackgrounded" event to
- * JS. It never reads or stores what happens inside Pango or any other app — only
- * that Pango's package moved to the background.
+ * Detects that the watched parking app was used and moved to the background, by
+ * asking the FloatingBubbleService to poll UsageStats. The module is deliberately
+ * "dumb": it starts/stops the service's poll loop, checks/opens the "Usage access"
+ * special permission, launches the parking app, and bridges a single
+ * "parkingAppBackgrounded" event to JS. It never reads or stores what happens
+ * inside the parking app or any other app — only that its package moved to the
+ * background.
  *
- * See docs/design/features/pango-reminder/design.md.
+ * See docs/design/features/parking-reminder/design.md.
  */
-class PangoWatcherModule(reactContext: ReactApplicationContext) :
+class ParkingWatcherModule(reactContext: ReactApplicationContext) :
     ReactContextBaseJavaModule(reactContext) {
 
-    override fun getName(): String = "PangoWatcher"
+    override fun getName(): String = "ParkingWatcher"
 
     init {
         Companion.reactContext = reactContext
@@ -33,12 +33,12 @@ class PangoWatcherModule(reactContext: ReactApplicationContext) :
 
     @ReactMethod
     fun startMonitoring() {
-        sendServiceAction("startPangoWatch")
+        sendServiceAction("startParkingWatch")
     }
 
     @ReactMethod
     fun stopMonitoring() {
-        sendServiceAction("stopPangoWatch")
+        sendServiceAction("stopParkingWatch")
     }
 
     /** AC15 — the Usage-access grant is a revocable app-op; JS re-checks it. */
@@ -51,8 +51,11 @@ class PangoWatcherModule(reactContext: ReactApplicationContext) :
                 Process.myUid(),
                 reactApplicationContext.packageName
             )
-            promise.resolve(mode == AppOpsManager.MODE_ALLOWED)
+            val granted = mode == AppOpsManager.MODE_ALLOWED
+            android.util.Log.d(TAG, "hasUsageAccess → $granted (mode=$mode)")
+            promise.resolve(granted)
         } catch (e: Exception) {
+            android.util.Log.d(TAG, "hasUsageAccess → false (exception: ${e.message})")
             promise.resolve(false)
         }
     }
@@ -70,11 +73,11 @@ class PangoWatcherModule(reactContext: ReactApplicationContext) :
         }
     }
 
-    /** AC6 — launch Pango by fixed package; resolve false if it isn't installed. */
+    /** AC6 — launch the parking app by fixed package; resolve false if not installed. */
     @ReactMethod
-    fun openPango(promise: Promise) {
+    fun openParkingApp(promise: Promise) {
         try {
-            val launch = reactApplicationContext.packageManager.getLaunchIntentForPackage(PANGO_PACKAGE)
+            val launch = reactApplicationContext.packageManager.getLaunchIntentForPackage(PARKING_APP_PACKAGE)
             if (launch == null) {
                 promise.resolve(false)
                 return
@@ -91,9 +94,9 @@ class PangoWatcherModule(reactContext: ReactApplicationContext) :
     fun addListener(eventName: String) {
         // Cold-start safety: if a background event was observed before JS
         // subscribed, flush it now.
-        if (eventName == "pangoBackgrounded" && pendingPangoBackground) {
-            pendingPangoBackground = false
-            sendPangoBackgroundedEvent()
+        if (eventName == "parkingAppBackgrounded" && pendingParkingBackground) {
+            pendingParkingBackground = false
+            sendParkingBackgroundedEvent()
         }
     }
 
@@ -105,38 +108,35 @@ class PangoWatcherModule(reactContext: ReactApplicationContext) :
         val intent = Intent(context, FloatingBubbleService::class.java).apply {
             putExtra("action", action)
         }
-        try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                context.startForegroundService(intent)
-            } else {
-                context.startService(intent)
-            }
-        } catch (e: Exception) {
-            // ignore — can't start the service (e.g. background start restriction)
-        }
+        ServiceLauncher.start(context, intent)
     }
 
     companion object {
-        const val PANGO_PACKAGE = "com.unicell.pangoandroid"
-        const val DEBOUNCE_MS = 20_000L
+        const val TAG = "ParkingWatcher"
+        // The one intentional vendor reference: the package id of the parking app
+        // we watch. Becomes a list when more vendors (CelloPark, …) are added.
+        const val PARKING_APP_PACKAGE = "com.unicell.pangoandroid"
+        const val DEBOUNCE_MS = 10_000L // production: min foreground time before a background counts
 
         var reactContext: ReactApplicationContext? = null
 
         @Volatile
-        var pendingPangoBackground: Boolean = false
+        var pendingParkingBackground: Boolean = false
 
         /**
-         * Called from the FloatingBubbleService poll loop when a debounced Pango
+         * Called from the FloatingBubbleService poll loop when a debounced parking-app
          * background transition is observed. Buffers if JS hasn't subscribed yet.
          */
-        fun sendPangoBackgroundedEvent() {
+        fun sendParkingBackgroundedEvent() {
             val emitter = reactContext
                 ?.getJSModule(DeviceEventManagerModule.RCTDeviceEventEmitter::class.java)
             if (emitter == null) {
-                pendingPangoBackground = true
+                android.util.Log.d(TAG, "sendParkingBackgroundedEvent: JS not ready → buffered")
+                pendingParkingBackground = true
                 return
             }
-            emitter.emit("pangoBackgrounded", null)
+            android.util.Log.d(TAG, "sendParkingBackgroundedEvent: emitting to JS")
+            emitter.emit("parkingAppBackgrounded", null)
         }
     }
 }

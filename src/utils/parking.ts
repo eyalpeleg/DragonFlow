@@ -1,20 +1,22 @@
 import type { ParkingSession } from '../types';
 
-// Pango parking-reminder pure logic. Side-effect free so it can be unit-tested
+// Parking-reminder pure logic. Side-effect free so it can be unit-tested
 // without the store, notifications, or the native bridge. See
-// docs/design/features/pango-reminder/design.md.
+// docs/design/features/parking-reminder/design.md.
 
-export const MIN_DURATION_MIN = 5;
+export const MIN_DURATION_MIN = 5; // production minimum
+export const MIN_DURATION_MIN_DEBUG = 1; // when the app's Debug mode is on
 export const MAX_DURATION_MIN = 24 * 60; // 24h cap, measured from startedAt
 
-/** Minutes a user may add via the Extend control. */
-export type ExtendDelta = 5 | 15 | 30 | 60;
+/** Minutes a user may add via the Extend control. (1 is offered only in Debug mode.) */
+export type ExtendDelta = 1 | 5 | 15 | 30 | 60;
 
 const MS_PER_MIN = 60_000;
 
-/** AC3 — a duration is valid iff it's a whole number of minutes within bounds. */
-export function isValidDuration(min: number): boolean {
-    return Number.isInteger(min) && min >= MIN_DURATION_MIN && min <= MAX_DURATION_MIN;
+/** AC3 — a duration is valid iff it's a whole number of minutes within bounds.
+ *  `minAllowed` defaults to the production minimum; Debug mode passes a lower floor. */
+export function isValidDuration(min: number, minAllowed: number = MIN_DURATION_MIN): boolean {
+    return Number.isInteger(min) && min >= minAllowed && min <= MAX_DURATION_MIN;
 }
 
 /** Absolute epoch (ms) at which the reminder should fire. */

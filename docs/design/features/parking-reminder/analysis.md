@@ -1,6 +1,6 @@
 # Analysis — Pango Reminder
 
-> SDLC Stage 3 (Analyze). Slug: `pango-reminder`. Input: [brainstorm.md](brainstorm.md). Feeds `sdlc-story`.
+> SDLC Stage 3 (Analyze). Slug: `parking-reminder`. Input: [brainstorm.md](brainstorm.md). Feeds `sdlc-story`.
 > Android-only. Mechanism **A5** (detect Pango usage → on background, prompt to arm a reminder). Data model **B2** (lightweight `parkingSession` record).
 
 ## 1. Resolved mechanism (was the deferred make-or-break)

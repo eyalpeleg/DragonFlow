@@ -28,8 +28,9 @@ try {
     'BootReceiver.kt',
     'ShareIntentModule.kt',
     'ShareIntentPackage.kt',
-    'PangoWatcherModule.kt',
-    'PangoWatcherPackage.kt'
+    'ParkingWatcherModule.kt',
+    'ParkingWatcherPackage.kt',
+    'ServiceLauncher.kt'
   ];
 
   console.log('[copy-native-files] Copying native files...');
@@ -139,10 +140,10 @@ tasks.whenTaskAdded { task ->
         'import com.plgsw.dragonflow.ShareIntentPackage\nimport expo.modules.ReactNativeHostWrapper'
       );
     }
-    if (!mainApp.includes('import com.plgsw.dragonflow.PangoWatcherPackage')) {
+    if (!mainApp.includes('import com.plgsw.dragonflow.ParkingWatcherPackage')) {
       mainApp = mainApp.replace(
         /import expo\.modules\.ReactNativeHostWrapper/,
-        'import com.plgsw.dragonflow.PangoWatcherPackage\nimport expo.modules.ReactNativeHostWrapper'
+        'import com.plgsw.dragonflow.ParkingWatcherPackage\nimport expo.modules.ReactNativeHostWrapper'
       );
     }
 
@@ -159,15 +160,15 @@ tasks.whenTaskAdded { task ->
         'add(FloatingBubblePackage())\n              add(ShareIntentPackage())'
       );
     }
-    if (!mainApp.includes('add(PangoWatcherPackage())')) {
+    if (!mainApp.includes('add(ParkingWatcherPackage())')) {
       mainApp = mainApp.replace(
         /add\(ShareIntentPackage\(\)\)/,
-        'add(ShareIntentPackage())\n              add(PangoWatcherPackage())'
+        'add(ShareIntentPackage())\n              add(ParkingWatcherPackage())'
       );
     }
 
     fs.writeFileSync(mainAppKt, mainApp);
-    console.log('  ✓ MainApplication.kt (FloatingBubble + ShareIntent + PangoWatcher registration)');
+    console.log('  ✓ MainApplication.kt (FloatingBubble + ShareIntent + ParkingWatcher registration)');
   }
 
   // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default

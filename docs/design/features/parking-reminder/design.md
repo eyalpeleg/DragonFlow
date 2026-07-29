@@ -1,6 +1,6 @@
 # Design — Pango Reminder
 
-> SDLC Stage 5 (Design). Slug: `pango-reminder`. Inputs: [story.md](story.md) (AC1–AC25), [analysis.md](analysis.md). Implementable-from-directly blueprint. Android-only.
+> SDLC Stage 5 (Design). Slug: `parking-reminder`. Inputs: [story.md](story.md) (AC1–AC25), [analysis.md](analysis.md). Implementable-from-directly blueprint. Android-only.
 
 ## Approach
 
@@ -134,10 +134,10 @@ Add `PANGO_CHANNEL = 'pango-3'` to `CHANNEL_DEFS` (`:41-44`, auto-created by `se
 ```ts
 export async function scheduleParkingReminder(remindAt: number, sessionId: string): Promise<string>;
   // DATE trigger @remindAt (absolute, no drift), identifier=sessionId, data={type:'pango',sessionId},
-  // categoryIdentifier:'pango-reminder', channelId: PANGO_CHANNEL
+  // categoryIdentifier:'parking-reminder', channelId: PANGO_CHANNEL
 export async function cancelParkingReminder(notifId: string): Promise<void>;
 export async function setupPangoNotificationCategory(): Promise<void>;
-  // setNotificationCategoryAsync('pango-reminder',
+  // setNotificationCategoryAsync('parking-reminder',
   //   [{id:'extend-15',buttonTitle:'+15 min'},{id:'open-pango',buttonTitle:'Open Pango'}])
 ```
 Model `schedulePomodoroEnd`/`cancelPomodoroNotification` (`:65-89`), DATE trigger like `scheduleTaskReminders` (`:151-154`). Satisfies **AC4, AC5, AC19**.

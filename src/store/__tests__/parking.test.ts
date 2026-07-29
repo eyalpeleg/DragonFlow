@@ -26,7 +26,7 @@ jest.mock('../../modules/FloatingBubble', () => ({
 
 import { useTaskStore } from '../appStore';
 import { scheduleParkingReminder, cancelParkingReminder } from '../../utils/notifications';
-import { MAX_DURATION_MIN } from '../../utils/parking';
+import { MAX_DURATION_MIN, MIN_DURATION_MIN } from '../../utils/parking';
 
 const MIN = 60_000;
 const mockSchedule = scheduleParkingReminder as jest.Mock;
@@ -36,12 +36,12 @@ describe('parking store actions', () => {
     beforeEach(() => {
         mockSchedule.mockClear();
         mockCancel.mockClear();
-        useTaskStore.setState({ parkingSession: null, pangoReminderEnabled: false, pangoSuppressedUntil: null });
+        useTaskStore.setState({ parkingSession: null, parkingReminderEnabled: false, parkingSuppressedUntil: null });
     });
 
     // AC12 — default off
-    it('pangoReminderEnabled defaults to false', () => {
-        expect(useTaskStore.getState().pangoReminderEnabled).toBe(false);
+    it('parkingReminderEnabled defaults to false', () => {
+        expect(useTaskStore.getState().parkingReminderEnabled).toBe(false);
     });
 
     // AC2 — arm creates a session and schedules a reminder
@@ -57,7 +57,7 @@ describe('parking store actions', () => {
 
     // AC3 — out-of-bounds duration → no session
     it('startParkingSession rejects an out-of-bounds duration', () => {
-        expect(useTaskStore.getState().startParkingSession(4)).toBeNull();
+        expect(useTaskStore.getState().startParkingSession(MIN_DURATION_MIN - 1)).toBeNull();
         expect(useTaskStore.getState().startParkingSession(MAX_DURATION_MIN + 1)).toBeNull();
         expect(useTaskStore.getState().parkingSession).toBeNull();
         expect(mockSchedule).not.toHaveBeenCalled();
@@ -98,15 +98,15 @@ describe('parking store actions', () => {
     });
 
     // AC10 / AC11 — suppression setters
-    it('setPangoSuppressedUntil stores the epoch', () => {
-        useTaskStore.getState().setPangoSuppressedUntil(123456);
-        expect(useTaskStore.getState().pangoSuppressedUntil).toBe(123456);
-        useTaskStore.getState().setPangoSuppressedUntil(null);
-        expect(useTaskStore.getState().pangoSuppressedUntil).toBeNull();
+    it('setParkingSuppressedUntil stores the epoch', () => {
+        useTaskStore.getState().setParkingSuppressedUntil(123456);
+        expect(useTaskStore.getState().parkingSuppressedUntil).toBe(123456);
+        useTaskStore.getState().setParkingSuppressedUntil(null);
+        expect(useTaskStore.getState().parkingSuppressedUntil).toBeNull();
     });
 
-    it('setPangoReminderEnabled toggles the flag', () => {
-        useTaskStore.getState().setPangoReminderEnabled(true);
-        expect(useTaskStore.getState().pangoReminderEnabled).toBe(true);
+    it('setParkingReminderEnabled toggles the flag', () => {
+        useTaskStore.getState().setParkingReminderEnabled(true);
+        expect(useTaskStore.getState().parkingReminderEnabled).toBe(true);
     });
 });
