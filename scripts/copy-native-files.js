@@ -68,7 +68,7 @@ try {
     const patch = `
 tasks.register('fixPackageNameInAutolinking') {
     doLast {
-        def entryPointFile = file("\${buildDir}/generated/autolinking/src/main/java/com/facebook/react/ReactNativeApplicationEntryPoint.java")
+        def entryPointFile = file("\${layout.buildDirectory.get().asFile}/generated/autolinking/src/main/java/com/facebook/react/ReactNativeApplicationEntryPoint.java")
         if (entryPointFile.exists()) {
             def content = entryPointFile.text
             content = content.replace('com.dragonflow.BuildConfig', 'com.plgsw.dragonflow.BuildConfig')
@@ -77,7 +77,7 @@ tasks.register('fixPackageNameInAutolinking') {
     }
 }
 
-tasks.whenTaskAdded { task ->
+tasks.configureEach { task ->
     if (task.name == 'compileDebugJavaWithJavac' || task.name == 'compileReleaseJavaWithJavac') {
         task.dependsOn(fixPackageNameInAutolinking)
     }

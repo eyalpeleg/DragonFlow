@@ -196,7 +196,7 @@ const SPLASH_TEXT_GAP = 24;
 
 const styles = StyleSheet.create({
     splash: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: SPLASH_BG,
     },
     splashImage: {
