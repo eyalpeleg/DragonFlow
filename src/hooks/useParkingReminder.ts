@@ -16,6 +16,7 @@ const NOT_PARKING_COOLDOWN_MS_DEBUG = 2 * 60_000; // when the app's Debug mode i
  * "stop asking today" window). See docs/design/features/parking-reminder/design.md.
  */
 export function useParkingReminder() {
+    const hasHydrated = useTaskStore((s) => s.hasHydrated);
     const enabled = useTaskStore((s) => s.parkingReminderEnabled);
     const parkingSession = useTaskStore((s) => s.parkingSession);
     const promptVisible = useTaskStore((s) => s.parkingArmPromptVisible);
@@ -52,16 +53,19 @@ export function useParkingReminder() {
     }, []);
 
     useEffect(() => {
-        // Monitor while enabled and there's no *un-expired* session. An expired
-        // (fired) session no longer blocks detection (AC12 / AC22).
+        // Monitor while hydrated + enabled and there's no *un-expired* session. An
+        // expired (fired) session no longer blocks detection (AC12 / AC22).
+        // Gating on hasHydrated matters now that `enabled`'s factory default is
+        // true (AC12): without it, a user who persisted an explicit OFF would
+        // briefly see the pre-rehydrate default and re-arm monitoring for a beat.
         const now = Date.now();
         const sessionRunning = parkingSession != null && !isExpired(parkingSession, now);
-        if (!enabled || sessionRunning) {
-            console.log(`[ParkingWatcher] not monitoring (enabled=${enabled}, sessionRunning=${sessionRunning}) → stopMonitoring`);
+        if (!hasHydrated || !enabled || sessionRunning) {
+            console.log(`[ParkingWatcher] not monitoring (hasHydrated=${hasHydrated}, enabled=${enabled}, sessionRunning=${sessionRunning}) → stopMonitoring`);
             ParkingWatcher.stopMonitoring();
             // Resume monitoring right when the reminder fires, so the next parking-app use is
             // caught even if the user never marks the session done.
-            if (enabled && sessionRunning) {
+            if (hasHydrated && enabled && sessionRunning) {
                 const delay = parkingSession!.remindAt - now + 1000;
                 const t = setTimeout(() => setReArmTick((n) => n + 1), delay);
                 return () => clearTimeout(t);
@@ -80,7 +84,7 @@ export function useParkingReminder() {
             unsubscribe();
             ParkingWatcher.stopMonitoring();
         };
-    }, [enabled, parkingSession, handleBackgrounded, reArmTick]);
+    }, [hasHydrated, enabled, parkingSession, handleBackgrounded, reArmTick]);
 
     const arm = useCallback((durationMin: number) => {
         console.log(`[ParkingWatcher] USER: set parking reminder to ${durationMin} min (arm modal)`);

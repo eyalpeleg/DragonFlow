@@ -14,6 +14,7 @@ import { initializeBackup, setupAutoBackup, onAppBackground } from '@/src/servic
 import { audioService } from '@/src/services/audioService';
 import { useColorMode } from '@/src/styles/useColors';
 import UndoSnackbar from '@/src/components/UndoSnackbar';
+import ParkingDisclosureModal from '@/src/components/ParkingDisclosureModal';
 
 SplashScreen.preventAutoHideAsync().catch(() => {});
 
@@ -26,6 +27,22 @@ export default function RootLayout() {
     const colorMode = useColorMode();
     const [splashVisible, setSplashVisible] = useState(true);
     const [splashOpacity] = useState(() => new Animated.Value(1));
+    const [parkingDisclosureVisible, setParkingDisclosureVisible] = useState(false);
+
+    function handleParkingDisclosureCancel() {
+        console.log('[ParkingWatcher] USER: dismissed first-launch disclosure (cancel)');
+        useTaskStore.getState().setParkingDisclosureSeen(true);
+        setParkingDisclosureVisible(false);
+    }
+
+    function handleParkingDisclosureContinue() {
+        console.log('[ParkingWatcher] USER: confirmed first-launch disclosure → requesting usage access');
+        useTaskStore.getState().setParkingDisclosureSeen(true);
+        setParkingDisclosureVisible(false);
+        ParkingWatcher.hasUsageAccess().then((granted) => {
+            if (!granted) ParkingWatcher.requestUsageAccess(); // AC14 — deep-link to grant
+        }).catch(() => {});
+    }
 
     useEffect(() => {
         SplashScreen.hideAsync().catch(() => {});
@@ -40,6 +57,27 @@ export default function RootLayout() {
         }, holdMs);
         return () => clearTimeout(t);
     }, [splashOpacity]);
+
+    useEffect(() => {
+        // AC13a — auto-show the disclosure once on first launch when the (now
+        // default-on) parking reminder hasn't had its permission story shown yet.
+        // Must wait for rehydrate — the persisted flags aren't available on the
+        // synchronous initial render.
+        const checkParkingDisclosure = () => {
+            const s = useTaskStore.getState();
+            if (s.parkingReminderEnabled && !s.parkingDisclosureSeen) {
+                setParkingDisclosureVisible(true);
+            }
+        };
+        if (useTaskStore.getState().hasHydrated) {
+            checkParkingDisclosure();
+            return;
+        }
+        const unsub = useTaskStore.subscribe((s) => {
+            if (s.hasHydrated) { unsub(); checkParkingDisclosure(); }
+        });
+        return () => unsub();
+    }, []);
 
     useEffect(() => {
         audioService.initialize().catch(() => {});
@@ -178,6 +216,11 @@ export default function RootLayout() {
             <StatusBar style={colorMode === 'dark' ? 'light' : 'dark'} />
             <Slot />
             <UndoSnackbar />
+            <ParkingDisclosureModal
+                visible={parkingDisclosureVisible}
+                onCancel={handleParkingDisclosureCancel}
+                onContinue={handleParkingDisclosureContinue}
+            />
             {splashVisible && (
                 <Animated.View
                     pointerEvents="none"
@@ -196,7 +239,7 @@ const SPLASH_TEXT_GAP = 24;
 
 const styles = StyleSheet.create({
     splash: {
-        ...StyleSheet.absoluteFillObject,
+        ...StyleSheet.absoluteFill,
         backgroundColor: SPLASH_BG,
     },
     splashImage: {

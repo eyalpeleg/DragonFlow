@@ -39,9 +39,16 @@ describe('parking store actions', () => {
         useTaskStore.setState({ parkingSession: null, parkingReminderEnabled: false, parkingSuppressedUntil: null });
     });
 
-    // AC12 — default off
-    it('parkingReminderEnabled defaults to false', () => {
-        expect(useTaskStore.getState().parkingReminderEnabled).toBe(false);
+    // AC12 — default on. beforeEach forces the flag to false for isolation, so the
+    // real factory default has to be read from a freshly required store instance.
+    it('parkingReminderEnabled defaults to true', () => {
+        let freshDefault: boolean | undefined;
+        jest.isolateModules(() => {
+            // eslint-disable-next-line @typescript-eslint/no-require-imports -- isolateModules needs a fresh require, not the hoisted static import
+            const { useTaskStore: freshStore } = require('../appStore');
+            freshDefault = freshStore.getState().parkingReminderEnabled;
+        });
+        expect(freshDefault).toBe(true);
     });
 
     // AC2 — arm creates a session and schedules a reminder
@@ -108,5 +115,12 @@ describe('parking store actions', () => {
     it('setParkingReminderEnabled toggles the flag', () => {
         useTaskStore.getState().setParkingReminderEnabled(true);
         expect(useTaskStore.getState().parkingReminderEnabled).toBe(true);
+    });
+
+    // AC13a — first-launch disclosure gate
+    it('setParkingDisclosureSeen toggles the flag', () => {
+        useTaskStore.setState({ parkingDisclosureSeen: false });
+        useTaskStore.getState().setParkingDisclosureSeen(true);
+        expect(useTaskStore.getState().parkingDisclosureSeen).toBe(true);
     });
 });

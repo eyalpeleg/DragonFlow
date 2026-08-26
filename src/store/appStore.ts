@@ -159,6 +159,7 @@ interface TaskStore {
     parkingReminderEnabled: boolean;
     parkingSuppressedUntil: number | null;
     parkingArmPromptVisible: boolean; // transient — drives the in-app arm modal
+    parkingDisclosureSeen: boolean; // gates the one-time auto-shown first-launch disclosure
     statusFilters: Set<TaskStatus>;
     categoryFilters: Set<string>;
     priorityFilters: Set<PriorityLevel>;
@@ -210,6 +211,7 @@ interface TaskStore {
     setParkingReminderEnabled: (enabled: boolean) => void;
     setParkingSuppressedUntil: (until: number | null) => void;
     setParkingArmPromptVisible: (visible: boolean) => void;
+    setParkingDisclosureSeen: (seen: boolean) => void;
     setPomodoroVisible: (visible: boolean) => void;
     setCustomTimerSeconds: (seconds: number) => void;
     setDebugModeEnabled: (enabled: boolean) => void;
@@ -240,9 +242,10 @@ export const useTaskStore = create<TaskStore>()(
             pomodoroNotifId: null,
             pomodoroVisible: false,
             parkingSession: null,
-            parkingReminderEnabled: false,
+            parkingReminderEnabled: true,
             parkingSuppressedUntil: null,
             parkingArmPromptVisible: false,
+            parkingDisclosureSeen: false,
             statusFilters: new Set(),
             categoryFilters: new Set(),
             priorityFilters: new Set(),
@@ -575,6 +578,8 @@ export const useTaskStore = create<TaskStore>()(
 
             setParkingArmPromptVisible: (visible) => set({ parkingArmPromptVisible: visible }),
 
+            setParkingDisclosureSeen: (seen) => set({ parkingDisclosureSeen: seen }),
+
             setPomodoroVisible: (visible) => set({ pomodoroVisible: visible }),
 
             setCustomTimerSeconds: (seconds) => set({
@@ -656,6 +661,7 @@ export const useTaskStore = create<TaskStore>()(
                 parkingSession: state.parkingSession,
                 parkingReminderEnabled: state.parkingReminderEnabled,
                 parkingSuppressedUntil: state.parkingSuppressedUntil,
+                parkingDisclosureSeen: state.parkingDisclosureSeen,
                 customTimerSeconds: state.customTimerSeconds,
                 debugModeEnabled: state.debugModeEnabled,
                 darkMode: state.darkMode,

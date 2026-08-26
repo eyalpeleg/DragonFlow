@@ -138,8 +138,11 @@ export default function AddTaskModal({ isVisible, onClose, onAdd, initialTitle, 
     // Only runs on open; the normal "+" path passes no initial values and is unaffected.
     useEffect(() => {
         if (!isVisible) return;
+        // Intentional prop→state sync on open (guarded by isVisible); safe here.
+        /* eslint-disable react-hooks/set-state-in-effect */
         if (initialTitle !== undefined) setTitle(initialTitle);
         if (initialDescription !== undefined) setDescription(initialDescription);
+        /* eslint-enable react-hooks/set-state-in-effect */
         // eslint-disable-next-line react-hooks/exhaustive-deps
     }, [isVisible]);
 

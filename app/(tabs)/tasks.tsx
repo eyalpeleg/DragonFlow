@@ -44,6 +44,7 @@ export default function TasksScreen() {
     // Shared-text target: open the Add Task modal pre-filled when text is shared in.
     const { prefill, clearPrefill } = useShareIntent();
     useEffect(() => {
+        // eslint-disable-next-line react-hooks/set-state-in-effect
         if (prefill) setAddModalVisible(true);
     }, [prefill]);
     // Parking reminder: arm prompt on parking-app background; action sheet on bubble tap.

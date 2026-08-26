@@ -24,7 +24,7 @@
 - **Live countdown on the floating bubble** to the parking-end time while a session is active, switching to an **overdue** state once the end passes.
 - **Shared bubble with a defined precedence.** The single floating bubble now has **three** possible owners — urgent **task-count**, **pomodoro**, and **parking-timer**. Precedence: **parking-timer > pomodoro > task-count** (a missed parking reminder has real monetary cost and happens while the user is away from the app; the suppressed owner keeps its own in-app surface and reclaims the bubble when parking clears).
 - **Extend** the parking end by **5 / 15 / 30 / 60 min**, available in *both* states — proactively while the timer is still running, and after it's expired (still parking) — from the bubble, the nudge notification, or in-app. Extend supersedes the earlier standalone "Snooze 15m".
-- Prompt-fatigue guardrails: <20s debounce, dismissal cooldown, suppress-while-active, global enable toggle (**default OFF**).
+- Prompt-fatigue guardrails: <20s debounce, dismissal cooldown, suppress-while-active, global enable toggle (**default ON** — see Amendment below).
 - **Usage-access permission-request UX** + honest prominent-disclosure copy (folded in).
 - **BootReceiver** extension to restore an active session's bubble/notification after reboot (folded in).
 - Settings section: enable toggle + grant/permission-state affordance.
@@ -69,11 +69,12 @@ No **Blocks**-type dependency — the feature proceeds and ships on its own.
 - **AC9** *(Suppress while active)* **[T]** **Given** a `parkingSession` is already active, **when** Pango is backgrounded again, **then** no new arm prompt is shown.
 - **AC10** *(Not parking → cooldown)* **[T]** **when** the user taps **Not parking**, **then** no session is created and arm prompts are suppressed for **~30 min** from that dismissal.
 - **AC11** *(Stop asking today)* **[T]** **when** the user taps **Stop asking today**, **then** arm prompts are suppressed until **local midnight**, after which the feature resumes automatically (the global enable stays ON).
-- **AC12** *(Global toggle default off)* **[T]** **Given** a fresh install / user who never opted in, **then** `pangoReminderEnabled` defaults **false** and no monitoring/polling occurs until the user enables it.
+- **AC12** *(Global toggle default on)* **[T]** **Given** a fresh install, **then** `parkingReminderEnabled` defaults **true**; actual monitoring/polling still only starts once Usage access is granted (see AC13a/AC14) — the default flips who's opted in, not the permission gate.
 
 ### C. Permission & disclosure (P0)
-- **AC13** *(Disclosure before grant)* **[M]** **when** the user enables the feature, **then** a prominent-disclosure screen is shown first stating in plain language: DragonFlow only detects **that** Pango ran (not content), the data **never leaves the device**, and why Usage access is needed — with an explicit continue/cancel.
-- **AC14** *(Grant deep-link)* **[M]** **when** the user proceeds, **then** DragonFlow deep-links to **Settings → Usage access** (`ACTION_USAGE_ACCESS_SETTINGS`); on return, the granted state is reflected in Settings.
+- **AC13** *(Disclosure before grant)* **[M]** **when** the user manually enables the feature from Settings (toggle was off, e.g. after having turned it off), **then** a prominent-disclosure screen is shown first stating in plain language: DragonFlow only detects **that** the parking app ran (not content), the data **never leaves the device**, and why Usage access is needed — with an explicit continue/cancel.
+- **AC13a** *(First-launch auto-disclosure)* **[M]** **Given** a fresh install (`parkingReminderEnabled` defaults true per AC12) **and** the disclosure has never been shown, **when** the app is first opened, **then** the same disclosure screen from AC13 is shown automatically, once, after the store rehydrates; a persisted `parkingDisclosureSeen` flag prevents it from reappearing on later launches. **If** the user cancels, the feature stays enabled in-app but inert (no Usage-access request) until they grant it later from Settings' "Grant usage access" affordance (AC15's not-granted state). **If** the user continues, proceed exactly as AC14.
+- **AC14** *(Grant deep-link)* **[M]** **when** the user proceeds (from AC13 or AC13a), **then** DragonFlow deep-links to **Settings → Usage access** (`ACTION_USAGE_ACCESS_SETTINGS`); on return, the granted state is reflected in Settings.
 - **AC15** *(Revoked surfaced)* **[M]** **Given** the feature is enabled but Usage access is later revoked, **then** Settings shows a clear "permission needed" state (not a silent no-op), and no prompts fire until re-granted.
 
 ### D. Privacy & security (P0/P1)
@@ -121,3 +122,7 @@ Design must specify:
 9. **Test plan** — mapping each **[T]** criterion to a unit test.
 
 ➡️ **Next:** `sdlc-design`.
+
+## Amendment (2026-08-26) — default-on + first-launch disclosure
+
+Post-ship change request: flip `parkingReminderEnabled`'s default to **ON** so new installs get the reminder without visiting Settings, while still honoring the P0 disclosure obligation (AC13). Resolution: **AC12** now documents the true default (true); **AC13** is scoped to the manual-toggle path; new **AC13a** covers the equivalent disclosure shown automatically, once, on first app launch — gated by a new persisted `parkingDisclosureSeen` flag so it never repeats. Declining leaves the feature enabled-but-inert; the existing Settings "Grant usage access" banner (AC15) remains the fallback path to complete the grant later. No change to the underlying permission mechanics (still a Settings deep-link — Android has no silent grant for Usage access) or to any other AC. See [design.md](design.md) Amendment section for the mechanism.
