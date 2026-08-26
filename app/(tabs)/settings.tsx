@@ -11,6 +11,7 @@ import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
 import ParkingWatcher from '@/src/modules/ParkingWatcher';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
+import ParkingDisclosureModal from '@/src/components/ParkingDisclosureModal';
 import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
 import VolumeControl from '@/src/components/VolumeControl';
 import { Category, SoundType } from '@/src/types';
@@ -702,37 +703,11 @@ export default function SettingsScreen() {
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal key={editingCategory?.id ?? 'none'} visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
 
-            {/* AC13 — prominent disclosure shown before enabling detection. */}
-            <Modal visible={parkingDisclosureVisible} transparent animationType="fade" onRequestClose={() => setParkingDisclosureVisible(false)}>
-                <View style={styles.parkingDiscOverlay}>
-                    <View style={styles.parkingDiscSheet}>
-                        <Text style={styles.parkingDiscTitle}>Before you enable this</Text>
-                        <Text style={styles.parkingDiscBody}>
-                            To notice when you’ve used your parking app, DragonFlow checks Android’s “Usage access”. It only detects
-                            <Text style={styles.parkingDiscBold}> that it ran</Text> — never what you do in it, and never any other app’s contents.
-                            {'\n\n'}This stays entirely on your device: nothing about your app usage is logged, sent, or included in cloud backup.
-                        </Text>
-                        <View style={styles.parkingDiscButtons}>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Cancel"
-                                style={({ pressed }) => [styles.parkingDiscCancel, pressed && { opacity: 0.7 }]}
-                                onPress={() => setParkingDisclosureVisible(false)}
-                            >
-                                <Text style={styles.parkingDiscCancelText}>Cancel</Text>
-                            </Pressable>
-                            <Pressable
-                                accessibilityRole="button"
-                                accessibilityLabel="Continue and grant usage access"
-                                style={({ pressed }) => [styles.parkingDiscContinue, pressed && { opacity: 0.7 }]}
-                                onPress={confirmParkingDisclosure}
-                            >
-                                <Text style={styles.parkingDiscContinueText}>Continue</Text>
-                            </Pressable>
-                        </View>
-                    </View>
-                </View>
-            </Modal>
+            <ParkingDisclosureModal
+                visible={parkingDisclosureVisible}
+                onCancel={() => setParkingDisclosureVisible(false)}
+                onContinue={confirmParkingDisclosure}
+            />
 
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
@@ -904,16 +879,6 @@ const makeStyles = (c: AppColors) => StyleSheet.create({
         borderRadius: 10,
     },
     signInText: { color: c.white, fontWeight: 'bold', fontSize: 15 },
-    parkingDiscOverlay: { flex: 1, backgroundColor: c.overlay.scrimDeep, justifyContent: 'center', alignItems: 'center' },
-    parkingDiscSheet: { backgroundColor: c.surfaceElevated, borderRadius: 16, padding: 20, width: '85%' },
-    parkingDiscTitle: { fontSize: 18, fontWeight: '700', color: c.text.primary, marginBottom: 12 },
-    parkingDiscBody: { fontSize: 14, color: c.text.muted, lineHeight: 20 },
-    parkingDiscBold: { fontWeight: '700', color: c.text.primary },
-    parkingDiscButtons: { flexDirection: 'row', justifyContent: 'flex-end', gap: 10, marginTop: 20 },
-    parkingDiscCancel: { minHeight: 44, justifyContent: 'center', paddingHorizontal: 16 },
-    parkingDiscCancelText: { color: c.text.weak, fontSize: 14 },
-    parkingDiscContinue: { minHeight: 44, justifyContent: 'center', backgroundColor: c.primary, paddingHorizontal: 20, borderRadius: 10 },
-    parkingDiscContinueText: { color: c.surface, fontWeight: '700', fontSize: 14 },
     cloudSignInWrapper: { alignItems: 'center', paddingVertical: 8 },
     cloudUserRow: { flexDirection: 'row', alignItems: 'center', paddingVertical: 10 },
     cloudUserEmail: { fontSize: 12, color: c.text.placeholder, flex: 1, marginLeft: 8 },
