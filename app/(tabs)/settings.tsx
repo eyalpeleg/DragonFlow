@@ -1,6 +1,5 @@
-import React, { useCallback, useState } from 'react';
-import { ActivityIndicator, Alert, AppState, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
-import { useFocusEffect } from 'expo-router';
+import React, { useState } from 'react';
+import { ActivityIndicator, Alert, FlatList, Modal, Pressable, ScrollView, StyleSheet, Switch, Text, TextInput, View } from 'react-native';
 import { Image } from 'expo-image';
 import { SafeAreaView } from 'react-native-safe-area-context';
 import { Ionicons } from '@expo/vector-icons';
@@ -8,10 +7,8 @@ import Constants from 'expo-constants';
 import { AppColors } from '@/src/styles/theme';
 import { useColors } from '@/src/styles/useColors';
 import { DEFAULT_CATEGORY_ID, useTaskStore } from '@/src/store/appStore';
-import ParkingWatcher from '@/src/modules/ParkingWatcher';
 import AddCategoryModal from '@/src/components/AddCategoryModal';
 import EditCategoryModal from '@/src/components/EditCategoryModal';
-import ParkingDisclosureModal from '@/src/components/ParkingDisclosureModal';
 import SoundSelectorDropdown from '@/src/components/SoundSelectorDropdown';
 import VolumeControl from '@/src/components/VolumeControl';
 import { Category, SoundType } from '@/src/types';
@@ -193,7 +190,7 @@ export default function SettingsScreen() {
     const colors = useColors();
     const styles = makeStyles(colors);
     const switchTrackColor = { false: colors.text.disabled, true: colors.secondary };
-    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, parkingReminderEnabled, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone, setParkingReminderEnabled } = useTaskStore();
+    const { showBubbleInBackground, defaultTaskTime, firstDayOfWeek, pomodoroSoundType, tasksSoundType, pomodoroVolume, tasksVolume, categories, debugModeEnabled, darkMode, reflectOnDone, deleteCategory, setShowBubbleInBackground, setDefaultTaskTime, setFirstDayOfWeek, setPomodoroSoundType, setTasksSoundType, setPomodoroVolume, setTasksVolume, setDebugModeEnabled, setDarkMode, setReflectOnDone } = useTaskStore();
     const [tempTime, setTempTime] = useState(defaultTaskTime);
     const [addCatVisible, setAddCatVisible] = useState(false);
     const [editingCategory, setEditingCategory] = useState<Category | null>(null);
@@ -201,37 +198,6 @@ export default function SettingsScreen() {
     const [pomodoroDropdownOpen, setPomodoroDropdownOpen] = useState(false);
     const [tasksVolumeVisible, setTasksVolumeVisible] = useState(false);
     const [pomodoroVolumeVisible, setPomodoroVolumeVisible] = useState(false);
-
-    // Parking reminder: track the (revocable) Usage-access grant and the disclosure gate.
-    const [parkingUsageGranted, setParkingUsageGranted] = useState(true);
-    const [parkingDisclosureVisible, setParkingDisclosureVisible] = useState(false);
-    const refreshUsageAccess = useCallback(() => {
-        ParkingWatcher.hasUsageAccess().then(setParkingUsageGranted).catch(() => {});
-    }, []);
-    // Re-check on focus + when returning from the system settings screen (AC15).
-    useFocusEffect(useCallback(() => {
-        refreshUsageAccess();
-        const sub = AppState.addEventListener('change', (s) => { if (s === 'active') refreshUsageAccess(); });
-        return () => sub.remove();
-    }, [refreshUsageAccess]));
-
-    function handleToggleParking(next: boolean) {
-        console.log(`[ParkingWatcher] USER: toggled parking reminder ${next ? 'ON' : 'OFF'} (settings)`);
-        if (next) {
-            setParkingDisclosureVisible(true); // AC13 — disclosure before enabling
-        } else {
-            setParkingReminderEnabled(false);
-        }
-    }
-    function confirmParkingDisclosure() {
-        console.log('[ParkingWatcher] USER: confirmed disclosure → enabling parking reminder (settings)');
-        setParkingDisclosureVisible(false);
-        setParkingReminderEnabled(true);
-        ParkingWatcher.hasUsageAccess().then((granted) => {
-            setParkingUsageGranted(granted);
-            if (!granted) ParkingWatcher.requestUsageAccess(); // AC14 — deep-link to grant
-        }).catch(() => {});
-    }
 
     const { isSignedIn, userEmail, autoBackupEnabled, lastBackupTime, backupStatus, setAutoBackup, setSignedIn, setSignedOut } = useBackupStore();
     const [restorePickerVisible, setRestorePickerVisible] = useState(false);
@@ -387,35 +353,6 @@ export default function SettingsScreen() {
                             thumbColor={colors.white}
                         />
                     </View>
-                </CollapsibleSection>
-
-                <CollapsibleSection title="Parking Reminder">
-                    <View style={styles.settingRow}>
-                        <View style={styles.settingLabel}>
-                            <Ionicons name="car-outline" size={20} color={colors.secondary} />
-                            <View style={styles.ml12}>
-                                <Text style={styles.settingTitle}>Parking reminder</Text>
-                                <Text style={styles.settingDesc}>When you use your parking app, offer to remind you to stop the parking session</Text>
-                            </View>
-                        </View>
-                        <Switch
-                            value={parkingReminderEnabled}
-                            onValueChange={handleToggleParking}
-                            trackColor={switchTrackColor}
-                            thumbColor={colors.white}
-                        />
-                    </View>
-                    {parkingReminderEnabled && !parkingUsageGranted && (
-                        <Pressable
-                            accessibilityRole="button"
-                            accessibilityLabel="Grant usage access"
-                            style={({ pressed }) => [styles.signInBtn, pressed && { opacity: 0.7 }]}
-                            onPress={() => { console.log('[ParkingWatcher] USER: clicked Grant usage access (settings)'); ParkingWatcher.requestUsageAccess(); }}
-                        >
-                            <Ionicons name="warning-outline" size={18} color={colors.white} />
-                            <Text style={styles.signInText}>Grant “Usage access” to enable detection</Text>
-                        </Pressable>
-                    )}
                 </CollapsibleSection>
 
                 <CollapsibleSection title="Audio">
@@ -702,12 +639,6 @@ export default function SettingsScreen() {
 
             <AddCategoryModal visible={addCatVisible} onClose={() => setAddCatVisible(false)} />
             <EditCategoryModal key={editingCategory?.id ?? 'none'} visible={!!editingCategory} category={editingCategory} onClose={() => setEditingCategory(null)} />
-
-            <ParkingDisclosureModal
-                visible={parkingDisclosureVisible}
-                onCancel={() => setParkingDisclosureVisible(false)}
-                onContinue={confirmParkingDisclosure}
-            />
 
             <SoundSelectorDropdown
                 visible={tasksDropdownOpen}
