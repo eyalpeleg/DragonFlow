@@ -26,8 +26,6 @@ try {
     'FloatingBubbleService.kt',
     'SoundAlarmReceiver.kt',
     'BootReceiver.kt',
-    'ParkingWatcherModule.kt',
-    'ParkingWatcherPackage.kt',
     'ServiceLauncher.kt'
   ];
 
@@ -132,12 +130,6 @@ tasks.configureEach { task ->
         'import com.plgsw.dragonflow.FloatingBubblePackage\nimport expo.modules.ReactNativeHostWrapper'
       );
     }
-    if (!mainApp.includes('import com.plgsw.dragonflow.ParkingWatcherPackage')) {
-      mainApp = mainApp.replace(
-        /import expo\.modules\.ReactNativeHostWrapper/,
-        'import com.plgsw.dragonflow.ParkingWatcherPackage\nimport expo.modules.ReactNativeHostWrapper'
-      );
-    }
 
     // Add package registration if not present
     if (!mainApp.includes('add(FloatingBubblePackage())')) {
@@ -146,15 +138,9 @@ tasks.configureEach { task ->
         'PackageList(this).packages.apply {\n              add(FloatingBubblePackage())\n$1\n            }'
       );
     }
-    if (!mainApp.includes('add(ParkingWatcherPackage())')) {
-      mainApp = mainApp.replace(
-        /add\(FloatingBubblePackage\(\)\)/,
-        'add(FloatingBubblePackage())\n              add(ParkingWatcherPackage())'
-      );
-    }
 
     fs.writeFileSync(mainAppKt, mainApp);
-    console.log('  ✓ MainApplication.kt (FloatingBubble + ParkingWatcher registration)');
+    console.log('  ✓ MainApplication.kt (FloatingBubble registration)');
   }
 
   // Recreate local.properties (wiped by prebuild:clean) using ANDROID_HOME or known default
