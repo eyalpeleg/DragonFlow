@@ -1,0 +1,245 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Privacy Policy — DragonFlow</title>
+<meta name="description" content="How DragonFlow handles your data: stored on your device, optional Google Drive backup, no analytics and no third-party tracking.">
+<meta name="theme-color" content="#1F0A3D">
+<link rel="icon" href="assets/favicon.png" type="image/png">
+<link rel="apple-touch-icon" href="assets/apple-touch-icon.png">
+<link rel="canonical" href="https://dragonflow.pages.dev/privacy.html">
+<link rel="stylesheet" href="styles.css">
+</head>
+<body>
+
+<a class="skip-link" href="#main">Skip to content</a>
+
+<header class="site-header">
+  <div class="wrap">
+    <a class="brand" href="/">
+      <img src="assets/icon-256.png" alt="" width="32" height="32">
+      DragonFlow
+    </a>
+    <nav class="nav" aria-label="Main">
+      <a href="/#features">Features</a>
+      <a href="/#install">Install</a>
+      <a href="https://github.com/eyalpeleg/DragonFlow">GitHub</a>
+    </nav>
+  </div>
+</header>
+
+<main id="main" class="wrap legal">
+
+  <h1>Privacy Policy</h1>
+  <p class="updated">Last updated: 15 September 2026 · Applies to the DragonFlow Android app (<code>com.plgsw.dragonflow</code>) and this website.</p>
+
+  <div class="callout">
+    <p>
+      <strong>The short version.</strong> DragonFlow has no server and no user accounts. Everything
+      you create stays in the app's private storage on your own device. If — and only if — you
+      switch on Google&nbsp;Drive backup, a copy is written to a private folder in your own Drive
+      that no one else can read. There is no analytics, no advertising and no tracking of any kind.
+    </p>
+  </div>
+
+  <h2>1. Who is responsible</h2>
+  <p>
+    DragonFlow is a personal, open-source project published by <strong>plgsw</strong>. The complete
+    source code is available at
+    <a href="https://github.com/eyalpeleg/DragonFlow">github.com/eyalpeleg/DragonFlow</a> under the
+    Apache-2.0 licence, so every claim on this page can be verified against the code.
+  </p>
+
+  <h2>2. What the app stores</h2>
+  <p>
+    All of the following is created by you and kept locally on your device, in the app's private
+    storage area. It is not transmitted anywhere by the app on its own.
+  </p>
+
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Data</th><th>What it is</th><th>Where it lives</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Tasks</td>
+          <td>Titles, descriptions, priority, due dates and times, status, sub-tasks, recurrence settings and completion notes</td>
+          <td>On device</td>
+        </tr>
+        <tr>
+          <td>Categories</td>
+          <td>Names and colours you assign to group tasks</td>
+          <td>On device</td>
+        </tr>
+        <tr>
+          <td>Preferences</td>
+          <td>Theme, first day of week, default task time, notification and bubble settings, Pomodoro configuration</td>
+          <td>On device</td>
+        </tr>
+        <tr>
+          <td>Google account email</td>
+          <td>Shown in Settings so you can see which account backups go to. Only present if you sign in.</td>
+          <td>On device</td>
+        </tr>
+        <tr>
+          <td>Backup copies</td>
+          <td>A snapshot of the data above, in JSON form</td>
+          <td>Your Google&nbsp;Drive, only if you enable backup</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <p>
+    <strong>We do not collect</strong> your name, contacts, location, photos, calendar, device
+    identifiers, advertising ID, or any record of how you use the app.
+  </p>
+
+  <h2>3. Google Drive backup (optional)</h2>
+  <p>
+    Backup is off until you sign in from the Settings screen. When you do, DragonFlow uses Google
+    Sign-In and requests a single scope:
+  </p>
+  <ul>
+    <li><code>https://www.googleapis.com/auth/drive.appdata</code> — access to the application data
+      folder in your Drive.</li>
+  </ul>
+
+  <h3>What that scope can and cannot do</h3>
+  <ul>
+    <li>Backups are written to Drive's hidden <code>appDataFolder</code>. This area is private to
+      DragonFlow: it does not appear in your Drive file list, and other apps cannot read it.</li>
+    <li>This scope gives <strong>no access</strong> to the rest of your Drive — your documents,
+      photos and other files are invisible to the app.</li>
+    <li>The backup contains your tasks, categories and preferences, and nothing else.</li>
+    <li>The data is transferred directly between your device and Google's servers over HTTPS. It
+      does not pass through any server operated by us, because there isn't one.</li>
+    <li>Older backups are pruned automatically so only recent snapshots are kept.</li>
+  </ul>
+
+  <h3>Limited use disclosure</h3>
+  <p>
+    DragonFlow's use and transfer of information received from Google APIs adheres to the
+    <a href="https://developers.google.com/terms/api-services-user-data-policy">Google API Services
+    User Data Policy</a>, including the Limited Use requirements. Data obtained through these APIs
+    is used solely to back up and restore your own tasks, is never sold, never transferred to third
+    parties, and is never used for advertising or to train machine-learning models.
+  </p>
+
+  <h3>Turning it off</h3>
+  <p>
+    Sign out from the Settings screen to stop backing up. You can delete the stored backups at any
+    time by revoking DragonFlow's access at
+    <a href="https://myaccount.google.com/permissions">myaccount.google.com/permissions</a>, which
+    also removes the app data folder, or by deleting hidden app data from Drive's settings.
+  </p>
+
+  <h2>4. Manual export and import</h2>
+  <p>
+    You can export your data to a JSON file and share or save it wherever you choose. Once that file
+    leaves the app it is entirely in your hands — the destination you send it to is governed by that
+    service's own privacy policy, not this one.
+  </p>
+
+  <h2>5. Permissions the app asks for</h2>
+  <div class="table-wrap">
+    <table>
+      <thead>
+        <tr><th>Permission</th><th>Why it is needed</th></tr>
+      </thead>
+      <tbody>
+        <tr>
+          <td>Notifications</td>
+          <td>Due-date reminders, daily task summaries and Pomodoro alerts. All notifications are generated on your device; none are pushed from a server.</td>
+        </tr>
+        <tr>
+          <td>Display over other apps</td>
+          <td>Draws the optional floating bubble showing your urgent task count. Reads nothing from the apps underneath it.</td>
+        </tr>
+        <tr>
+          <td>Run at startup</td>
+          <td>Restores the floating bubble after the device reboots.</td>
+        </tr>
+        <tr>
+          <td>Foreground service</td>
+          <td>Keeps the bubble alive while the app is in the background.</td>
+        </tr>
+        <tr>
+          <td>Exact alarms</td>
+          <td>Fires reminders at the time you set rather than whenever the system gets around to it.</td>
+        </tr>
+        <tr>
+          <td>Internet</td>
+          <td>Used only for Google&nbsp;Drive backup. With backup off, the app makes no network requests.</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+
+  <h2>6. Sharing text into DragonFlow</h2>
+  <p>
+    DragonFlow registers as an Android share target for text. When you share text to it from another
+    app, that text is used to pre-fill a new task on your device. It is not sent anywhere else.
+  </p>
+
+  <h2>7. Third parties</h2>
+  <p>
+    The only external service the app can contact is <strong>Google</strong> — for sign-in and Drive
+    backup, and only after you opt in. Google's handling of that data is covered by the
+    <a href="https://policies.google.com/privacy">Google Privacy Policy</a>. There are no analytics
+    SDKs, crash reporters, advertising networks or social media trackers in the app.
+  </p>
+
+  <h2>8. This website</h2>
+  <p>
+    This site is a set of static pages hosted on Cloudflare&nbsp;Pages. It sets no cookies, runs no
+    analytics and embeds no third-party scripts or fonts. Cloudflare processes standard server
+    request logs (such as IP address and user agent) to serve and protect the site; see the
+    <a href="https://www.cloudflare.com/privacypolicy/">Cloudflare Privacy Policy</a>.
+  </p>
+
+  <h2>9. Data retention and deletion</h2>
+  <p>
+    Your data stays for as long as you keep it. Deleting a task removes it from the device. To erase
+    everything, uninstall the app or clear its storage from Android's app settings — and, if you
+    used Drive backup, revoke access as described in section&nbsp;3. Because we hold no copy of your
+    data, there is nothing for us to delete on your behalf.
+  </p>
+
+  <h2>10. Children</h2>
+  <p>
+    DragonFlow is a general-purpose task manager and is not directed at children under 13. It
+    collects no personal information from anyone, children included.
+  </p>
+
+  <h2>11. Changes to this policy</h2>
+  <p>
+    If the app's data handling changes, this page is updated and the date at the top changes with
+    it. Past versions are visible in the repository's commit history.
+  </p>
+
+  <h2>12. Contact</h2>
+  <p>
+    Questions about privacy, or a correction to this page? Open an issue at
+    <a href="https://github.com/eyalpeleg/DragonFlow/issues">github.com/eyalpeleg/DragonFlow/issues</a>.
+  </p>
+
+</main>
+
+<footer class="site-footer">
+  <div class="wrap">
+    <p>© <span id="year">2026</span> plgsw · DragonFlow is open source under the Apache-2.0 licence.</p>
+    <nav class="footer-links" aria-label="Footer">
+      <a href="/">Home</a>
+      <a href="https://github.com/eyalpeleg/DragonFlow">GitHub</a>
+      <a href="https://github.com/eyalpeleg/DragonFlow/issues">Report an issue</a>
+    </nav>
+  </div>
+</footer>
+
+<script src="main.js"></script>
+
+</body>
+</html>
