@@ -2,12 +2,11 @@
   "expo": {
     "name": "DragonFlow",
     "slug": "DragonFlow",
-    "version": "1.0.6",
+    "version": "1.0.9",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
     "scheme": "dragonflow",
     "userInterfaceStyle": "automatic",
-    "newArchEnabled": true,
     "ios": {
       "supportsTablet": true,
       "bundleIdentifier": "com.plgsw.dragonflow"
@@ -18,15 +17,10 @@
         "foregroundImage": "./assets/images/android-icon-foreground.png",
         "monochromeImage": "./assets/images/android-icon-monochrome.png"
       },
-      "edgeToEdgeEnabled": true,
       "softwareKeyboardLayoutMode": "resize",
       "predictiveBackGestureEnabled": false,
       "package": "com.plgsw.dragonflow",
-      "versionCode": 7
-    },
-    "androidNavigationBar": {
-      "barStyle": "dark-content",
-      "backgroundColor": "#FFFFFF"
+      "versionCode": 10
     },
     "androidStatusBar": {
       "barStyle": "light-content",
@@ -59,6 +53,20 @@
           "icon": "./assets/images/icon.png",
           "color": "#6200EE",
           "defaultChannel": "dragonflow"
+        }
+      ],
+      "expo-asset",
+      "expo-audio",
+      "expo-font",
+      "expo-image",
+      "expo-sharing",
+      "expo-status-bar",
+      "expo-web-browser",
+      [
+        "expo-share-intent",
+        {
+          "androidIntentFilters": ["text/*"],
+          "disableIOS": true
         }
       ]
     ],

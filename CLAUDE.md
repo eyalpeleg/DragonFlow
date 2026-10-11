@@ -51,6 +51,7 @@ Quick lookup so changes start at the right file. The store hook is `useTaskStore
 | Add/Edit task & category modals, filters | `src/components/AddTaskModal.tsx`, `EditTaskModal.tsx`, `AddCategoryModal.tsx`, `EditCategoryModal.tsx`, `FilterModal.tsx`, `StatusFilter.tsx` |
 | Tab screens | `app/(tabs)/{tasks,pomodoro,progress,settings}.tsx` |
 | Tests | co-located `__tests__/` dirs under `store/`, `utils/`, `services/` |
+| Public website (landing page, privacy policy) | `web/` — static HTML/CSS, no build step; deployed to Cloudflare Pages (see `web/README.md`) |
 
 > **Keep this table current.** This file is loaded into context every session and is the primary code map. When you move, rename, split, or add a file/symbol referenced above (or add a new area worth indexing), update the matching row in the same change — treat a stale pointer as a bug. Verify the path/symbol resolves before committing.
 

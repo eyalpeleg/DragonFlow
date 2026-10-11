@@ -3,7 +3,7 @@
 Step-by-step guide for submitting DragonFlow to the Google Play Store for the first time. Future releases reuse the cheat sheet at the bottom.
 
 **Package**: `com.plgsw.dragonflow`
-**Current version**: 1.0.3 (versionCode 4)
+**Current version**: 1.0.9 (versionCode 10)
 **Track strategy**: Internal Testing first → promote to Production after verification on real devices.
 **Signing**: Local upload keystore + env vars (consumed by [`android/app/build.gradle:108`](../../android/app/build.gradle#L108-L116)). Google handles the final signing key via Play App Signing.
 
@@ -16,7 +16,9 @@ Step-by-step guide for submitting DragonFlow to the Google Play Store for the fi
 3. **`SYSTEM_ALERT_WINDOW`** is high-scrutiny. Justification: floating task bubble that the user explicitly grants.
 4. **Data Safety form is mandatory** before any track release goes live, even Internal Testing.
 5. **Keystore loss = lost app forever.** Back up the keystore file + all four passwords to a password manager **before** the first build. There is no recovery path — losing it forces a new package name and a new app listing.
-6. **Store listing assets don't fully exist yet.** Only the app icon is present in `assets/`. Feature graphic (1024×500) and at least 2 phone screenshots must be created before the listing can go live.
+6. **Store listing assets don't fully exist yet.** Only the app icon is present in `assets/`. Feature graphic (1024×500) and at least 2 phone screenshots must be created before the listing can go live. Text content (descriptions, release notes, privacy policy, data-safety answers) is drafted in [store-listing.md](./store-listing.md) and [privacy-policy.md](./privacy-policy.md) — just needs pasting in, plus a public URL for the privacy policy (see store-listing.md's "Privacy policy" section).
+
+> Note: the app no longer requests `PACKAGE_USAGE_STATS` — the parking-reminder feature that needed it was extracted into a separate app (`ParkingValet`). The sensitive-permissions list below is the full, current set.
 
 ---
 
@@ -76,8 +78,8 @@ For EAS cloud builds, these must also be set as **EAS Secrets** (per project) �
 
 Run through this checklist before building:
 
-- [ ] [`app.json:5`](../../app.json#L5) `expo.version` matches [`android/app/build.gradle:96`](../../android/app/build.gradle#L96) `versionName` (currently both `1.0.3`).
-- [ ] [`app.json:25`](../../app.json#L25) `expo.android.versionCode` matches [`android/app/build.gradle:95`](../../android/app/build.gradle#L95) `versionCode` (currently both `4`). **versionCode is what Play uses to order releases — must be strictly higher than any previously uploaded build.**
+- [ ] [`app.json:5`](../../app.json#L5) `expo.version` matches [`android/app/build.gradle:96`](../../android/app/build.gradle#L96) `versionName` (currently both `1.0.9` — `./release.sh --play` bumps both together via prebuild, so this should always hold after a release build).
+- [ ] [`app.json:25`](../../app.json#L25) `expo.android.versionCode` matches [`android/app/build.gradle:95`](../../android/app/build.gradle#L95) `versionCode` (currently both `10`). **versionCode is what Play uses to order releases — must be strictly higher than any previously uploaded build.**
 - [ ] [`app.json:24`](../../app.json#L24) `package` is `com.plgsw.dragonflow` (cannot change after first publish).
 - [ ] Permissions in [`AndroidManifest.xml`](../../android/app/src/main/AndroidManifest.xml) match the list you'll declare in step 8.
 - [ ] [`eas.json:16`](../../eas.json#L16) production profile has `distribution: "store"`.
@@ -179,21 +181,23 @@ Play Console → **App content** → "Sensitive app permissions" (or the inline 
 
 ## 9. Main store listing
 
+All copy is pre-drafted and ready to paste — see [store-listing.md](./store-listing.md) for the short/full description, release notes, category/tags, and the Data Safety answers; see [privacy-policy.md](./privacy-policy.md) for the policy text itself.
+
 Play Console → **Main store listing**:
 
 | Field | Value / Notes |
 |---|---|
 | App name | DragonFlow |
-| Short description | ≤ 80 chars. Example: "A calm task manager for daily, weekly, and recurring goals. Local-first." |
-| Full description | ≤ 4000 chars. Cover: what it does, key features (categories, priorities, recurrence, floating bubble, Pomodoro, Drive backup), what it doesn't do (no ads, no tracking, local-first). |
+| Short description | ≤ 80 chars. Drafted in [store-listing.md](./store-listing.md). |
+| Full description | ≤ 4000 chars. Drafted in [store-listing.md](./store-listing.md). |
 | App icon | 512×512 PNG, 32-bit. Source: derive from [`assets/images/icon.png`](../../assets/images/icon.png) (resize/export to exactly 512×512). |
 | Feature graphic | **1024×500 PNG/JPG** — TO CREATE. Hero image shown at the top of the listing. |
 | Phone screenshots | **Min 2, max 8**, 16:9 or 9:16, min 320px, max 3840px. TO CREATE — capture from a real device showing the tasks tab, daily view, a task card with subtasks, and the floating bubble. |
 | App category | Productivity |
-| Tags | task manager, productivity, todo |
-| Contact email | Use your support email (e.g. `eyal.peleg@sisense.com` or a dedicated alias). |
-| Website | Optional — link to a GitHub Pages page or omit. |
-| Privacy policy | **Required URL**. Must exist before release. Simplest path: create `docs/privacy-policy.md` rendered via GitHub Pages, or use a free generator (e.g. https://app-privacy-policy-generator.firebaseapp.com/). Must list: Drive backup, no third-party sharing, no analytics tracking IDs (unless you ship them). |
+| Tags | task manager, to-do list, productivity, pomodoro |
+| Contact email | `eyalpeleg@gmail.com` (confirm this is the email you want public on the listing, or swap for a dedicated alias). |
+| Website | Optional — omit, or add later if you stand up a project page. |
+| Privacy policy | **Required URL**. Content is written ([privacy-policy.md](./privacy-policy.md)) but needs a public host — Play rejects a GitHub blob/raw link to a `.md` file, it needs to render as a real page. Easiest: enable GitHub Pages on this repo (Settings → Pages → source = `/docs`), which would serve it at `https://eyalpeleg.github.io/DragonFlow/release/privacy-policy`. Not yet turned on. |
 
 Save the listing.
 

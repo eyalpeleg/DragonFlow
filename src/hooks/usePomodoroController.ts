@@ -146,10 +146,7 @@ export function usePomodoroController(): PomodoroController {
 
     useEffect(() => {
         const sub = AppState.addEventListener('change', (nextState: string) => {
-            // Parking takes the bubble over pomodoro (AC7a); if a session is active,
-            // let the parking handler own the overlay and don't drive it here.
-            if (nextState === 'background' && runningRef.current && endTimeRef.current
-                && !useTaskStore.getState().parkingSession) {
+            if (nextState === 'background' && runningRef.current && endTimeRef.current) {
                 const { score, message } = getFallbackBubble();
                 const { pomodoroSoundType, pomodoroVolume } = useTaskStore.getState();
                 FloatingBubble.startPomodoroTimer(

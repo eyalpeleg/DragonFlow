@@ -37,7 +37,7 @@ const mockFetch = jest.fn();
 
 beforeEach(() => {
     jest.clearAllMocks();
-    (global as any).fetch = mockFetch;
+    (globalThis as any).fetch = mockFetch;
 });
 
 function authHeaderOf(callIndex: number): string {
